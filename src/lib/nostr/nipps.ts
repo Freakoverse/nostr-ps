@@ -489,7 +489,9 @@ export async function fetchDrafts(relays: string[], filter: Partial<Filter> = {}
 export async function fetchDraft(relays: string[], pubkey: string, uuid: string): Promise<Draft | null> {
   const evs = await fetchEvents(relays, { kinds: [KINDS.PS_DRAFT], authors: [pubkey], '#d': [uuid] }, 8000)
   const [d] = latestByCoord(parseAll(evs, parseDraft))
-  return d ?? null
+  // A tombstoned draft (replacement carrying the `deleted` tag) is gone for
+  // every caller: the page, the editor and the release form all see null.
+  return d && !d.deleted ? d : null
 }
 
 export async function fetchReleases(relays: string[], filter: Partial<Filter> = {}, timeoutMs = 8000): Promise<Release[]> {

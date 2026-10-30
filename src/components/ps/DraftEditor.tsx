@@ -32,6 +32,14 @@ export function DraftEditor({ initial, prefill }: { initial?: Draft; prefill?: P
 
   const busy = status !== null && status !== 'done' && status !== 'error'
 
+  // Editing an existing draft: only an actual change is worth a new event.
+  const dirty = !initial
+    || title.trim() !== initial.title
+    || (summary.trim() || '') !== (initial.summary ?? '')
+    || content !== initial.content
+    || JSON.stringify(kinds) !== JSON.stringify(initial.kinds)
+    || JSON.stringify(topics) !== JSON.stringify(initial.topics)
+
   const save = async () => {
     if (!title.trim()) { toast.error('Give the draft a title'); return }
     if (!content.trim()) { toast.error('The draft body is empty'); return }
@@ -95,10 +103,14 @@ export function DraftEditor({ initial, prefill }: { initial?: Draft; prefill?: P
       </div>
 
       <div className="flex items-center justify-end gap-3">
-        {status && status !== 'done' && <span className="text-xs text-neutral-500">{STATUS_TEXT[status]}</span>}
-        <Button onClick={save} disabled={busy} className="gap-2 bg-purple-600 text-white hover:bg-purple-700">
+        {status && status !== 'done' ? (
+          <span className="text-xs text-neutral-500">{STATUS_TEXT[status]}</span>
+        ) : initial && !dirty ? (
+          <span className="text-xs text-neutral-500">No changes since the published version.</span>
+        ) : null}
+        <Button onClick={save} disabled={busy || !dirty} className="gap-2 bg-purple-600 text-white hover:bg-purple-700">
           {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Save className="h-4 w-4" />}
-          {initial ? 'Save draft' : 'Publish draft'}
+          {initial ? 'Publish draft edit' : 'Publish draft'}
         </Button>
       </div>
     </div>

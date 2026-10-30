@@ -75,9 +75,13 @@ export function DraftPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <Chip>draft</Chip>
-            {draft.deleted && <Chip className="border-red-500/30 text-red-400">deleted</Chip>}
           </div>
           <PostMenu event={draft.event}>
+            {isAuthor && (
+              <DropdownMenuItem asChild className="cursor-pointer">
+                <Link to={`/draft/${naddr}/edit`}><Pencil className="h-4 w-4 mr-2" /> Edit</Link>
+              </DropdownMenuItem>
+            )}
             {isAuthor && (
               <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="cursor-pointer text-red-400 focus:text-red-300">
                 <Trash2 className="h-4 w-4 mr-2" /> Request deletion
