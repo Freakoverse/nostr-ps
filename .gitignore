@@ -1,0 +1,34 @@
+# Dependencies
+node_modules/
+
+# Build output
+dist/
+dist-ssr/
+*.local
+
+# Logs
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Env / secrets
+.env
+.env.*
+!.env.example
+
+# Editor / OS
+.vscode/*
+!.vscode/extensions.json
+.idea/
+# Claude Code: local tool permissions and dev-server paths, both machine-specific
+.claude/
+.DS_Store
+Thumbs.db
+*.sw?
+
+# Vite / tooling caches
+.vite/
+*.tsbuildinfo
