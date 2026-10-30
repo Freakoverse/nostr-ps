@@ -32,13 +32,18 @@ Replace `public/favicon.png`. The header and login card show the text
 
 ## Guide A: GitHub Pages
 
-1. Enable Pages on the repository, source "GitHub Actions" or a `gh-pages`
-   branch.
-2. Build with `npm run build:ghpages`. It copies `dist/index.html` to
-   `dist/404.html`, which is how deep links survive a reload on Pages: the
-   404 page carries the SPA redirect shim from `index.html`.
-3. If you serve from a custom domain, add a `public/CNAME` file containing
-   that domain so it is copied into `dist/`.
+1. In the repository settings, under Pages, set the source to **GitHub
+   Actions**. Do not pick "Deploy from a branch": that serves the source
+   `index.html`, which references `/src/main.tsx` and 404s.
+2. The workflow in `.github/workflows/pages.yml` builds on every push to
+   `main` and deploys `dist/`. It sets `VITE_BASE=/<repo>/`, because a
+   project site lives under `https://<user>.github.io/<repo>/`. The Vite
+   `base` and the router's `basename` both read that value.
+3. The build script copies `dist/index.html` to `dist/404.html`. Pages
+   serves that for any unknown path, so a deep link such as
+   `/<repo>/draft/naddr1…` loads the app, and the router reads the path.
+4. For a custom domain at the root, add `public/CNAME` with the domain and
+   change the workflow's `VITE_BASE` to `/`.
 
 ## Guide B: Linux server (nginx)
 

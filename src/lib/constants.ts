@@ -48,8 +48,8 @@ export const SECURE_KEYS = {
 // graph is the anonymous default viewpoint (docs/CLIENT-LENS.md). Replace with
 // the deploying operator's key.
 
-export const ADMIN_NPUB = 'npub17jl3ldd6305rnacvwvchx03snauqsg4nz8mruq0emj9thdpglr2sst825x'
-export const ADMIN_PUBKEY = 'f4bf1fb5ba8be839f70c7331733e309f780822b311f63e01f9dc8abbb428f8d5'
+export const ADMIN_NPUB = 'npub18n4ysp43ux5c98fs6h9c57qpr4p8r3j8f6e32v0vj8egzy878aqqyzzk9r'
+export const ADMIN_PUBKEY = '3cea4806b1e1a9829d30d5cb8a78011d4271c6474eb31531ec91f28110fe3f40'
 
 // ─── Client (NIP-89) ────────────────────────────────────────────────
 

@@ -5,7 +5,11 @@ import path from 'path'
 
 import pkg from './package.json'
 
+// Served from a sub-path on a project GitHub Pages site (/<repo>/); "/" elsewhere.
+const base = process.env.VITE_BASE || '/'
+
 export default defineConfig({
+  base,
   plugins: [react(), tailwindcss()],
   define: {
     __APP_VERSION__: JSON.stringify(pkg.version),
