@@ -145,7 +145,7 @@ export function DraftPage() {
       )}
 
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
-        <article className="min-w-0 rounded-lg border border-edge bg-panel p-6">
+        <article className="min-w-0 self-start rounded-lg border border-edge bg-panel p-6">
           <CollapsibleBody>
             <Markdown content={draft.content} className="text-[15px]" />
           </CollapsibleBody>

@@ -40,17 +40,14 @@ export function CollapsibleBody({ children, maxHeight = 560, className }: { chil
         style={clipped ? { maxHeight } : undefined}
       >
         <div ref={inner}>{children}</div>
-        {clipped && (
-          <div className="pointer-events-none absolute inset-x-0 bottom-0 h-16 bg-gradient-to-t from-panel to-transparent" />
-        )}
       </div>
 
       {clipped && (
-        <div className="relative -mt-4 flex justify-center">
+        <div className="mt-5 flex justify-center border-t border-edge pt-5">
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="inline-flex items-center gap-1.5 rounded-full border border-edge bg-panel px-4 py-1.5 text-sm text-neutral-200 shadow-md transition-colors hover:border-purple-500/40 hover:text-purple-300"
+            className="inline-flex items-center gap-2 rounded-md border border-edge bg-panel-2 px-6 py-2.5 text-sm font-medium text-neutral-100 transition-colors hover:border-purple-500/40 hover:bg-panel-3 hover:text-purple-300"
           >
             <ChevronDown className="h-4 w-4" /> View full
           </button>
@@ -58,11 +55,11 @@ export function CollapsibleBody({ children, maxHeight = 560, className }: { chil
       )}
 
       {overflows && expanded && (
-        <div className="sticky bottom-4 z-10 mt-4 flex justify-center">
+        <div className="sticky bottom-4 z-10 mt-5 flex justify-center border-t border-edge pt-5">
           <button
             type="button"
             onClick={collapse}
-            className="inline-flex items-center gap-1.5 rounded-full border border-edge bg-panel/95 px-4 py-1.5 text-sm text-neutral-200 shadow-lg backdrop-blur-sm transition-colors hover:border-purple-500/40 hover:text-purple-300"
+            className="inline-flex items-center gap-2 rounded-md border border-edge bg-panel-2/95 px-6 py-2.5 text-sm font-medium text-neutral-100 shadow-lg backdrop-blur-sm transition-colors hover:border-purple-500/40 hover:bg-panel-3 hover:text-purple-300"
           >
             <ChevronUp className="h-4 w-4" /> View less
           </button>
