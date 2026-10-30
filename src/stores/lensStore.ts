@@ -216,7 +216,16 @@ export const useLensStore = create<LensState>()(
     }),
     {
       name: 'nip-ps:lens',
+      version: 1,
       partialize: (s) => ({ sources: s.sources, enabled: s.enabled, threshold: s.threshold, graphDepth: s.graphDepth }),
+      // v0 shipped with a default threshold of 50, far too strict for NIP-85
+      // ranks. Anyone still on that exact value gets the new default; a value
+      // they chose themselves is left alone.
+      migrate: (persisted, version) => {
+        const s = (persisted ?? {}) as Partial<LensState>
+        if (version < 1 && s.threshold === 50) s.threshold = DEFAULT_THRESHOLD
+        return s as LensState
+      },
     },
   ),
 )

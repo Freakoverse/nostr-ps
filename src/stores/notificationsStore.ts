@@ -27,9 +27,9 @@ function cachedSeen(): number {
   return Number.isFinite(n) ? n : 0
 }
 
-// Newest created_at across everything that would appear in NotificationsView
-// (social interactions on the user's pubkey + comments/reactions on the
-// user's drafts). Only the max timestamp is needed for the badge.
+// Newest created_at across what NotificationsView lists: comments on the
+// user's drafts (root tag `A`) and releases (root tag `E`). Only the max
+// timestamp is needed for the badge.
 async function fetchNewestNotifTs(pubkey: string): Promise<number> {
   const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
   let newest = 0
@@ -37,21 +37,18 @@ async function fetchNewestNotifTs(pubkey: string): Promise<number> {
     for (const e of evs) if (!isSelf(e) && e.created_at > newest) newest = e.created_at
   }
   try {
-    // Social: mentions/replies/reactions/reposts referencing my pubkey.
-    const social = await fetchEvents(relays, { kinds: [1, 7, 6], '#p': [pubkey], limit: 30 }, 6000)
-    bump(social, (e) => e.pubkey === pubkey)
-
-    // My drafts → their addressable coordinates.
-    const mine = await fetchEvents(relays, { kinds: [KINDS.PS_DRAFT], authors: [pubkey], limit: 200 }, 6000)
-    const aTags = mine.map((e) => `${e.kind}:${pubkey}:${e.tags.find((t) => t[0] === 'd')?.[1] ?? ''}`)
-    if (aTags.length) {
-      const [comments, reactions] = await Promise.all([
-        fetchEvents(relays, { kinds: [KINDS.COMMENT], '#A': aTags, limit: 30 }, 6000),
-        fetchEvents(relays, { kinds: [7], '#a': aTags, limit: 30 }, 6000),
-      ])
-      bump(comments, (e) => e.pubkey === pubkey)
-      bump(reactions, (e) => e.pubkey === pubkey)
-    }
+    const [drafts, releases] = await Promise.all([
+      fetchEvents(relays, { kinds: [KINDS.PS_DRAFT], authors: [pubkey], limit: 200 }, 6000),
+      fetchEvents(relays, { kinds: [KINDS.PS_RELEASE], authors: [pubkey], limit: 500 }, 6000),
+    ])
+    const aTags = drafts.map((e) => `${e.kind}:${pubkey}:${e.tags.find((t) => t[0] === 'd')?.[1] ?? ''}`)
+    const eIds = releases.map((e) => e.id)
+    const [onDrafts, onReleases] = await Promise.all([
+      aTags.length ? fetchEvents(relays, { kinds: [KINDS.COMMENT], '#A': aTags, limit: 30 }, 6000) : Promise.resolve([] as NostrEvent[]),
+      eIds.length ? fetchEvents(relays, { kinds: [KINDS.COMMENT], '#E': eIds, limit: 30 }, 6000) : Promise.resolve([] as NostrEvent[]),
+    ])
+    bump(onDrafts, (e) => e.pubkey === pubkey)
+    bump(onReleases, (e) => e.pubkey === pubkey)
   } catch {
     // best-effort — a failed refresh just leaves the prior state
   }
