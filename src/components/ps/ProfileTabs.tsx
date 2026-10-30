@@ -12,6 +12,7 @@ import {
 import { KINDS } from '@/lib/constants'
 import { DraftCard, ClaimCard, ReviewCard, Chip } from './Cards'
 import { VersionList } from './VersionDiff'
+import { VerdictRow } from './ClaimDetailDialog'
 
 function Loading() {
   return <div className="flex items-center justify-center gap-2 py-12 text-sm text-neutral-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading…</div>
@@ -139,28 +140,55 @@ export function AdoptedTab({ pubkey }: { pubkey: string }) {
   )
 }
 
+/** Reviews of releases only (recommend / not recommend / unsure). Verdicts on claims have their own tab. */
 export function ReviewsTab({ pubkey }: { pubkey: string }) {
   const { data, loading, refreshing } = useLoad<Review[]>(
-    () => nonEmpty(getCachedReviewsBy(pubkey)),
-    (relays) => fetchReviewsBy(relays, pubkey),
+    () => nonEmpty(getCachedReviewsBy(pubkey).filter((r) => r.target === 'release')),
+    async (relays) => (await fetchReviewsBy(relays, pubkey)).filter((r) => r.target === 'release'),
     [pubkey],
   )
   if (loading) return <Loading />
-  if (!data?.length) return <Empty text="No reviews." />
+  if (!data?.length) return <Empty text="No release reviews." />
   return (
     <div className="space-y-3">
       {refreshing && <Refreshing />}
-      {data.map((r) => (
+      {data.map((r) => r.target === 'release' && (
         <ReviewCard
           key={r.event.id}
           review={r}
-          targetLabel={r.target === 'release'
-            ? <Link to={`/release/${nip19.neventEncode({ id: r.releaseId, kind: KINDS.PS_RELEASE })}`} className="text-xs text-neutral-500 hover:text-purple-300">release {shortId(r.releaseId)}</Link>
-            : <span className="text-xs text-neutral-500">claim by {claimAuthorOf(r.claimCoord)}</span>}
+          targetLabel={<Link to={`/release/${nip19.neventEncode({ id: r.releaseId, kind: KINDS.PS_RELEASE })}`} className="text-xs text-neutral-500 hover:text-purple-300">release {shortId(r.releaseId)}</Link>}
         />
       ))}
     </div>
   )
+}
+
+/** Verdicts on adoption claims only (legit / fake), in the flat row style of the claim dialog. */
+export function VerdictsTab({ pubkey }: { pubkey: string }) {
+  const { data, loading, refreshing } = useLoad<Review[]>(
+    () => nonEmpty(getCachedReviewsBy(pubkey).filter((r) => r.target === 'claim')),
+    async (relays) => (await fetchReviewsBy(relays, pubkey)).filter((r) => r.target === 'claim'),
+    [pubkey],
+  )
+  if (loading) return <Loading />
+  if (!data?.length) return <Empty text="No verdicts on adoption claims." />
+  return (
+    <div className="space-y-2">
+      {refreshing && <Refreshing />}
+      {data.map((r) => r.target === 'claim' && (
+        <VerdictRow
+          key={r.event.id}
+          review={r}
+          label={<Link to={`/profile/${claimAuthorNpub(r.claimCoord)}`} className="text-xs text-neutral-500 hover:text-purple-300">claim by {claimAuthorOf(r.claimCoord)}</Link>}
+        />
+      ))}
+    </div>
+  )
+}
+
+function claimAuthorNpub(coord: string): string {
+  const pk = coord.split(':')[1] ?? ''
+  try { return nip19.npubEncode(pk) } catch { return pk }
 }
 
 function claimAuthorOf(coord: string): string {

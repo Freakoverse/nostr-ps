@@ -13,7 +13,7 @@ import { dnnService } from '@/lib/dnn/dnnService'
 import { isValidDnnFormat } from '@/lib/dnn/dnnUtils'
 import { formatDnnId } from '@/lib/dnn/formatDnnId'
 import { ProfileCard } from '@/components/social/ProfileCard'
-import { DraftsTab, ReleasesTab, AdoptedTab, ReviewsTab } from '@/components/ps/ProfileTabs'
+import { DraftsTab, ReleasesTab, AdoptedTab, ReviewsTab, VerdictsTab } from '@/components/ps/ProfileTabs'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -22,7 +22,7 @@ import { User } from 'lucide-react'
 const tabTrigger = 'py-1.5 data-[state=active]:bg-edge data-[state=active]:text-purple-400'
 const hideInactive = 'mt-4 data-[state=inactive]:hidden'
 
-const TABS = ['drafts', 'releases', 'adopted', 'reviews'] as const
+const TABS = ['drafts', 'releases', 'adopted', 'reviews', 'verdicts'] as const
 type ProfileTab = typeof TABS[number]
 
 export default function ProfilePage() {
@@ -138,11 +138,12 @@ export default function ProfilePage() {
         <div className="lg:col-span-2 min-w-0">
           {targetPubkey ? (
             <Tabs value={tab} onValueChange={setTab} className="w-full">
-              <TabsList className="grid h-auto w-full grid-cols-4 items-stretch bg-panel border border-edge">
+              <TabsList className="grid h-auto w-full grid-cols-5 items-stretch bg-panel border border-edge">
                 <TabsTrigger value="drafts" className={tabTrigger}>Drafts</TabsTrigger>
                 <TabsTrigger value="releases" className={tabTrigger}>Releases</TabsTrigger>
                 <TabsTrigger value="adopted" className={tabTrigger}>Adopted</TabsTrigger>
                 <TabsTrigger value="reviews" className={tabTrigger}>Reviews</TabsTrigger>
+                <TabsTrigger value="verdicts" className={tabTrigger}>Verdicts</TabsTrigger>
               </TabsList>
 
               <TabsContent value="drafts" forceMount className={hideInactive}>
@@ -156,6 +157,9 @@ export default function ProfilePage() {
               </TabsContent>
               <TabsContent value="reviews" forceMount className={hideInactive}>
                 <ReviewsTab pubkey={targetPubkey} />
+              </TabsContent>
+              <TabsContent value="verdicts" forceMount className={hideInactive}>
+                <VerdictsTab pubkey={targetPubkey} />
               </TabsContent>
             </Tabs>
           ) : (

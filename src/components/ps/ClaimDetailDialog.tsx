@@ -90,13 +90,14 @@ export function ClaimDetailDialog({ open, onOpenChange, claim, reviews, mine, on
 }
 
 /** A verdict: flat row, coloured left edge, author and verdict on one line, reasoning under it. */
-function VerdictRow({ review, menu }: { review: Review; menu?: ReactNode }) {
+export function VerdictRow({ review, menu, label }: { review: Review; menu?: ReactNode; label?: ReactNode }) {
   const legit = review.verdict === 'legit'
   return (
     <div className={cn('rounded-r-md border-l-2 bg-panel-2/60 px-3 py-2', legit ? 'border-emerald-500/70' : 'border-red-500/70')}>
       <div className="flex flex-wrap items-center justify-between gap-2">
         <AuthorLine pubkey={review.pubkey} at={review.createdAt} size="xs" />
         <div className="flex items-center gap-1.5">
+          {label}
           <span className={cn('flex items-center gap-1 text-xs font-medium', legit ? 'text-emerald-400' : 'text-red-400')}>
             {legit ? <ShieldCheck className="h-3.5 w-3.5" /> : <ShieldX className="h-3.5 w-3.5" />}
             {legit ? 'legit' : 'fake'}
