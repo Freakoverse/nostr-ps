@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
 import { toast } from 'sonner'
 import {
-  Loader2, GitFork, Archive, Users, MessageSquareText, ShieldCheck, FileText, Rocket,
+  Loader2, GitFork, Archive, Users, MessageSquareText, ShieldCheck, FileText, Rocket, Trash2,
 } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -28,6 +28,7 @@ import { TieredList } from '@/components/lens/TieredList'
 import { Chip, KindChips, TopicChips, ReleaseRow, ClaimCard, ReviewCard, VerdictChip } from '@/components/ps/Cards'
 import { ClaimDialog } from '@/components/ps/ClaimDialog'
 import { ReviewDialog } from '@/components/ps/ReviewDialog'
+import { RequestDeleteDialog } from '@/components/shared/RequestDeleteDialog'
 import type { ForkPrefill } from './DraftEditPage'
 
 export function ReleasePage() {
@@ -45,6 +46,7 @@ export function ReleasePage() {
 
   const [claimOpen, setClaimOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
+  const [deleteOpen, setDeleteOpen] = useState(false) // TEMPORARY: author-side cleanup of pre-`o`-tag releases. Remove when asked.
   const [claimReviewTarget, setClaimReviewTarget] = useState<Claim | null>(null)
   const [backingUp, setBackingUp] = useState(false)
 
@@ -200,6 +202,11 @@ export function ReleasePage() {
                 <Link to={draftHref}><FileText className="h-4 w-4 mr-2" /> Open draft</Link>
               </DropdownMenuItem>
             )}
+            {myPubkey === release.pubkey && (
+              <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="cursor-pointer text-red-400 focus:text-red-300">
+                <Trash2 className="h-4 w-4 mr-2" /> Request deletion
+              </DropdownMenuItem>
+            )}
           </PostMenu>
         </div>
         <h1 className="text-3xl font-bold tracking-tight">{release.title}</h1>
@@ -306,6 +313,7 @@ export function ReleasePage() {
 
       <ClaimDialog open={claimOpen} onOpenChange={setClaimOpen} release={release} existing={myClaim} onPublished={reload} />
       <ReviewDialog open={reviewOpen} onOpenChange={setReviewOpen} target={{ kind: 'release', release }} existing={myReview} onPublished={reload} />
+      <RequestDeleteDialog open={deleteOpen} onOpenChange={setDeleteOpen} event={release.event} title={`${release.title} v${release.version}`} noun="release" onDeleted={() => navigate('/proposals')} />
       {claimReviewTarget && (
         <ReviewDialog open onOpenChange={(v) => { if (!v) setClaimReviewTarget(null) }} target={{ kind: 'claim', claim: claimReviewTarget }} existing={myClaimReview} onPublished={reload} />
       )}
