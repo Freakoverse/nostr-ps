@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { nip19, type Event as NostrEvent } from 'nostr-tools'
 import { User, Loader2 } from 'lucide-react'
-import { formatRelativeTime } from '@/lib/utils'
+import { formatRelativeTime , shortNpub } from '@/lib/utils'
 import { fetchEvent } from '@/lib/nostr/relay-pool'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useUserStore, type UserProfile } from '@/stores/userStore'
@@ -49,7 +49,7 @@ export function EmbeddedNote({ embed }: { embed: EmbedRef }) {
   }
 
   const npub = nip19.npubEncode(event.pubkey)
-  const name = profile?.display_name || `${npub.slice(0, 10)}…`
+  const name = profile?.display_name || shortNpub(npub)
 
   return (
     <div className="rounded-lg border border-edge bg-well p-3">

@@ -3,7 +3,7 @@ import { useNoteUrl } from '@/hooks/useNoteUrl'
 import { Link } from 'react-router-dom'
 import { nip19, type Event as NostrEvent } from 'nostr-tools'
 import { ChevronLeft, MessageSquare, User, Loader2 } from 'lucide-react'
-import { formatRelativeTime } from '@/lib/utils'
+import { formatRelativeTime , shortNpub } from '@/lib/utils'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { fetchEvent } from '@/lib/nostr/relay-pool'
 import { useUserStore, type UserProfile } from '@/stores/userStore'
@@ -47,7 +47,7 @@ function ThreadItem({
   }, [event.id, event.pubkey])
 
   const npub = nip19.npubEncode(event.pubkey)
-  const name = profile?.display_name || `${npub.slice(0, 10)}…`
+  const name = profile?.display_name || shortNpub(npub)
   const via = clientTag(event)
   const target: NostrTarget = { id: event.id, pubkey: event.pubkey, kind: event.kind }
   const parent: SocialRef | undefined = event.id === rootRef.id ? undefined : { id: event.id, pubkey: event.pubkey }
@@ -129,7 +129,7 @@ function ReplyBox({ rootRef, focused, onReplyPublished }: { rootRef: SocialRef; 
     return () => { cancelled = true }
   }, [focused.pubkey])
   const npub = nip19.npubEncode(focused.pubkey)
-  const name = profile?.display_name || `${npub.slice(0, 10)}…`
+  const name = profile?.display_name || shortNpub(npub)
   const parent: SocialRef | undefined = focused.id === rootRef.id ? undefined : { id: focused.id, pubkey: focused.pubkey }
   return (
     <div className="rounded-lg bg-panel">

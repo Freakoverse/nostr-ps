@@ -2,7 +2,7 @@ import { useState, useEffect } from 'react'
 import { Link } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
 import { MessageSquare, User, ShieldCheck } from 'lucide-react'
-import { formatRelativeTime } from '@/lib/utils'
+import { formatRelativeTime , shortNpub } from '@/lib/utils'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useUserStore, type UserProfile } from '@/stores/userStore'
 import type { CommentNode, NostrTarget } from '@/lib/nostr/social'
@@ -39,7 +39,7 @@ export function Comment({ node, root, onReplyPublished, onOpenThread, focused = 
   }, [event.pubkey])
 
   const npub = nip19.npubEncode(event.pubkey)
-  const name = profile?.display_name || `${npub.slice(0, 10)}…`
+  const name = profile?.display_name || shortNpub(npub)
   const via = event.tags.find(t => t[0] === 'client')?.[1] || null
   const target: NostrTarget = { id: event.id, pubkey: event.pubkey, kind: 1111 }
 

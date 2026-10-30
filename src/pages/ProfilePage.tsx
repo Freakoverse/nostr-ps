@@ -1,3 +1,4 @@
+import { shortNpub } from '@/lib/utils'
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
@@ -111,7 +112,7 @@ export default function ProfilePage() {
   }, [targetPubkey, verifiedDnnId, npub, navigate])
 
   useSeoMeta(profile ? {
-    title: profile.display_name || profile.name || (npub ? `${npub.slice(0, 12)}…` : 'Profile'),
+    title: profile.display_name || profile.name || (npub ? shortNpub(npub) : 'Profile'),
     description: profile.about,
     image: profile.picture,
     type: 'profile',

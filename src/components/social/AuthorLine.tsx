@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
 import { User } from 'lucide-react'
-import { cn, formatRelativeTime } from '@/lib/utils'
+import { cn, formatRelativeTime , shortNpub } from '@/lib/utils'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useUserStore, type UserProfile } from '@/stores/userStore'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
@@ -30,7 +30,7 @@ export function AuthorLine({
   }, [pubkey])
 
   const npub = nip19.npubEncode(pubkey)
-  const name = profile?.display_name || profile?.name || `${npub.slice(0, 10)}…`
+  const name = profile?.display_name || profile?.name || shortNpub(npub)
   const avatar = size === 'md' ? 'h-9 w-9' : size === 'sm' ? 'h-7 w-7' : 'h-5 w-5'
 
   return (

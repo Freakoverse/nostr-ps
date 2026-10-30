@@ -1,3 +1,4 @@
+import { shortNpub } from '@/lib/utils'
 import { useState, useEffect } from 'react'
 import { Link, useNavigate } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
@@ -38,7 +39,7 @@ export function ProfileCard({ pubkey }: ProfileCardProps) {
 
   const npub = nip19.npubEncode(pubkey)
   const profileHref = `/profile/${npub}`
-  const displayName = profile?.display_name || `${npub.slice(0, 10)}…`
+  const displayName = profile?.display_name || shortNpub(npub)
   const isSelf = myPubkey === pubkey
 
   const navigate = useNavigate()

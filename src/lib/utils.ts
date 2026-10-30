@@ -24,6 +24,11 @@ export function isHttpUrl(value: string): boolean {
   }
 }
 
+/** npub shortened to both ends, `npub1qgm4k…sq6wz7c`, never a bare prefix. */
+export function shortNpub(npub: string): string {
+  return npub.length > 20 ? `${npub.slice(0, 12)}…${npub.slice(-6)}` : npub
+}
+
 export function truncateNpub(npub: string, chars = 8): string {
   if (npub.length <= chars * 2 + 3) return npub
   return `${npub.slice(0, chars)}...${npub.slice(-chars)}`

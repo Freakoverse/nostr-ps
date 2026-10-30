@@ -1,3 +1,4 @@
+import { shortNpub } from '@/lib/utils'
 import { Fragment, useEffect, useState, type ReactNode } from 'react'
 import { Link } from 'react-router-dom'
 import { nip19, type Event as NostrEvent } from 'nostr-tools'
@@ -106,7 +107,7 @@ function buildBlocks(event: NostrEvent, noEmbed: boolean): { blocks: Block[]; ga
     const npub = nip19.npubEncode(pubkey)
     flushImages()
     textParts.push(
-      <Link key={key++} to={`/profile/${npub}`} className="text-purple-400 hover:underline">@{npub.slice(0, 10)}…</Link>,
+      <Link key={key++} to={`/profile/${npub}`} className="text-purple-400 hover:underline">@{shortNpub(npub)}</Link>,
     )
   }
 

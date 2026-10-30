@@ -1,3 +1,4 @@
+import { shortNpub } from '@/lib/utils'
 /**
  * The trust lens (docs/CLIENT-LENS.md).
  *
@@ -102,8 +103,8 @@ interface LensState {
   invalidate: () => void
 }
 
-function shortNpub(pubkey: string): string {
-  try { return nip19.npubEncode(pubkey).slice(0, 12) + '…' } catch { return pubkey.slice(0, 12) + '…' }
+function labelFor(pubkey: string): string {
+  try { return shortNpub(nip19.npubEncode(pubkey)) } catch { return `${pubkey.slice(0, 8)}…${pubkey.slice(-4)}` }
 }
 
 const DEFAULT_SOURCES: LensSource[] = [
@@ -138,7 +139,7 @@ export const useLensStore = create<LensState>()(
       addSource: (s) => {
         const id = `${s.type}:${s.pubkey}`
         if (get().sources.some((x) => x.id === id)) return id
-        set({ sources: [...get().sources, { id, enabled: s.enabled ?? true, ...s, label: s.label || shortNpub(s.pubkey) }] })
+        set({ sources: [...get().sources, { id, enabled: s.enabled ?? true, ...s, label: s.label || labelFor(s.pubkey) }] })
         get().invalidate()
         return id
       },

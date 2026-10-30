@@ -1,3 +1,4 @@
+import { shortNpub } from '@/lib/utils'
 import { useEffect, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
@@ -164,5 +165,5 @@ export function ReviewsTab({ pubkey }: { pubkey: string }) {
 
 function claimAuthorOf(coord: string): string {
   const pk = coord.split(':')[1]
-  try { return nip19.npubEncode(pk).slice(0, 12) + '…' } catch { return pk?.slice(0, 8) ?? '?' }
+  try { return shortNpub(nip19.npubEncode(pk)) } catch { return pk?.slice(0, 8) ?? '?' }
 }

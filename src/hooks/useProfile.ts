@@ -1,3 +1,4 @@
+import { shortNpub } from '@/lib/utils'
 import { useState, useEffect } from 'react'
 import { nip19 } from 'nostr-tools'
 import { useUserStore, type UserProfile } from '@/stores/userStore'
@@ -20,6 +21,6 @@ export function useProfile(pubkey: string | null | undefined) {
   }, [pubkey])
 
   const npub = pubkey ? nip19.npubEncode(pubkey) : ''
-  const name = profile?.display_name || profile?.name || (npub ? `${npub.slice(0, 10)}…` : 'Unknown')
+  const name = profile?.display_name || profile?.name || (npub ? shortNpub(npub) : 'Unknown')
   return { profile, name, npub }
 }

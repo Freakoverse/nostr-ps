@@ -19,7 +19,7 @@ import { MarkdownEditor } from '@/components/ps/MarkdownEditor'
 import { LIMITS } from '@/lib/limits'
 import { CharCounter } from '@/components/shared/CharCounter'
 import { VersionList } from '@/components/ps/VersionDiff'
-import { cn } from '@/lib/utils'
+import { cn, shortNpub } from '@/lib/utils'
 import { Tip } from '@/components/shared/Tip'
 
 /**
@@ -207,7 +207,7 @@ export function ReleaseCreatePage() {
         <RefRow label="Lineage" hint="o tag" value={prev ? 'updated' : 'original'} note={prev ? 'A later version of an existing proposal.' : 'The first release of this proposal. Listings query this.'} />
         <RefRow label="Draft" hint="a tag" value={draft.coord} href={`/draft/${draftNaddr(draft.pubkey, draft.uuid)}`} />
         {!prev && forkOf && <RefRow label="Forked from" hint="e tag, fork" value={forkOf} href={`/release/${nip19.neventEncode({ id: forkOf, author: parent?.pubkey })}`} note={parent ? `${parent.title} v${parent.version}` : undefined} />}
-        {!prev && forkOf && parent && <RefRow label="Parent author" hint="p tag" value={parent.pubkey} note={nip19.npubEncode(parent.pubkey).slice(0, 16) + '…'} />}
+        {!prev && forkOf && parent && <RefRow label="Parent author" hint="p tag" value={parent.pubkey} note={shortNpub(nip19.npubEncode(parent.pubkey))} />}
         {prev && <RefRow label="Previous version" hint="e tag, prev" value={prev.id} href={`/release/${releaseNevent(prev.id, prev.pubkey)}`} />}
         <p className="text-[11px] text-neutral-600">The spec id is what implementers point at. Kinds and topics are copied from the draft as well.</p>
       </div>

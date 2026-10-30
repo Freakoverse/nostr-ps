@@ -1,3 +1,4 @@
+import { shortNpub } from '@/lib/utils'
 import { useState, useEffect, useMemo } from 'react'
 import { nip19 } from 'nostr-tools'
 import { ChevronLeft } from 'lucide-react'
@@ -18,7 +19,7 @@ function CommentReplyBox({ root, focused, onReplyPublished }: { root: NostrTarge
     return () => { cancelled = true }
   }, [focused.event.pubkey])
   const npub = nip19.npubEncode(focused.event.pubkey)
-  const name = profile?.display_name || `${npub.slice(0, 10)}…`
+  const name = profile?.display_name || shortNpub(npub)
   return (
     <div className="rounded-lg bg-panel">
       <CommentForm
