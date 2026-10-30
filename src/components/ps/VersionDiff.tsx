@@ -13,9 +13,9 @@ import { cn } from '@/lib/utils'
  */
 export function VersionList({ versions, currentId }: { versions: Release[]; currentId?: string }) {
   return (
-    <div>
+    <div className="flex flex-col gap-1">
       {versions.map((v, i) => (
-        <div key={v.id}>
+        <div key={v.id} className="flex flex-col gap-1">
           <ReleaseRow r={v} current={v.id === currentId} />
           {i < versions.length - 1 && <DiffBetween older={versions[i + 1]} newer={v} />}
         </div>
