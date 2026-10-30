@@ -13,11 +13,12 @@ import { KINDS } from '@/lib/constants'
 import { signAndPublish } from '@/lib/nostr/publish'
 import {
   fetchRelease, fetchReleasesOf, fetchClaimsFor, fetchReleaseReviews, fetchClaimReviews, fetchBackups,
-  getCachedRelease, whenEventCacheReady,
+  getCachedRelease, getCachedVersions, getCachedClaimsFor, getCachedReleaseReviews, whenEventCacheReady,
   buildBackupEvent, draftNaddr, releaseNevent, releaseLabel,
   type Release, type Claim, type Review, type Backup,
 } from '@/lib/nostr/nipps'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/shared/Markdown'
 import { PostMenu } from '@/components/ps/PostMenu'
@@ -42,6 +43,9 @@ export function ReleasePage() {
   const [reviews, setReviews] = useState<Review[]>([])
   const [backups, setBackups] = useState<Backup[]>([])
   const [loading, setLoading] = useState(true)
+  // Versions, claims and reviews paint from cache first; this flips once the
+  // relays have answered, so "latest version" is only asserted on evidence.
+  const [checked, setChecked] = useState(false)
   const [tick, setTick] = useState(0)
 
   const [claimOpen, setClaimOpen] = useState(false)
@@ -70,6 +74,7 @@ export function ReleasePage() {
     if (!id) { setLoading(false); return }
     let cancelled = false
     setLoading(true)
+    setChecked(false)
     const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
     ;(async () => {
       // A release is immutable, so a cached copy is the release: paint it and
@@ -82,6 +87,14 @@ export function ReleasePage() {
       setRelease(r)
       setLoading(false)
       if (!r) return
+      // Instant paint of what the cache already knows around this release.
+      {
+        const cvs = getCachedVersions(r.pubkey, r.uuid)
+        const lineage = new Set((cvs.length ? cvs : [r]).map((v) => v.id))
+        setVersions(cvs.length ? cvs : [r])
+        setClaims(getCachedClaimsFor(r.uuid).filter((c) => c.releaseAuthor === r.pubkey && lineage.has(c.releaseId)))
+        setReviews(getCachedReleaseReviews(r.id))
+      }
       const [vs, cs, rv, bk] = await Promise.all([
         fetchReleasesOf(relays, r.pubkey, r.uuid).catch(() => [r]),
         fetchClaimsFor(relays, r.uuid).catch(() => []),
@@ -95,6 +108,7 @@ export function ReleasePage() {
       setClaims(mine)
       setReviews(rv)
       setBackups(bk)
+      setChecked(true)
       const cr = await fetchClaimReviews(relays, mine.map((c) => c.coord)).catch(() => new Map<string, Review[]>())
       if (!cancelled) setClaimReviews(cr)
     })()
@@ -194,7 +208,11 @@ export function ReleasePage() {
           <div className="flex flex-wrap items-center gap-2">
           <Chip className="border-emerald-500/30 text-emerald-400">release</Chip>
           <Chip className="font-mono">v{release.version}</Chip>
-          {!isLatest && <Chip className="border-yellow-500/30 text-yellow-400">not the latest version</Chip>}
+          {!checked ? (
+            <Chip className="animate-pulse text-neutral-400"><Loader2 className="h-3 w-3 animate-spin" /> checking versions…</Chip>
+          ) : !isLatest ? (
+            <Chip className="border-yellow-500/30 text-yellow-400">not the latest version</Chip>
+          ) : null}
           {release.forkOf && (
             <Link to={`/release/${nip19.neventEncode({ id: release.forkOf.id })}`} className="inline-flex">
               <Chip className="hover:border-purple-500/40"><GitFork className="h-3 w-3" /> forked from {release.forkOf.id.slice(0, 8)}</Chip>
@@ -254,9 +272,18 @@ export function ReleasePage() {
 
         {/* Versions */}
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <div className="rounded-lg border border-edge bg-panel p-2">
-            <p className="px-3 pb-1 pt-1 text-xs font-medium uppercase tracking-wider text-neutral-500">Versions</p>
+          <div className={cn('rounded-lg border bg-panel p-2 transition-colors', checked ? 'border-edge' : 'animate-pulse border-purple-500/30')}>
+            <p className="flex items-center justify-between px-3 pb-1 pt-1 text-xs font-medium uppercase tracking-wider text-neutral-500">
+              Versions
+              {!checked && <span className="flex items-center gap-1 normal-case tracking-normal text-neutral-500"><Loader2 className="h-3 w-3 animate-spin" /> checking</span>}
+            </p>
             {versions.map((v) => <ReleaseRow key={v.id} r={v} current={v.id === release.id} />)}
+            {!checked && versions.length <= 1 && (
+              <div className="space-y-1 px-2 pb-1 pt-1">
+                <div className="h-7 rounded-md bg-panel-2" />
+                <div className="h-7 w-3/4 rounded-md bg-panel-2" />
+              </div>
+            )}
           </div>
           {Object.keys(perVersion(liveClaims)).length > 0 && (
             <div className="rounded-lg border border-edge bg-panel p-3 text-xs">

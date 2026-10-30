@@ -98,3 +98,10 @@ export function getCachedEvent(coord: string): NostrEvent | undefined {
 export function forgetCachedEvent(coord: string): void {
   if (cache.delete(coord)) schedulePersist()
 }
+
+/** Every cached event of one kind (synchronous scan; the cache is small). */
+export function getCachedEventsOfKind(kind: number): NostrEvent[] {
+  const out: NostrEvent[] = []
+  for (const ev of cache.values()) if (ev.kind === kind) out.push(ev)
+  return out
+}

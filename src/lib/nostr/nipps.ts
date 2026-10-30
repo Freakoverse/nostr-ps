@@ -18,7 +18,7 @@ import { nip19, verifyEvent, type Event as NostrEvent, type Filter, type Unsigne
 import { KINDS, PS_SPEC_ID_TAG, CLIENT_NAME } from '@/lib/constants'
 import { fetchEvents, fetchEvent } from './relay-pool'
 import { isDeleted } from './events'
-import { cacheEvent, getCachedEvent, whenEventCacheReady } from './eventCache'
+import { cacheEvent, getCachedEvent, getCachedEventsOfKind, whenEventCacheReady } from './eventCache'
 
 const now = () => Math.floor(Date.now() / 1000)
 const tag = (ev: NostrEvent, name: string) => ev.tags.find((t) => t[0] === name)?.[1]
@@ -262,7 +262,14 @@ function parseOrigin(v: string | undefined): ReleaseOrigin | undefined {
   return v === 'original' || v === 'updated' ? v : undefined
 }
 
+/** Parses and, when valid, caches (newest per coordinate) for instant paint. */
 export function parseClaim(ev: NostrEvent): Claim | null {
+  const c = parseClaimInner(ev)
+  if (c) cacheEvent(ev)
+  return c
+}
+
+function parseClaimInner(ev: NostrEvent): Claim | null {
   if (ev.kind !== KINDS.PS_CLAIM) return null
   const uuid = tag(ev, 'd')
   const releaseId = tag(ev, 'e')
@@ -295,7 +302,14 @@ export function parseClaim(ev: NostrEvent): Claim | null {
   }
 }
 
+/** Parses and, when valid, caches (newest per coordinate) for instant paint. */
 export function parseReview(ev: NostrEvent): Review | null {
+  const r = parseReviewInner(ev)
+  if (r) cacheEvent(ev)
+  return r
+}
+
+function parseReviewInner(ev: NostrEvent): Review | null {
   if (ev.kind !== KINDS.PS_REVIEW) return null
   const k = Number(tag(ev, 'k'))
   const verdict = tag(ev, 'verdict')
@@ -500,6 +514,24 @@ export function getCachedDraft(pubkey: string, uuid: string): Draft | null {
 export function getCachedRelease(id: string): Release | null {
   const ev = getCachedEvent(`${KINDS.PS_RELEASE}:${id}`)
   return ev ? parseRelease(ev) : null
+}
+
+/** Cached versions of one proposal, newest version first. */
+export function getCachedVersions(pubkey: string, uuid: string): Release[] {
+  return parseAll(getCachedEventsOfKind(KINDS.PS_RELEASE), parseRelease)
+    .filter((r) => r.pubkey === pubkey && r.uuid === uuid)
+    .sort((a, b) => compareVersions(b.version, a.version))
+}
+
+/** Cached claims against a proposal (one per implementer: the cache keeps the newest per coordinate). */
+export function getCachedClaimsFor(uuid: string): Claim[] {
+  return parseAll(getCachedEventsOfKind(KINDS.PS_CLAIM), parseClaim).filter((c) => c.uuid === uuid)
+}
+
+/** Cached reviews of one release, one per reviewer. */
+export function getCachedReleaseReviews(releaseId: string): Review[] {
+  const all = parseAll(getCachedEventsOfKind(KINDS.PS_REVIEW), parseReview)
+  return latestPerAuthor(all.filter((r) => r.target === 'release' && r.releaseId === releaseId))
 }
 
 export { whenEventCacheReady }
