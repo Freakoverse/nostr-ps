@@ -95,9 +95,14 @@ export function releaseNevent(id: string, author: string, relays?: string[]): st
 }
 
 /** `<title> v<version> by <npub…> (<id…>)` per §3. */
+/** Event id shortened to both ends, `0000…9f8e`, so it cannot be read as a prefix. */
+export function shortId(id: string): string {
+  return id.length > 12 ? `${id.slice(0, 4)}…${id.slice(-4)}` : id
+}
+
 export function releaseLabel(r: { title: string; version: string; pubkey: string; id: string }): string {
   const npub = nip19.npubEncode(r.pubkey)
-  return `${r.title} v${r.version} by ${npub.slice(0, 12)}… (${r.id.slice(0, 8)})`
+  return `${r.title} v${r.version} by ${npub.slice(0, 12)}…${npub.slice(-6)} (${shortId(r.id)})`
 }
 
 // ─── Types ──────────────────────────────────────────────────────────

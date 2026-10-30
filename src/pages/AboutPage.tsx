@@ -43,11 +43,13 @@ export function AboutPage() {
           title, version, author, and the release event id. For a made-up release titled
           NIP-EXAMPLE, version 1.2, it reads:
         </p>
-        <pre className="overflow-x-auto rounded-lg border border-edge bg-well px-4 py-3 font-mono text-xs text-neutral-300">We implement NIP-EXAMPLE v1.2 by npub1qgm4k…sq6wz7c (0000a1b2)</pre>
+        <pre className="overflow-x-auto rounded-lg border border-edge bg-well px-4 py-3 font-mono text-xs text-neutral-300">We implement NIP-EXAMPLE v1.2 by npub1qgm4k…sq6wz7c (0000…9f8e)</pre>
         <p className="text-xs text-neutral-500">
           Those values are deliberately fake. The npub,
           npub1qgm4k3t2z9rfdvxh6yl0cw5ep8ucn7a2s3jd4fvt8xg9mkl5r2hsq6wz7c, is not a real key and the id is not a real event, so nothing in the example can be
-          confused with a real proposal. The claim event itself carries the full release id and spec id.
+          confused with a real proposal. Shortened ids keep both ends, first four and last four
+          characters, so they are never mistaken for a prefix. The claim event itself carries the
+          full release id and spec id.
         </p>
       </Section>
 

@@ -13,7 +13,7 @@ import { KINDS } from '@/lib/constants'
 import { signAndPublish } from '@/lib/nostr/publish'
 import {
   fetchRelease, fetchReleasesOf, fetchClaimsFor, fetchReleaseReviews, fetchClaimReviews, fetchBackups,
-  getCachedRelease, getCachedVersions, getCachedClaimsFor, getCachedReleaseReviews, whenEventCacheReady,
+  getCachedRelease, getCachedVersions, getCachedClaimsFor, getCachedReleaseReviews, whenEventCacheReady, shortId,
   buildBackupEvent, draftNaddr, releaseNevent, releaseLabel,
   type Release, type Claim, type Review, type Backup,
 } from '@/lib/nostr/nipps'
@@ -216,7 +216,7 @@ export function ReleasePage() {
           ) : null}
           {release.forkOf && (
             <Link to={`/release/${nip19.neventEncode({ id: release.forkOf.id })}`} className="inline-flex">
-              <Chip className="hover:border-purple-500/40"><GitFork className="h-3 w-3" /> forked from {release.forkOf.id.slice(0, 8)}</Chip>
+              <Chip className="hover:border-purple-500/40"><GitFork className="h-3 w-3" /> forked from {shortId(release.forkOf.id)}</Chip>
             </Link>
           )}
           </div>

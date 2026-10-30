@@ -4,7 +4,7 @@ import { nip19 } from 'nostr-tools'
 import { Loader2 } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import {
-  fetchDrafts, fetchReleases, fetchClaimsBy, fetchReviewsBy, groupReleases, releaseNevent, PS_ORIGIN_TAG,
+  fetchDrafts, fetchReleases, fetchClaimsBy, fetchReviewsBy, groupReleases, releaseNevent, shortId, PS_ORIGIN_TAG,
   getCachedDrafts, getCachedReleases, getCachedClaimsBy, getCachedReviewsBy, whenEventCacheReady,
   type Draft, type Release, type Claim, type Review,
 } from '@/lib/nostr/nipps'
@@ -129,7 +129,7 @@ export function AdoptedTab({ pubkey }: { pubkey: string }) {
       {data.map((c) => (
         <div key={c.coord} className="space-y-1">
           <Link to={`/release/${releaseNevent(c.releaseId, c.releaseAuthor)}`} className="px-1 text-xs text-neutral-500 hover:text-purple-300">
-            → release {c.releaseId.slice(0, 8)} · v{c.version}
+            → release {shortId(c.releaseId)} · v{c.version}
           </Link>
           <ClaimCard claim={c} />
         </div>
@@ -154,7 +154,7 @@ export function ReviewsTab({ pubkey }: { pubkey: string }) {
           key={r.event.id}
           review={r}
           targetLabel={r.target === 'release'
-            ? <Link to={`/release/${nip19.neventEncode({ id: r.releaseId, kind: KINDS.PS_RELEASE })}`} className="text-xs text-neutral-500 hover:text-purple-300">release {r.releaseId.slice(0, 8)}</Link>
+            ? <Link to={`/release/${nip19.neventEncode({ id: r.releaseId, kind: KINDS.PS_RELEASE })}`} className="text-xs text-neutral-500 hover:text-purple-300">release {shortId(r.releaseId)}</Link>
             : <span className="text-xs text-neutral-500">claim by {claimAuthorOf(r.claimCoord)}</span>}
         />
       ))}

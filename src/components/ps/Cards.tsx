@@ -3,7 +3,7 @@ import { Link } from 'react-router-dom'
 import { FileText, GitFork, Users, ShieldCheck, ShieldX, Ban } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tip } from '@/components/shared/Tip'
-import { draftNaddr, releaseNevent, type Draft, type Release, type ProposalSummary, type Claim, type Review } from '@/lib/nostr/nipps'
+import { draftNaddr, releaseNevent, shortId, type Draft, type Release, type ProposalSummary, type Claim, type Review } from '@/lib/nostr/nipps'
 import { AuthorLine } from '@/components/social/AuthorLine'
 import { Markdown } from '@/components/shared/Markdown'
 
@@ -143,7 +143,7 @@ export function ReleaseRow({ r, current }: { r: Release; current?: boolean }) {
         <span className={cn('font-mono', current ? 'text-purple-300' : 'text-neutral-300')}>v{r.version}</span>
         <span className="truncate text-neutral-400">{r.title}</span>
       </span>
-      <span className="shrink-0 font-mono text-[11px] text-neutral-600">{r.id.slice(0, 8)}</span>
+      <span className="shrink-0 font-mono text-[11px] text-neutral-600">{shortId(r.id)}</span>
     </Link>
   )
 }
