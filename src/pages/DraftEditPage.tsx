@@ -76,7 +76,7 @@ export function DraftEditPage() {
             ? 'Edits replace the draft in place. Releases already published are unaffected.'
             : prefill
               ? 'A fork is a new proposal with its own identity. The release form will record where it came from.'
-              : 'Drafts are editable and open for discussion. Keep it in draft until it has been used and has stopped changing.'}
+              : 'Drafts are editable and open for discussion. Once it has settled, publish a release from it.'}
         </p>
       </div>
       <DraftEditor initial={draft ?? undefined} prefill={prefill} />
