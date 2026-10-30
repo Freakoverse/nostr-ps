@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { BackButton } from '@/components/shared/BackButton'
 import { Link, useLocation, useParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
 import { Loader2 } from 'lucide-react'
@@ -69,6 +70,7 @@ export function DraftEditPage() {
 
   return (
     <div className="space-y-6 py-6">
+      <BackButton fallback="/drafts" />
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">{draft ? 'Edit draft' : prefill ? 'Fork into a new draft' : 'New draft'}</h1>
         <p className="text-sm text-neutral-400">

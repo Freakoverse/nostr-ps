@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { BackButton } from '@/components/shared/BackButton'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
 import { Loader2, Rocket, Lock, Check, Copy, Link2 } from 'lucide-react'
@@ -119,6 +120,7 @@ export function ReleaseCreatePage() {
 
   return (
     <div className="space-y-6 py-6">
+      <BackButton fallback="/drafts" />
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">{prev ? 'Release a new version' : 'Publish the first release'}</h1>
         <p className="text-sm text-neutral-400">

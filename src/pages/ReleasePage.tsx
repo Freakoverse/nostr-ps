@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
+import { BackButton } from '@/components/shared/BackButton'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
 import { toast } from 'sonner'
@@ -209,6 +210,7 @@ export function ReleasePage() {
 
   return (
     <div className="space-y-6 py-6">
+      <BackButton fallback="/proposals" />
       {/* Header */}
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -364,7 +366,6 @@ export function ReleasePage() {
       {/* Discussion */}
       <TabsContent value="discussion" className="space-y-3">
         <h2 className="text-lg font-semibold">Discussion</h2>
-        <p className="text-xs text-neutral-500">The release is frozen. Discussion that should change the text belongs on the draft, where the next version is written.</p>
         <CommentSection root={{ id: release.id, pubkey: release.pubkey, kind: KINDS.PS_RELEASE }} />
       </TabsContent>
       </Tabs>

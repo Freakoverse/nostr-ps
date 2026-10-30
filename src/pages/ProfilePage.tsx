@@ -1,4 +1,5 @@
 import { shortNpub } from '@/lib/utils'
+import { BackButton } from '@/components/shared/BackButton'
 import { useState, useEffect, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
@@ -131,6 +132,7 @@ export default function ProfilePage() {
 
   return (
     <div className="mx-auto py-6">
+      <BackButton className="mb-4" />
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
         {/* Left column: tabbed activity */}
         <div className="lg:col-span-2 min-w-0">

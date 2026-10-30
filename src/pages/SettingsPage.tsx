@@ -1,4 +1,5 @@
 import { useState, useRef, useEffect, useMemo, useCallback } from 'react'
+import { BackButton } from '@/components/shared/BackButton'
 import { useSearchParams } from 'react-router-dom'
 import { cn } from '@/lib/utils'
 import { useSettingsStore, relayListSignature, blossomListSignature } from '@/stores/settingsStore'
@@ -1043,6 +1044,7 @@ export default function SettingsPage() {
 
   return (
     <div className="py-8">
+      <BackButton className="mb-4" />
       <h1 className="text-2xl font-bold mb-6">Settings</h1>
 
       <div className="flex flex-col md:flex-row gap-6">

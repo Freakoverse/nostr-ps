@@ -1,4 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
+import { BackButton } from '@/components/shared/BackButton'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
 import { Loader2, Pencil, Rocket, AlertCircle, ArrowRight, Trash2, FileText } from 'lucide-react'
@@ -86,6 +87,7 @@ export function DraftPage() {
 
   return (
     <div className="space-y-6 py-6">
+      <BackButton fallback="/drafts" />
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">

@@ -1,4 +1,5 @@
 import { Markdown } from '@/components/shared/Markdown'
+import { BackButton } from '@/components/shared/BackButton'
 import specText from '../../docs/NIP-PS.md?raw'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
 
@@ -7,6 +8,7 @@ export function AboutPage() {
 
   return (
     <div className="space-y-8 py-12">
+      <BackButton />
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">About</h1>
         <p className="text-neutral-400">

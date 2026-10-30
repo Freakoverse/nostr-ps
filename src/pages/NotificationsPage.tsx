@@ -1,4 +1,5 @@
 import { useEffect } from 'react'
+import { BackButton } from '@/components/shared/BackButton'
 import { Bell } from 'lucide-react'
 import { useAuthStore } from '@/stores/authStore'
 import { useLoginModalStore } from '@/stores/loginModalStore'
@@ -29,6 +30,7 @@ export function NotificationsPage() {
 
   return (
     <div className="space-y-6 py-8">
+      <BackButton />
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
         <p className="text-sm text-neutral-400">Comments on your drafts and releases.</p>

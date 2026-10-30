@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { FileText, Settings, User, Menu, X, Eye, Pencil, LogOut, Bell, BookOpen, Sun, Moon } from 'lucide-react'
+import { FileText, Settings, User, Menu, X, Eye, Pencil, LogOut, Bell, BookOpen, Sun, Moon, Info } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
@@ -17,6 +17,7 @@ import { EditProfileDialog } from '@/components/social/EditProfileDialog'
 const navLinks = [
   { to: '/proposals', label: 'Proposals', icon: BookOpen },
   { to: '/drafts', label: 'Drafts', icon: FileText },
+  { to: '/about', label: 'About', icon: Info },
 ]
 
 function ProfileButton() {
