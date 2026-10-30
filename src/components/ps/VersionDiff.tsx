@@ -5,6 +5,7 @@ import { diffLines, diffStats, toChunks, type DiffLine } from '@/lib/diff'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { ReleaseRow } from './Cards'
 import { cn } from '@/lib/utils'
+import { Tip } from '@/components/shared/Tip'
 
 /**
  * A version list with a diff control between each adjacent pair: "+a −r"
@@ -35,11 +36,11 @@ function DiffBetween({ older, newer }: { older: Release; newer: Release }) {
     <>
       <div className="flex items-center gap-2 px-3 py-0.5">
         <span className="h-3 w-px bg-edge" />
+        <Tip label={nothing ? 'No text changes between these versions' : `Changes from v${older.version} to v${newer.version}`}>
         <button
           type="button"
           onClick={() => setOpen(true)}
           disabled={nothing}
-          title={nothing ? 'No text changes between these versions' : `Changes from v${older.version} to v${newer.version}`}
           className={cn(
             'flex items-center gap-1.5 rounded-md border px-1.5 py-0.5 font-mono text-[11px] transition-colors',
             nothing ? 'cursor-default border-edge text-neutral-600' : 'border-edge text-neutral-400 hover:border-purple-500/40 hover:text-neutral-200',
@@ -54,6 +55,7 @@ function DiffBetween({ older, newer }: { older: Release; newer: Release }) {
             </>
           )}
         </button>
+        </Tip>
       </div>
       {open && <DiffDialog open={open} onOpenChange={setOpen} older={older} newer={newer} lines={lines} />}
     </>

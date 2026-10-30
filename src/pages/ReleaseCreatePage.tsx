@@ -20,6 +20,7 @@ import { LIMITS } from '@/lib/limits'
 import { CharCounter } from '@/components/shared/CharCounter'
 import { VersionList } from '@/components/ps/VersionDiff'
 import { cn } from '@/lib/utils'
+import { Tip } from '@/components/shared/Tip'
 
 /**
  * Freeze a draft into a release (kind 8201). The body is prefilled from the
@@ -250,13 +251,15 @@ function RefRow({ label, hint, value, href, note }: { label: string; hint: strin
   }
   return (
     <div className="grid items-center gap-x-3 gap-y-0.5 sm:grid-cols-[9rem_1fr_auto]">
-      <span className="text-xs text-neutral-400">{label} <span className="text-neutral-600">({hint})</span>{note && <span className="block truncate text-[11px] text-neutral-500" title={note}>{note}</span>}</span>
-      <code className="min-w-0 truncate rounded bg-sunken px-2 py-1 font-mono text-xs text-neutral-300" title={value}>{value}</code>
+      <span className="text-xs text-neutral-400">{label} <span className="text-neutral-600">({hint})</span>{note && <Tip label={note}><span className="block truncate text-[11px] text-neutral-500">{note}</span></Tip>}</span>
+      <Tip label={value} className="max-w-[90vw] break-all font-mono"><code className="min-w-0 truncate rounded bg-sunken px-2 py-1 font-mono text-xs text-neutral-300">{value}</code></Tip>
       <span className="flex items-center gap-1">
-        <button type="button" onClick={copy} className="rounded p-1 text-neutral-500 hover:text-neutral-200" title="Copy">
-          {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
-        </button>
-        {href && <Link to={href} className="rounded p-1 text-neutral-500 hover:text-neutral-200" title="Open"><Link2 className="h-3.5 w-3.5" /></Link>}
+        <Tip label={copied ? 'Copied' : 'Copy'}>
+          <button type="button" onClick={copy} className="rounded p-1 text-neutral-500 hover:text-neutral-200" aria-label="Copy">
+            {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+          </button>
+        </Tip>
+        {href && <Tip label="Open"><Link to={href} className="rounded p-1 text-neutral-500 hover:text-neutral-200" aria-label="Open"><Link2 className="h-3.5 w-3.5" /></Link></Tip>}
       </span>
     </div>
   )

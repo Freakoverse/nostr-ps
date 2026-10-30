@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom'
 import { Eye, EyeOff, SlidersHorizontal, RotateCcw } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Tip } from '@/components/shared/Tip'
 import { useLensStore, DEFAULT_THRESHOLD } from '@/stores/lensStore'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
@@ -45,9 +46,11 @@ export function LensBar({ className }: { className?: string }) {
           <Slider min={0} max={100} step={5} value={[threshold]} onValueChange={([v]) => setThreshold(v)} className="w-24" />
           <span className="w-6 text-right tabular-nums text-neutral-200">{threshold}</span>
           {threshold !== DEFAULT_THRESHOLD && (
-            <button type="button" onClick={() => setThreshold(DEFAULT_THRESHOLD)} className="text-neutral-500 hover:text-neutral-200" aria-label={`Reset threshold to `} title={`Reset to `}>
-              <RotateCcw className="h-3.5 w-3.5" />
-            </button>
+            <Tip label={`Reset to ${DEFAULT_THRESHOLD}`}>
+              <button type="button" onClick={() => setThreshold(DEFAULT_THRESHOLD)} className="text-neutral-500 hover:text-neutral-200" aria-label={`Reset threshold to ${DEFAULT_THRESHOLD}`}>
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+            </Tip>
           )}
         </div>
       )}

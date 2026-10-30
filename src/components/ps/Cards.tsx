@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FileText, GitFork, Users, ShieldCheck, ShieldX, Ban } from 'lucide-react'
 import { cn } from '@/lib/utils'
+import { Tip } from '@/components/shared/Tip'
 import { draftNaddr, releaseNevent, type Draft, type Release, type ProposalSummary, type Claim, type Review } from '@/lib/nostr/nipps'
 import { AuthorLine } from '@/components/social/AuthorLine'
 import { Markdown } from '@/components/shared/Markdown'
@@ -52,7 +53,11 @@ export function KindChips({ kinds, max = 10, expandable = false }: { kinds: { ki
       max={max}
       expandable={expandable}
       keyOf={(k) => String(k.kind)}
-      render={(k) => <span title={k.name ? ` ` : String(k.kind)} className="inline-flex items-center gap-1"><span className="font-mono text-purple-300">{k.kind}</span>{k.name && <span>{clip(k.name)}</span>}</span>}
+      render={(k) => (
+        <Tip label={k.name ? `kind ${k.kind}: ${k.name}` : `kind ${k.kind}`}>
+          <span className="inline-flex items-center gap-1"><span className="font-mono text-purple-300">{k.kind}</span>{k.name && <span>{clip(k.name)}</span>}</span>
+        </Tip>
+      )}
     />
   )
 }
@@ -64,7 +69,7 @@ export function TopicChips({ topics, max = 10, expandable = false }: { topics: s
       max={max}
       expandable={expandable}
       keyOf={(t) => t}
-      render={(t) => <span title={`#`}>#{clip(t)}</span>}
+      render={(t) => <Tip label={t.length > 20 ? `#${t}` : undefined}><span>#{clip(t)}</span></Tip>}
     />
   )
 }
