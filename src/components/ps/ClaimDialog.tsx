@@ -20,11 +20,14 @@ import { CharCounter, LimitCounter } from '@/components/shared/CharCounter'
  * and "Withdraw" republishes it with a `withdrawn` tag rather than deleting.
  */
 export function ClaimDialog({
-  open, onOpenChange, release, existing, onPublished,
+  open, onOpenChange, release, versions, existing, onPublished,
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
+  /** The release the dialog was opened from; the default target. */
   release: Release
+  /** Every version of the proposal, newest first; lets the claim point at any of them. */
+  versions?: Release[]
   existing?: Claim | null
   onPublished?: () => void
 }) {
@@ -39,9 +42,16 @@ export function ClaimDialog({
   const [partial, setPartial] = useState(false)
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState<'save' | 'withdraw' | null>(null)
+  // Which version the claim will point at. Defaults to the page's release;
+  // any version of the proposal can be chosen, since the claim is one per
+  // proposal and moving it is a republish (spec §4.4).
+  const [targetId, setTargetId] = useState(release.id)
+  const choices = versions && versions.length ? versions : [release]
+  const target = choices.find((v) => v.id === targetId) ?? release
 
   useEffect(() => {
     if (!open) return
+    setTargetId(release.id)
     setRole(existing?.role ?? 'client')
     setName(existing?.name ?? '')
     setImplVersion(existing?.implVersion ?? '')
@@ -51,7 +61,7 @@ export function ClaimDialog({
     setRepo(existing?.repo ?? '')
     setPartial(existing?.scope === 'partial')
     setNotes(existing?.content ?? '')
-  }, [open, existing])
+  }, [open, existing, release.id])
 
   if (open && !pubkey) {
     onOpenChange(false)
@@ -63,7 +73,7 @@ export function ClaimDialog({
     if (!name.trim()) { toast.error('Name the software'); return }
     setBusy(withdrawn ? 'withdraw' : 'save')
     const event = buildClaimEvent({
-      release,
+      release: target,
       role,
       name,
       implVersion: implVersion || undefined,
@@ -89,16 +99,35 @@ export function ClaimDialog({
         <DialogHeader>
           <DialogTitle className="text-foreground">{existing ? 'Update adoption claim' : 'Claim adoption'}</DialogTitle>
           <DialogDescription className="text-neutral-400">
-            &quot;We implement <span className="text-neutral-200">{release.title} v{release.version}</span>.&quot; A claim is a statement by you. Publishing one does not make it true; others can review it.
-            {existing && existing.version !== release.version && (
+            &quot;We implement <span className="text-neutral-200">{target.title} v{target.version}</span>.&quot; A claim is a statement by you. Publishing one does not make it true; others can review it.
+            {existing && existing.version !== target.version && (
               <span className="mt-2 block rounded-md border border-purple-500/30 bg-purple-500/5 px-3 py-2 text-xs text-neutral-300">
-                Your current claim points at <span className="font-mono">v{existing.version}</span>. Saving moves it to <span className="font-mono">v{release.version}</span>: one claim per proposal, so the old one is replaced, not kept.
+                Your current claim points at <span className="font-mono">v{existing.version}</span>. Saving moves it to <span className="font-mono">v{target.version}</span>: one claim per proposal, so the old one is replaced, not kept.
               </span>
             )}
           </DialogDescription>
         </DialogHeader>
 
         <div className="space-y-4">
+          {choices.length > 1 && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-neutral-300">Version you implement</label>
+              <div className="flex flex-wrap gap-1 rounded-lg border border-edge bg-panel p-1">
+                {choices.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => setTargetId(v.id)}
+                    className={cn('rounded-md px-2.5 py-1.5 font-mono text-xs transition-colors', target.id === v.id ? 'bg-panel-3 text-purple-300' : 'text-neutral-400 hover:text-neutral-200')}
+                  >
+                    v{v.version}
+                    {existing?.releaseId === v.id && <span className="ml-1 font-sans text-[10px] text-neutral-500">current</span>}
+                  </button>
+                ))}
+              </div>
+              <p className="text-[11px] text-neutral-600">One claim per proposal. Picking another version moves the claim; it does not add a second one.</p>
+            </div>
+          )}
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-neutral-300">Role</label>
             <div className="grid grid-cols-4 gap-1 rounded-lg border border-edge bg-panel p-1">

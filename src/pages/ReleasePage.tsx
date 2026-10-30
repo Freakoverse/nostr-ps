@@ -357,7 +357,7 @@ export function ReleasePage() {
         <CommentSection root={{ id: release.id, pubkey: release.pubkey, kind: KINDS.PS_RELEASE }} />
       </section>
 
-      <ClaimDialog open={claimOpen} onOpenChange={setClaimOpen} release={release} existing={myClaim} onPublished={reload} />
+      <ClaimDialog open={claimOpen} onOpenChange={setClaimOpen} release={release} versions={versions} existing={myClaim} onPublished={reload} />
       <ReviewDialog open={reviewOpen} onOpenChange={setReviewOpen} target={{ kind: 'release', release }} existing={myReview} onPublished={reload} />
       {claimDetail && (
         <ClaimDetailDialog
