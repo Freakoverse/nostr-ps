@@ -121,8 +121,10 @@ export interface Draft {
   content: string
   /** Logical version counter (NIP-01 replacement order), not wall-clock after the first edit. */
   createdAt: number
-  /** Original publication time, carried unchanged across edits (`published_at` tag). */
+  /** Original publication time, carried unchanged across edits (`published_at` tag). Falls back to created_at. */
   publishedAt: number
+  /** Whether `published_at` was actually present; without it `publishedAt` is only created_at. */
+  hasPublishedAt: boolean
   /** Wall-clock time of the last edit (`updated_at` tag), when the draft has been edited. */
   updatedAt?: number
   /** True once `created_at` has moved past `published_at`, i.e. the draft was edited. */
@@ -237,6 +239,7 @@ export function parseDraft(ev: NostrEvent): Draft | null {
     content: ev.content,
     createdAt: ev.created_at,
     publishedAt: parseInt(tag(ev, 'published_at') ?? '', 10) || ev.created_at,
+    hasPublishedAt: !!(parseInt(tag(ev, 'published_at') ?? '', 10)),
     updatedAt: parseInt(tag(ev, 'updated_at') ?? '', 10) || undefined,
     edited: ev.created_at > (parseInt(tag(ev, 'published_at') ?? '', 10) || ev.created_at),
     deleted: isDeleted(ev),

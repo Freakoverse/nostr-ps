@@ -11,6 +11,7 @@ import { useUserStore, type UserProfile } from '@/stores/userStore'
 import { useBlockStore, type BlockType } from '@/stores/blockStore'
 import { useDnnStore } from '@/stores/dnnStore'
 import { IdentityLine } from '@/components/social/IdentityLine'
+import { TrustBadge } from '@/components/lens/TrustBadge'
 import { SafeImage } from '@/components/shared/SafeImage'
 import { FollowButton } from '@/components/social/FollowButton'
 import { BlockTypeModal } from '@/components/social/BlockTypeModal'
@@ -129,15 +130,18 @@ export function ProfileCard({ pubkey, extra, compact = false }: ProfileCardProps
       </Link>
 
       <div className="px-4 pb-4">
-        {/* Avatar overlapping the banner */}
-        <Link to={profileHref} className="inline-block">
-          <Avatar className="-mt-8 h-16 w-16 ring-4 ring-panel">
-            {profile?.picture ? <AvatarImage src={profile.picture as string} alt={displayName} /> : null}
-            <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-800 text-white">
-              <User className="h-7 w-7" />
-            </AvatarFallback>
-          </Avatar>
-        </Link>
+        {/* Avatar overlapping the banner, trust score in the space to its right */}
+        <div className="flex items-end justify-between gap-3">
+          <Link to={profileHref} className="inline-block">
+            <Avatar className="-mt-8 h-16 w-16 ring-4 ring-panel">
+              {profile?.picture ? <AvatarImage src={profile.picture as string} alt={displayName} /> : null}
+              <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-800 text-white">
+                <User className="h-7 w-7" />
+              </AvatarFallback>
+            </Avatar>
+          </Link>
+          <TrustBadge pubkey={pubkey} className="mb-1" />
+        </div>
 
         {/* Name + 3-dot menu */}
         <div className="mt-2 flex items-center justify-between gap-2">

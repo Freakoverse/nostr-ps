@@ -97,12 +97,24 @@ export function DraftPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Chip>draft</Chip>
             <PowBadge id={draft.event.id} />
-            <Tip label={formatTimestamp(draft.publishedAt)}><Chip className="text-neutral-400">published {formatRelativeTime(draft.publishedAt)}</Chip></Tip>
-            {draft.edited && (
-              <Tip label={draft.updatedAt ? formatTimestamp(draft.updatedAt) : 'Edit time not recorded'}>
-                <Chip className="text-neutral-400">edited{draft.updatedAt ? ` ${formatRelativeTime(draft.updatedAt)}` : ''}</Chip>
-              </Tip>
-            )}
+            {/* published_at is authoritative; without it, created_at is only a guess (an edited
+                draft without the tag has a counter there, not a time), hence "supposedly". */}
+            <Tip
+              className="max-w-xs"
+              label={draft.hasPublishedAt
+                ? `From the published_at tag: ${formatTimestamp(draft.publishedAt)}`
+                : `This event has no published_at tag, so this is its created_at: ${formatTimestamp(draft.createdAt)}. On an edited draft that value is a version counter, not a time, hence "supposedly".`}
+            >
+              <Chip className="text-neutral-400">{draft.hasPublishedAt ? 'published' : 'supposedly published'} {formatRelativeTime(draft.publishedAt)}</Chip>
+            </Tip>
+            <Tip
+              className="max-w-xs"
+              label={draft.updatedAt
+                ? `From the updated_at tag: ${formatTimestamp(draft.updatedAt)}`
+                : `This event has no updated_at tag, so this is its created_at: ${formatTimestamp(draft.createdAt)}. It is only the real time if the draft has never been edited.`}
+            >
+              <Chip className="text-neutral-400">updated {formatRelativeTime(draft.updatedAt ?? draft.createdAt)}</Chip>
+            </Tip>
           </div>
           <PostMenu event={draft.event}>
             {isAuthor && (

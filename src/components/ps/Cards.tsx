@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useState, forwardRef } from 'react'
 import { Link } from 'react-router-dom'
 import { FileText, GitFork, Users, ShieldCheck, ShieldX, Ban } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -8,9 +8,10 @@ import { draftNaddr, releaseNevent, shortId, type Draft, type Release, type Prop
 import { AuthorLine } from '@/components/social/AuthorLine'
 import { Markdown } from '@/components/shared/Markdown'
 
-export function Chip({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <span className={cn('inline-flex items-center gap-1 rounded-md border border-edge bg-panel-2 px-1.5 py-0.5 text-[11px] text-neutral-400', className)}>{children}</span>
-}
+/** Forwards its ref and spreads extra props so it can be a Radix tooltip trigger (`Tip` uses `asChild`). */
+export const Chip = forwardRef<HTMLSpanElement, React.HTMLAttributes<HTMLSpanElement>>(function Chip({ children, className, ...rest }, ref) {
+  return <span ref={ref} className={cn('inline-flex items-center gap-1 rounded-md border border-edge bg-panel-2 px-1.5 py-0.5 text-[11px] text-neutral-400', className)} {...rest}>{children}</span>
+})
 
 /** Chip label text cap; the full value goes in a title tooltip. */
 const CHIP_TEXT_MAX = 20

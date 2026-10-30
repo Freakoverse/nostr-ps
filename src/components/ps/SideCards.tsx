@@ -1,7 +1,6 @@
 import { useState } from 'react'
 import { Check, Copy } from 'lucide-react'
 import { ProfileCard } from '@/components/social/ProfileCard'
-import { TrustBadge } from '@/components/lens/TrustBadge'
 import { Tip } from '@/components/shared/Tip'
 import { KindChips, TopicChips } from './Cards'
 import type { KindRef } from '@/lib/nostr/nipps'
@@ -24,7 +23,7 @@ function Card({ title, children, right }: { title: string; children: React.React
  * lens. Facts about the post itself live in PostFacts under the title.
  */
 export function AuthorCard({ pubkey }: { pubkey: string }) {
-  return <ProfileCard pubkey={pubkey} compact extra={<TrustBadge pubkey={pubkey} />} />
+  return <ProfileCard pubkey={pubkey} compact />
 }
 
 /** Kinds and topics, each saying "none" rather than disappearing. */

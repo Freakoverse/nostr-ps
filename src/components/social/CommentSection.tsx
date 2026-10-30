@@ -74,7 +74,13 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
   }, [load])
 
   const followed = useFollowedSet()
-  const powTree = useMemo(() => buildCommentTree(events, minPow, followed), [events, minPow, followed])
+  // Filtering demotes, never hides (spec §6): comments under the proof-of-work
+  // filter are folded behind a count the reader can expand, not dropped.
+  const [showBelowPow, setShowBelowPow] = useState(false)
+  const unfilteredTree = useMemo(() => buildCommentTree(events, 0, followed), [events, followed])
+  const filteredTree = useMemo(() => buildCommentTree(events, minPow, followed), [events, minPow, followed])
+  const powTree = showBelowPow ? unfilteredTree : filteredTree
+  const belowPow = useMemo(() => countComments(unfilteredTree) - countComments(filteredTree), [unfilteredTree, filteredTree])
 
   // Hide comments/replies from low-trust (Web of Trust) or blocked users.
   const wotApply = useWotStore((s) => s.settings.applyComments)
@@ -124,6 +130,14 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
           Comments
           {!loading && <span className="text-sm font-normal text-neutral-500">({total})</span>}
         </h2>
+        {!loading && belowPow > 0 && (
+          <p className="order-last basis-full text-xs text-neutral-500">
+            {belowPow} {belowPow === 1 ? 'comment is' : 'comments are'} below your proof-of-work filter ({minPow} bits).{' '}
+            <button type="button" onClick={() => setShowBelowPow((v) => !v)} className="text-purple-400 hover:underline">
+              {showBelowPow ? 'Hide them again' : 'Show them'}
+            </button>
+          </p>
+        )}
         <div className="flex items-center gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
