@@ -2,7 +2,6 @@ import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BackButton } from '@/components/shared/BackButton'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
-import { toast } from 'sonner'
 import {
   Loader2, GitFork, Archive, Users, MessageSquareText, ShieldCheck, FileText, Rocket,
 } from 'lucide-react'
@@ -11,11 +10,10 @@ import { useAuthStore } from '@/stores/authStore'
 import { useLoginModalStore } from '@/stores/loginModalStore'
 import { useLensStore, requestScores } from '@/stores/lensStore'
 import { KINDS } from '@/lib/constants'
-import { signAndPublish } from '@/lib/nostr/publish'
 import {
   fetchRelease, fetchReleasesOf, fetchClaimsFor, fetchReleaseReviews, fetchClaimReviews, fetchBackups,
   getCachedRelease, getCachedVersions, getCachedClaimsFor, getCachedReleaseReviews, whenEventCacheReady, shortId,
-  buildBackupEvent, draftNaddr, releaseNevent, releaseLabel,
+  draftNaddr, releaseNevent, releaseLabel,
   type Release, type Claim, type Review, type Backup,
 } from '@/lib/nostr/nipps'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
@@ -34,6 +32,7 @@ import { VersionList } from '@/components/ps/VersionDiff'
 import { ClaimDetailDialog } from '@/components/ps/ClaimDetailDialog'
 import { ItemMenu } from '@/components/ps/ItemMenu'
 import { AuthorCard, MetaCard, ReferenceCard } from '@/components/ps/SideCards'
+import { BackupDialog } from '@/components/ps/BackupDialog'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 const tabTrigger = 'py-1.5 data-[state=active]:bg-edge data-[state=active]:text-purple-400'
@@ -59,7 +58,7 @@ export function ReleasePage() {
   const [reviewOpen, setReviewOpen] = useState(false)
   const [claimReviewTarget, setClaimReviewTarget] = useState<Claim | null>(null)
   const [claimDetail, setClaimDetail] = useState<Claim | null>(null)
-  const [backingUp, setBackingUp] = useState(false)
+  const [backupOpen, setBackupOpen] = useState(false)
 
   const enabled = useLensStore((s) => s.enabled)
   const scores = useLensStore((s) => s.scores)
@@ -183,17 +182,11 @@ export function ReleasePage() {
   const draftHref = release.draftCoord ? draftHrefOf(release.draftCoord) : null
   const myBackup = backups.some((b) => b.pubkey === myPubkey)
 
-  const backup = async () => {
+  // The backup itself is published from BackupDialog, after an explanation.
+  const backup = () => {
     if (!myPubkey) { useLoginModalStore.getState().open(); return }
-    setBackingUp(true)
-    const relay = useSettingsStore.getState().getAllEnabledRelayUrls('write')[0]
-    const res = await signAndPublish(buildBackupEvent(release.event, relay))
-    setBackingUp(false)
-    if (!res.success) { toast.error(res.error || 'Backup failed'); return }
-    toast.success('Backup published. This copy survives the author’s deletion requests.')
-    reload()
+    setBackupOpen(true)
   }
-
 
   const fork = () => {
     if (!myPubkey) { useLoginModalStore.getState().open(); return }
@@ -256,8 +249,8 @@ export function ReleasePage() {
         <Button size="sm" variant="outline" onClick={() => (myPubkey ? setReviewOpen(true) : useLoginModalStore.getState().open())} className="gap-1.5 border-edge">
           <MessageSquareText className="h-3.5 w-3.5" /> {myReview ? 'Edit my review' : 'Review'}
         </Button>
-        <Button size="sm" variant="outline" onClick={backup} disabled={backingUp || myBackup} className="gap-1.5 border-edge">
-          {backingUp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Archive className="h-3.5 w-3.5" />} {myBackup ? 'Backed up' : 'Back up'}
+        <Button size="sm" variant="outline" onClick={backup} disabled={myBackup} className="gap-1.5 border-edge">
+          <Archive className="h-3.5 w-3.5" /> {myBackup ? 'Backed up' : 'Back up'}
         </Button>
         {myPubkey === release.pubkey && draftHref && (
           <Button asChild size="sm" variant="outline" className="gap-1.5 border-purple-500/40 text-purple-300 hover:text-purple-200">
@@ -368,6 +361,7 @@ export function ReleasePage() {
       </Tabs>
 
       <ClaimDialog open={claimOpen} onOpenChange={setClaimOpen} release={release} versions={versions} existing={myClaim} onPublished={reload} />
+      <BackupDialog open={backupOpen} onOpenChange={setBackupOpen} release={release} onPublished={reload} />
       <ReviewDialog open={reviewOpen} onOpenChange={setReviewOpen} target={{ kind: 'release', release }} existing={myReview} onPublished={reload} />
       {claimDetail && (
         <ClaimDetailDialog
