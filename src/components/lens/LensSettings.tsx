@@ -1,9 +1,9 @@
 import { useState } from 'react'
 import { nip19 } from 'nostr-tools'
-import { Eye, Plus, Trash2, RefreshCw, Network, Radar } from 'lucide-react'
+import { Eye, Plus, Trash2, RefreshCw, Network, Radar, RotateCcw } from 'lucide-react'
 import { toast } from 'sonner'
 import { cn } from '@/lib/utils'
-import { useLensStore, type LensSourceType } from '@/stores/lensStore'
+import { useLensStore, DEFAULT_THRESHOLD, type LensSourceType } from '@/stores/lensStore'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { Input } from '@/components/ui/input'
@@ -57,10 +57,20 @@ export function LensSettings() {
         <div>
           <div className="mb-2 flex items-center justify-between">
             <label className="text-sm font-medium text-foreground">Threshold</label>
-            <span className="rounded bg-secondary px-2 py-0.5 font-mono text-sm text-muted-foreground">{threshold}</span>
+            <div className="flex items-center gap-2">
+              <span className="rounded bg-secondary px-2 py-0.5 font-mono text-sm text-muted-foreground">{threshold}</span>
+              <button
+                type="button"
+                onClick={() => setThreshold(DEFAULT_THRESHOLD)}
+                disabled={threshold === DEFAULT_THRESHOLD}
+                className="flex shrink-0 items-center gap-1 text-xs text-neutral-500 transition-colors hover:text-neutral-300 disabled:cursor-default disabled:opacity-40"
+              >
+                <RotateCcw size={11} /> Reset
+              </button>
+            </div>
           </div>
           <Slider min={0} max={100} step={5} value={[threshold]} onValueChange={([v]) => setThreshold(v)} />
-          <p className="mt-1.5 text-xs text-muted-foreground">Authors scoring below this are collapsed into a fold. Authors with no score are collapsed separately: unknown is not zero.</p>
+          <p className="mt-1.5 text-xs text-muted-foreground">Scores run 0 to 100 and never go negative. Graph sources give a direct follow 100, a follow of a follow 50, and a muted pubkey 0, so the default of {DEFAULT_THRESHOLD} lets your graph and one hop out through. Authors below it are folded; authors with no score are a separate filter.</p>
         </div>
         <div>
           <div className="mb-2 flex items-center justify-between">

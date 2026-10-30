@@ -52,6 +52,12 @@ export interface PubkeyScore {
 export const OWN_SOURCE_ID = 'own'
 /** The operator's graph: the anonymous default viewpoint. */
 export const OPERATOR_SOURCE_ID = 'operator'
+/**
+ * Default threshold. Graph sources score a direct follow 100, a follow of a
+ * follow 50 and a muted pubkey 0, so 50 means "my graph and one hop out pass,
+ * muted fails". NIP-85 providers publish 0-100 as well; nothing goes negative.
+ */
+export const DEFAULT_THRESHOLD = 50
 
 const SCORE_TTL = 10 * 60 * 1000
 const GRAPH_TTL = 30 * 60 * 1000
@@ -116,7 +122,7 @@ export const useLensStore = create<LensState>()(
     (set, get) => ({
       sources: DEFAULT_SOURCES,
       enabled: true,
-      threshold: 50,
+      threshold: DEFAULT_THRESHOLD,
       graphDepth: 2,
       scores: {},
       graphs: {},
