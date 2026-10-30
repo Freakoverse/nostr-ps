@@ -276,19 +276,18 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
   // ═══════════════════════════════════════════════════════════════════
   return (
     <div className="fixed inset-0 top-16 z-30 flex items-center justify-center overflow-hidden bg-surface-background/50 p-4 backdrop-blur-md">
-      {/* ── Close (overlay/modal mode only) ──────────────────────── */}
+      {/* ── Login card, with the close control sitting just above it ── */}
+      <div className="relative z-10 w-full max-w-sm">
       {onClose && (
         <button
           onClick={onClose}
           aria-label="Close"
-          className="fixed right-4 top-20 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-edge bg-panel/80 text-neutral-300 backdrop-blur-sm transition-colors hover:bg-edge hover:text-foreground"
+          className="absolute -top-11 right-0 flex h-9 w-9 items-center justify-center rounded-md border border-edge bg-panel/90 text-neutral-300 backdrop-blur-sm transition-colors hover:bg-edge hover:text-foreground"
         >
           <X className="h-5 w-5" />
         </button>
       )}
-
-      {/* ── Login card ───────────────────────────────────────────── */}
-      <Card className="w-full max-w-sm relative z-10 border-edge bg-panel/90 backdrop-blur-sm">
+      <Card className="w-full border-edge bg-panel/90 backdrop-blur-sm">
         <CardContent className="p-8 flex flex-col items-center gap-6">
           <AnimatePresence mode="wait">
             {/* ── Main Screen ────────────────────────────────── */}
@@ -606,6 +605,7 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
           </AnimatePresence>
         </CardContent>
       </Card>
+      </div>
 
       <GettingStartedGuide
         open={showGuide}
