@@ -27,7 +27,7 @@
 import type { Event as NostrEvent, Filter } from 'nostr-tools'
 import { fetchEvent, fetchEvents, publishToRelays } from './relay-pool'
 import { useSettingsStore } from '@/stores/settingsStore'
-import { KINDS, ADMIN_PUBKEY } from '@/lib/constants'
+import { KINDS, ADMIN_PUBKEY, HAS_OPERATOR } from '@/lib/constants'
 
 /** The latest revision is "safe" once it lives on at least this many relays. */
 const MIN_REDUNDANCY = 3
@@ -186,6 +186,7 @@ export function ensureEventPresent(event: NostrEvent) {
  * Covers the NIP-78 config docs plus the admin mute list.
  */
 export function ensureAdminEventsRedundancy() {
+  if (!HAS_OPERATOR) return
   for (const dTag of ADMIN_CONFIG_DTAGS) {
     ensureEventRedundancy(KINDS.APP_DATA, ADMIN_PUBKEY, dTag)
   }

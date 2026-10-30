@@ -44,12 +44,15 @@ export const SECURE_KEYS = {
 
 // ─── Operator ───────────────────────────────────────────────────────
 //
-// The pubkey that publishes site-level config (announcement banner) and whose
-// graph is the anonymous default viewpoint (docs/CLIENT-LENS.md). Replace with
-// the deploying operator's key.
+// Optional operator key: publishes the announcement banner and is the anonymous
+// default viewpoint (docs/CLIENT-LENS.md). Leave both empty to ship without an
+// operator: no banner, no operator graph, anonymous visitors see the raw view
+// until they add a source or log in (their own graph is added automatically).
 
-export const ADMIN_NPUB = 'npub18n4ysp43ux5c98fs6h9c57qpr4p8r3j8f6e32v0vj8egzy878aqqyzzk9r'
-export const ADMIN_PUBKEY = '3cea4806b1e1a9829d30d5cb8a78011d4271c6474eb31531ec91f28110fe3f40'
+export const ADMIN_NPUB = ''
+export const ADMIN_PUBKEY = ''
+/** True when a deploying operator set a key above. */
+export const HAS_OPERATOR = /^[0-9a-f]{64}$/.test(ADMIN_PUBKEY)
 
 // ─── Client (NIP-89) ────────────────────────────────────────────────
 

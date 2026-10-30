@@ -43,7 +43,7 @@ npm run dev
 
 ## Before deploying
 
-- Set `ADMIN_PUBKEY` / `ADMIN_NPUB` in `src/lib/constants.ts` to the operator's key. It signs the announcement banner and is the anonymous default viewpoint.
+- `ADMIN_PUBKEY` / `ADMIN_NPUB` in `src/lib/constants.ts` are optional. Set them to a dedicated operator key if you want an announcement banner and an operator graph as the anonymous default viewpoint; left empty, anonymous visitors see the raw view until they add a lens source or log in.
 - Kind numbers `8201`, `8202`, `30851`, `30852` are provisional (spec §12). `30817` is shared with an existing NIP directory on purpose.
 - The favicon is `public/favicon.svg`, a plain "PS" tile; replace it if you want a brand mark.
 - GitHub Pages: set the Pages source to "GitHub Actions"; the workflow in `.github/workflows/pages.yml` builds and deploys on every push to `main`.

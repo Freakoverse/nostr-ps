@@ -26,7 +26,7 @@ import { nip19, type Event as NostrEvent } from 'nostr-tools'
 import { fetchEvents } from '@/lib/nostr/relay-pool'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
-import { ADMIN_PUBKEY, KINDS } from '@/lib/constants'
+import { ADMIN_PUBKEY, HAS_OPERATOR, KINDS } from '@/lib/constants'
 
 export type LensSourceType = 'nip85' | 'graph'
 
@@ -107,9 +107,11 @@ function labelFor(pubkey: string): string {
   try { return shortNpub(nip19.npubEncode(pubkey)) } catch { return `${pubkey.slice(0, 8)}…${pubkey.slice(-4)}` }
 }
 
-const DEFAULT_SOURCES: LensSource[] = [
-  { id: OPERATOR_SOURCE_ID, type: 'graph', pubkey: ADMIN_PUBKEY, label: 'Operator graph', enabled: true, builtin: true },
-]
+// Only when the deployment names an operator (constants.ts); otherwise no
+// source ships and anonymous visitors see the raw view until they add one.
+const DEFAULT_SOURCES: LensSource[] = HAS_OPERATOR
+  ? [{ id: OPERATOR_SOURCE_ID, type: 'graph', pubkey: ADMIN_PUBKEY, label: 'Operator graph', enabled: true, builtin: true }]
+  : []
 
 function enabledSources(s: LensState): LensSource[] {
   return s.sources.filter((x) => x.enabled)
@@ -217,16 +219,24 @@ export const useLensStore = create<LensState>()(
     }),
     {
       name: 'nip-ps:lens',
-      version: 1,
+      version: 2,
       // Scores persist too, so a cache-painted list is scored at once; anything
       // past SCORE_TTL is re-fetched on demand and a source change clears them.
       partialize: (s) => ({ sources: s.sources, enabled: s.enabled, threshold: s.threshold, graphDepth: s.graphDepth, scores: s.scores }),
       // v0 shipped with a default threshold of 50, far too strict for NIP-85
       // ranks. Anyone still on that exact value gets the new default; a value
       // they chose themselves is left alone.
+      // v2: the operator key became optional and may have changed; an operator
+      // row persisted from an earlier build must not keep scoring through a key
+      // this deployment no longer names.
       migrate: (persisted, version) => {
         const s = (persisted ?? {}) as Partial<LensState>
         if (version < 1 && s.threshold === 50) s.threshold = DEFAULT_THRESHOLD
+        if (version < 2 && Array.isArray(s.sources)) {
+          s.sources = s.sources.filter((x) => x.id !== OPERATOR_SOURCE_ID || (HAS_OPERATOR && x.pubkey === ADMIN_PUBKEY))
+          if (HAS_OPERATOR && !s.sources.some((x) => x.id === OPERATOR_SOURCE_ID)) s.sources = [...s.sources, ...DEFAULT_SOURCES]
+          s.scores = {}
+        }
         return s as LensState
       },
     },

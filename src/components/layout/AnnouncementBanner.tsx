@@ -4,7 +4,7 @@ import { cn } from '@/lib/utils'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { fetchLatestEvent } from '@/lib/nostr/relay-pool'
 import { extractAnnouncement, ANNOUNCEMENT_DTAG, type AnnouncementData } from '@/lib/nostr/events'
-import { KINDS, ADMIN_PUBKEY } from '@/lib/constants'
+import { KINDS, ADMIN_PUBKEY, HAS_OPERATOR } from '@/lib/constants'
 import { Markdown } from '@/components/shared/Markdown'
 
 const DISMISS_KEY = 'nip-ps:announcement-dismissed'
@@ -19,6 +19,7 @@ export function AnnouncementBanner() {
   const [dismissed, setDismissed] = useState(false)
 
   useEffect(() => {
+    if (!HAS_OPERATOR) return // no operator key: nothing to read
     let cancelled = false
     async function load() {
       const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
