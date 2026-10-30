@@ -271,7 +271,6 @@ export function ReleasePage() {
             return <ClaimCard claim={c} legit={st?.legit} fake={st?.fake} mine={!!myPubkey && (claimReviews.get(c.coord) ?? []).some((r) => r.pubkey === myPubkey)} onReview={() => (myPubkey ? setClaimReviewTarget(c) : useLoginModalStore.getState().open())} />
           }}
           empty={<p className="rounded-lg border border-dashed border-edge py-10 text-center text-sm text-neutral-500">No one has claimed adoption yet. Implemented it? Say so.</p>}
-          belowLabel="low-trust"
         />
       </section>
 
@@ -290,7 +289,6 @@ export function ReleasePage() {
           keyOf={(r) => r.event.id}
           render={(r) => <ReviewCard review={r} />}
           empty={<p className="rounded-lg border border-dashed border-edge py-10 text-center text-sm text-neutral-500">No reviews yet.</p>}
-          belowLabel="low-trust"
         />
       </section>
 

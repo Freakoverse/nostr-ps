@@ -8,7 +8,7 @@ import { usePaged } from '@/hooks/usePaged'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { LensBar } from '@/components/lens/LensBar'
-import { ScoreFilterMenu, BelowFold, EmptyFiltered } from '@/components/lens/TieredList'
+import { ScoreFilterMenu, EmptyFiltered } from '@/components/lens/TieredList'
 import { useLensFilter } from '@/components/lens/useLensFilter'
 import { Pagination } from '@/components/shared/Pagination'
 import { ProposalCard } from '@/components/ps/Cards'
@@ -141,7 +141,7 @@ export function ProposalsPage() {
   }, [items, q, sort, verifiedCount])
 
   const withAuthor = useMemo(() => visible.map((p) => ({ ...p, pubkey: p.latest.pubkey })), [visible])
-  const { main, below, lensActive, unscored, filter, setFilter } = useLensFilter(withAuthor)
+  const { main, counts, lensActive, filter, setFilter } = useLensFilter(withAuthor)
   const { page, setPage, totalPages, paged } = usePaged(main, PER_PAGE, { loadMore, reachedEnd, loading: loading || loadingMore, resetKey: `${q}|${sort}|${filter}` })
 
   return (
@@ -178,11 +178,10 @@ export function ProposalsPage() {
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
                 <span className="text-xs text-neutral-500">{main.length}{reachedEnd ? '' : '+'} proposals · page {page} of {totalPages}{reachedEnd ? '' : '+'}</span>
-                {lensActive && <ScoreFilterMenu value={filter} onChange={setFilter} unscored={unscored} />}
+                {lensActive && <ScoreFilterMenu value={filter} onChange={setFilter} counts={counts} />}
               </div>
               {paged.length === 0 ? <EmptyFiltered filter={filter} /> : paged.map((p) => <ProposalCard key={p.key} p={p} verified={enabled ? verifiedCount.get(p.key) : undefined} />)}
               <Pagination page={page} totalPages={totalPages} onPage={setPage} reachedEnd={reachedEnd} loadingMore={loadingMore} />
-              <BelowFold items={below} keyOf={(p) => p.key} render={(p) => <ProposalCard p={p} verified={enabled ? verifiedCount.get(p.key) : undefined} />} />
             </div>
           )}
         </>
