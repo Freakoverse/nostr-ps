@@ -1,9 +1,8 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
-import { ChevronDown, ChevronUp } from 'lucide-react'
 import { cn } from '@/lib/utils'
 
 /**
- * Long body text, cut at `maxHeight` with a fade and a "View full" button.
+ * Long body text, cut at `maxHeight` with a divider and a "View full" button.
  * Expanded, a sticky "View less" bar rides the bottom of the viewport so it
  * is reachable from anywhere in the text. Short content gets no control.
  */
@@ -43,25 +42,25 @@ export function CollapsibleBody({ children, maxHeight = 560, className }: { chil
       </div>
 
       {clipped && (
-        <div className="mt-5 flex justify-center border-t border-edge pt-5">
+        <div className="mt-5 flex justify-center border-t border-edge-2 pt-5">
           <button
             type="button"
             onClick={() => setExpanded(true)}
-            className="inline-flex items-center gap-2 rounded-md border border-edge bg-panel-2 px-6 py-2.5 text-sm font-medium text-neutral-100 transition-colors hover:border-purple-500/40 hover:bg-panel-3 hover:text-purple-300"
+            className="w-full max-w-md rounded-md border border-edge bg-panel-2 px-6 py-2.5 text-center text-sm font-medium text-neutral-100 transition-colors hover:border-purple-500/40 hover:bg-panel-3 hover:text-purple-300"
           >
-            <ChevronDown className="h-4 w-4" /> View full
+            View full
           </button>
         </div>
       )}
 
       {overflows && expanded && (
-        <div className="sticky bottom-4 z-10 mt-5 flex justify-center border-t border-edge pt-5">
+        <div className="sticky bottom-4 z-10 mt-5 flex justify-center border-t border-edge-2 pt-5">
           <button
             type="button"
             onClick={collapse}
-            className="inline-flex items-center gap-2 rounded-md border border-edge bg-panel-2/95 px-6 py-2.5 text-sm font-medium text-neutral-100 shadow-lg backdrop-blur-sm transition-colors hover:border-purple-500/40 hover:bg-panel-3 hover:text-purple-300"
+            className="w-full max-w-md rounded-md border border-edge bg-panel-2/95 px-6 py-2.5 text-center text-sm font-medium text-neutral-100 shadow-lg backdrop-blur-sm transition-colors hover:border-purple-500/40 hover:bg-panel-3 hover:text-purple-300"
           >
-            <ChevronUp className="h-4 w-4" /> View less
+            View less
           </button>
         </div>
       )}

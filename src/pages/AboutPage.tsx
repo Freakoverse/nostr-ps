@@ -1,4 +1,5 @@
 import { Markdown } from '@/components/shared/Markdown'
+import { CollapsibleBody } from '@/components/shared/CollapsibleBody'
 import { BackButton } from '@/components/shared/BackButton'
 import specText from '../../docs/NIP-PS.md?raw'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
@@ -82,7 +83,9 @@ export function AboutPage() {
           reproduced here in full.
         </p>
         <div className="rounded-lg border border-edge bg-well p-5 sm:p-8">
-          <Markdown content={specText} softBreaks className="[&_h1]:text-2xl [&_h2]:mt-8 [&_h2]:text-xl [&_h3]:mt-6 [&_h3]:text-base" />
+          <CollapsibleBody maxHeight={720}>
+            <Markdown content={specText} softBreaks className="[&_h1]:text-2xl [&_h2]:mt-8 [&_h2]:text-xl [&_h3]:mt-6 [&_h3]:text-base" />
+          </CollapsibleBody>
         </div>
       </section>
     </div>
