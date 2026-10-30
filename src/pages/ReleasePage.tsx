@@ -181,7 +181,7 @@ export function ReleasePage() {
 
   const isLatest = versions[0]?.id === release.id
   const draftHref = release.draftCoord ? draftHrefOf(release.draftCoord) : null
-  const myBackup = backups.some((b) => b.pubkey === myPubkey)
+  const myBackup = backups.find((b) => b.pubkey === myPubkey) ?? null
 
   // The backup itself is published from BackupDialog, after an explanation.
   const backup = () => {
@@ -243,7 +243,7 @@ export function ReleasePage() {
         <Button size="sm" variant="outline" onClick={() => (myPubkey ? setReviewOpen(true) : useLoginModalStore.getState().open())} className="gap-1.5 border-edge">
           <MessageSquareText className="h-3.5 w-3.5" /> {myReview ? 'Edit my review' : 'Review'}
         </Button>
-        <Button size="sm" variant="outline" onClick={backup} disabled={myBackup} className="gap-1.5 border-edge">
+        <Button size="sm" variant="outline" onClick={backup} className="gap-1.5 border-edge">
           <Archive className="h-3.5 w-3.5" /> {myBackup ? 'Backed up' : 'Back up'}
         </Button>
         {myPubkey === release.pubkey && draftHref && (
@@ -357,7 +357,7 @@ export function ReleasePage() {
       </Tabs>
 
       <ClaimDialog open={claimOpen} onOpenChange={setClaimOpen} release={release} versions={versions} existing={myClaim} onPublished={reload} />
-      <BackupDialog open={backupOpen} onOpenChange={setBackupOpen} release={release} onPublished={reload} />
+      <BackupDialog open={backupOpen} onOpenChange={setBackupOpen} release={release} existing={myBackup} onPublished={reload} onDeleted={reload} />
       <ForkDialog open={forkOpen} onOpenChange={setForkOpen} release={release} />
       <ReviewDialog open={reviewOpen} onOpenChange={setReviewOpen} target={{ kind: 'release', release }} existing={myReview} onPublished={reload} />
       {claimDetail && (
