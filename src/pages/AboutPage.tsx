@@ -1,3 +1,5 @@
+import { Markdown } from '@/components/shared/Markdown'
+import specText from '../../docs/NIP-PS.md?raw'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
 
 export function AboutPage() {
@@ -53,6 +55,17 @@ export function AboutPage() {
         proposal or a claim. The operator's graph is the anonymous default viewpoint, and it is
         a setting, not a gate.
       </Section>
+
+      <section className="space-y-3">
+        <h2 className="text-lg font-semibold text-neutral-100">The specification</h2>
+        <p className="text-sm leading-relaxed text-neutral-400">
+          Everything above is derived from this document. It is the basis of the whole system, so it is
+          reproduced here in full.
+        </p>
+        <div className="rounded-lg border border-edge bg-well p-5 sm:p-8">
+          <Markdown content={specText} softBreaks className="[&_h1]:text-2xl [&_h2]:mt-8 [&_h2]:text-xl [&_h3]:mt-6 [&_h3]:text-base" />
+        </div>
+      </section>
     </div>
   )
 }

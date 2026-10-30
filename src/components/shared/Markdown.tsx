@@ -229,6 +229,8 @@ const components: Components = {
 interface MarkdownProps {
   content: string
   className?: string
+  /** Treat single newlines as paragraph flow (for hard-wrapped documents like the spec). Default: line breaks. */
+  softBreaks?: boolean
 }
 
 // Sanitize schema (GitHub's, hardened). rehype-sanitize runs AFTER rehype-raw,
@@ -267,11 +269,11 @@ const sanitizeSchema = {
  * raw HTML bodies rather than markdown, so raw HTML IS rendered — but only after
  * rehype-sanitize strips anything unsafe, so output stays XSS-safe.
  */
-export function Markdown({ content, className }: MarkdownProps) {
+export function Markdown({ content, className, softBreaks = false }: MarkdownProps) {
   return (
     <div className={cn('text-sm leading-relaxed text-neutral-300 break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0', className)}>
       <ReactMarkdown
-        remarkPlugins={[remarkGfm, remarkBreaks]}
+        remarkPlugins={softBreaks ? [remarkGfm] : [remarkGfm, remarkBreaks]}
         rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
         components={components}
       >

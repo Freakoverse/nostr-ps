@@ -85,7 +85,7 @@ export function DraftCard({ draft, released }: { draft: Draft; released?: boolea
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <AuthorLine pubkey={draft.pubkey} at={draft.createdAt} size="xs" />
+        <AuthorLine pubkey={draft.pubkey} at={draft.createdAt} size="xs" linked={false} />
         <KindChips kinds={draft.kinds} />
         <TopicChips topics={draft.topics} />
       </div>
@@ -119,7 +119,7 @@ export function ProposalCard({ p, verified }: { p: ProposalSummary; verified?: n
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <AuthorLine pubkey={r.pubkey} at={r.createdAt} size="xs" />
+        <AuthorLine pubkey={r.pubkey} at={r.createdAt} size="xs" linked={false} />
         {p.releases.length > 1 && <Chip>{p.releases.length} versions</Chip>}
         <KindChips kinds={r.kinds} />
         <TopicChips topics={r.topics} />

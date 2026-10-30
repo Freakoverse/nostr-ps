@@ -229,12 +229,12 @@ export function ReleaseCreatePage() {
       </div>
 
       <div className="flex items-center justify-between gap-3 rounded-lg border border-purple-500/30 bg-purple-500/5 px-4 py-3">
-        <p className="flex items-center gap-2 text-xs text-neutral-400"><Lock className="h-3.5 w-3.5 text-purple-400" /> The draft stays editable after this. The next version starts from it again.</p>
+        <p className="flex items-center gap-2 text-xs text-neutral-400"><Lock className="h-3.5 w-3.5 text-purple-400" /> The release itself cannot be edited. The draft stays editable, and a future release from it becomes the next version.</p>
         <div className="flex items-center gap-3">
           {status && status !== 'done' && status !== 'error' && <span className="text-xs text-neutral-500">{status === 'mining' ? 'Proof of work…' : status === 'signing' ? 'Signing…' : 'Publishing…'}</span>}
           <Button onClick={publish} disabled={busy || !versionOk} className="gap-2 bg-purple-600 text-white hover:bg-purple-700">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Rocket className="h-4 w-4" />}
-            Release v{version}
+            Publish release v{version}
           </Button>
         </div>
       </div>

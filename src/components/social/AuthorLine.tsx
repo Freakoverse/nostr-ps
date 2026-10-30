@@ -10,13 +10,15 @@ import { TrustBadge } from '@/components/lens/TrustBadge'
 
 /** Avatar + name + trust badge + optional timestamp, one line. */
 export function AuthorLine({
-  pubkey, at, size = 'sm', className, suffix,
+  pubkey, at, size = 'sm', className, suffix, linked = true,
 }: {
   pubkey: string
   at?: number
   size?: 'xs' | 'sm' | 'md'
   className?: string
   suffix?: React.ReactNode
+  /** false when the line sits inside another link (cards), since anchors cannot nest. */
+  linked?: boolean
 }) {
   const [profile, setProfile] = useState<UserProfile | null>(() => useUserStore.getState().getCachedProfile(pubkey))
 
@@ -33,18 +35,23 @@ export function AuthorLine({
 
   return (
     <div className={cn('flex min-w-0 items-center gap-2', className)}>
-      <Link to={`/profile/${npub}`} className="shrink-0" onClick={(e) => e.stopPropagation()}>
+      <Wrap to={`/profile/${npub}`} linked={linked} className="shrink-0">
         <Avatar className={avatar}>
           {profile?.picture ? <AvatarImage src={profile.picture as string} alt={name} /> : null}
           <AvatarFallback className="bg-panel-2 text-neutral-400"><User className="h-3.5 w-3.5" /></AvatarFallback>
         </Avatar>
-      </Link>
-      <Link to={`/profile/${npub}`} onClick={(e) => e.stopPropagation()} className="truncate text-sm font-medium text-neutral-200 hover:text-purple-400">
+      </Wrap>
+      <Wrap to={`/profile/${npub}`} linked={linked} className="truncate text-sm font-medium text-neutral-200 hover:text-purple-400">
         {name}
-      </Link>
+      </Wrap>
       <TrustBadge pubkey={pubkey} />
       {at !== undefined && <span className="shrink-0 text-xs text-neutral-600">{formatRelativeTime(at)}</span>}
       {suffix}
     </div>
   )
+}
+
+function Wrap({ to, linked, className, children }: { to: string; linked: boolean; className?: string; children: React.ReactNode }) {
+  if (!linked) return <span className={className}>{children}</span>
+  return <Link to={to} className={className} onClick={(e) => e.stopPropagation()}>{children}</Link>
 }

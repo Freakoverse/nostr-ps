@@ -3,7 +3,7 @@ import { Link, useNavigate, useParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
 import { toast } from 'sonner'
 import {
-  Loader2, GitFork, Archive, Users, MessageSquareText, ShieldCheck, FileText,
+  Loader2, GitFork, Archive, Users, MessageSquareText, ShieldCheck, FileText, Rocket,
 } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -231,6 +231,11 @@ export function ReleasePage() {
         <Button size="sm" variant="outline" onClick={backup} disabled={backingUp || myBackup} className="gap-1.5 border-edge">
           {backingUp ? <Loader2 className="h-3.5 w-3.5 animate-spin" /> : <Archive className="h-3.5 w-3.5" />} {myBackup ? 'Backed up' : 'Back up'}
         </Button>
+        {myPubkey === release.pubkey && draftHref && (
+          <Button asChild size="sm" variant="outline" className="gap-1.5 border-purple-500/40 text-purple-300 hover:text-purple-200">
+            <Link to={`${draftHref}/release`}><Rocket className="h-3.5 w-3.5" /> New version</Link>
+          </Button>
+        )}
         <Button size="sm" variant="outline" onClick={fork} className="gap-1.5 border-edge"><GitFork className="h-3.5 w-3.5" /> Fork</Button>
       </div>
 
