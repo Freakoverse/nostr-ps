@@ -63,7 +63,7 @@ export function DraftPage() {
   const latest = releases[0]
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 py-6">
+    <div className="space-y-6 py-6">
       <div className="space-y-3">
         <div className="flex flex-wrap items-center gap-2">
           <Chip>draft</Chip>

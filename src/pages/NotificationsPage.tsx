@@ -28,7 +28,7 @@ export function NotificationsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-3xl space-y-6 py-8">
+    <div className="space-y-6 py-8">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">Notifications</h1>
         <p className="text-sm text-neutral-400">Comments and reactions on your drafts, plus social mentions.</p>

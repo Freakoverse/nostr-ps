@@ -68,7 +68,7 @@ export function DraftEditPage() {
   }
 
   return (
-    <div className="mx-auto max-w-4xl space-y-6 py-6">
+    <div className="space-y-6 py-6">
       <div className="space-y-1">
         <h1 className="text-2xl font-bold tracking-tight">{draft ? 'Edit draft' : prefill ? 'Fork into a new draft' : 'New draft'}</h1>
         <p className="text-sm text-neutral-400">

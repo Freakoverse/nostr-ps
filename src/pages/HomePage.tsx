@@ -11,7 +11,7 @@ export function HomePage() {
   useSeoMeta({ description: 'Permissionless standards for Nostr: anyone can propose, adoption is the signal, trust is a lens you choose.' })
 
   return (
-    <div className="mx-auto max-w-3xl space-y-10 py-12">
+    <div className="space-y-10 py-12">
       <div className="space-y-4">
         <h1 className="text-4xl font-bold tracking-tight">Permissionless Standards</h1>
         <p className="text-lg text-neutral-400 leading-relaxed">
