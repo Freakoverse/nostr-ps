@@ -33,11 +33,12 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
   const [events, setEvents] = useState<NostrEvent[]>([])
   const [loading, setLoading] = useState(true)
   const [refreshing, setRefreshing] = useState(false)
-  const minPow = defaultPow // PoW filter is adjusted in Settings now, not inline
+  // Settings value unless the thread's filter dialog set a temporary one.
   const [threadFocusId, setThreadFocusId] = useState<string | null>(null)
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [filters, setFilters] = useState<CommentFilterState>(DEFAULT_COMMENT_FILTERS)
-  const activeFilterCount = filters.authorOnly ? 1 : 0
+  const minPow = filters.minPow ?? defaultPow
+  const activeFilterCount = (filters.authorOnly ? 1 : 0) + (filters.minPow !== null ? 1 : 0)
   const sectionRef = useRef<HTMLElement>(null)
   const handledFocusRef = useRef<string | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -225,6 +226,7 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
         onOpenChange={setFiltersOpen}
         filters={filters}
         onChange={setFilters}
+        settingsPow={defaultPow}
       />
     </section>
   )
