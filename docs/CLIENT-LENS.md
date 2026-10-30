@@ -108,8 +108,19 @@ verdict from a reviewer above threshold makes a claim unverified.
   key represents. "Brainstorm" is not a perspective; "Brainstorm computed
   for npubX" is.
 
-## Possible one-line addition to the spec (not applied)
+## Implementation (this client)
 
-§10 Interoperability: "Viewpoint sources MAY include NIP-85 trusted
-assertion providers; a provider's `rank` for a pubkey MAY be used in place
-of graph distance in §6.3."
+- `src/stores/lensStore.ts`: sources, scoring, buckets. Graph sources are
+  computed locally (follows 100, follows-of-follows 50, muted 0); NIP-85
+  sources read kind 30382 by `d` = subject from the provider key. Combination
+  is max. The "own graph" row is added on login and removed on logout.
+- `src/components/lens/TrustBadge.tsx`: the per-pubkey pill with per-source
+  provenance on hover.
+- `src/components/lens/LensBar.tsx`: the always-visible viewpoint line on
+  every listing, with the master switch and threshold.
+- `src/components/lens/TieredList.tsx`: above / below / unknown folds.
+- `src/components/lens/LensSettings.tsx`: Settings → Lens.
+
+Defaults: the operator graph (`ADMIN_PUBKEY` in `src/lib/constants.ts`) is the
+only built-in source. No NIP-85 provider ships enabled; the user pastes a
+provider key (for example a Brainstorm instance's service key) in Settings.

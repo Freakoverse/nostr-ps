@@ -611,6 +611,10 @@ An empty market ranks nothing. A NIP-PS deployment SHOULD start with:
 - **NIP-51** follow sets MAY be used instead of `kind:3` for a viewpoint's
   distance-1 set, e.g. a "protocol people" set narrower than social
   follows.
+- **NIP-85** trusted-assertion providers MAY be used as viewpoint sources: a
+  provider's `rank` for a pubkey MAY stand in for graph distance in §6.3.
+  A provider key is one observer's perspective; adopting it is a choice the
+  client MUST show, like any other viewpoint.
 - **NIP-22** comments are the discussion mechanism for drafts and MAY also
   be used on releases and claims.
 
