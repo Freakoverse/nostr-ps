@@ -133,7 +133,7 @@ reference releases only.
     ["title", "<human title>"],            // REQUIRED
     ["k", "<kind number>", "<name>"],      // OPTIONAL, repeatable: kinds the spec defines or uses
     ["t", "<topic>"],                      // OPTIONAL, repeatable
-    ["status", "review"],                  // OPTIONAL, marks work in progress
+    ["status", "review"],                  // RECOMMENDED: "review" while in progress, "released" once a release exists
     ["release", "<release event id>", "<relay>"], // OPTIONAL, see below
     ["fork", "<parent release id>", "<relay>"],   // OPTIONAL, advisory: this draft forks that release
     ["nonce", "<n>", "<difficulty>"]       // RECOMMENDED, NIP-13
