@@ -18,6 +18,7 @@ import { nip19, verifyEvent, type Event as NostrEvent, type Filter, type Unsigne
 import { KINDS, PS_SPEC_ID_TAG, CLIENT_NAME } from '@/lib/constants'
 import { fetchEvents, fetchEvent } from './relay-pool'
 import { isDeleted } from './events'
+import { cacheEvent, getCachedEvent, whenEventCacheReady } from './eventCache'
 
 const now = () => Math.floor(Date.now() / 1000)
 const tag = (ev: NostrEvent, name: string) => ev.tags.find((t) => t[0] === name)?.[1]
@@ -211,6 +212,7 @@ export function parseDraft(ev: NostrEvent): Draft | null {
   if (ev.kind !== KINDS.PS_DRAFT) return null
   const uuid = tag(ev, 'd')
   if (!uuid) return null
+  cacheEvent(ev) // newest revision per coordinate; tombstones included, so a cached read can see the deletion
   return {
     event: ev,
     coord: draftCoord(ev.pubkey, uuid),
@@ -232,6 +234,7 @@ export function parseRelease(ev: NostrEvent): Release | null {
   const v = tag(ev, PS_SPEC_ID_TAG)
   const sid = v ? parseSpecId(v) : null
   if (!sid) return null
+  cacheEvent(ev) // immutable, keyed by id: a cached release never needs a re-fetch
   const fork = ev.tags.find((t) => t[0] === 'e' && t[3] === 'fork')
   const prev = ev.tags.find((t) => t[0] === 'e' && t[3] === 'prev')
   const forkAuthor = fork ? ev.tags.find((t) => t[0] === 'p')?.[1] : undefined
@@ -485,6 +488,21 @@ export async function fetchDrafts(relays: string[], filter: Partial<Filter> = {}
   const evs = await fetchEvents(relays, { kinds: [KINDS.PS_DRAFT], limit: 100, ...filter }, timeoutMs)
   return latestByCoord(parseAll(evs, parseDraft)).filter((d) => !d.deleted).sort((a, b) => b.createdAt - a.createdAt)
 }
+
+/** Synchronous cache read for instant paint (await `whenEventCacheReady` first on a cold load). Tombstoned drafts come back null. */
+export function getCachedDraft(pubkey: string, uuid: string): Draft | null {
+  const ev = getCachedEvent(draftCoord(pubkey, uuid))
+  const d = ev ? parseDraft(ev) : null
+  return d && !d.deleted ? d : null
+}
+
+/** Synchronous cache read for a release by id. */
+export function getCachedRelease(id: string): Release | null {
+  const ev = getCachedEvent(`${KINDS.PS_RELEASE}:${id}`)
+  return ev ? parseRelease(ev) : null
+}
+
+export { whenEventCacheReady }
 
 export async function fetchDraft(relays: string[], pubkey: string, uuid: string): Promise<Draft | null> {
   const evs = await fetchEvents(relays, { kinds: [KINDS.PS_DRAFT], authors: [pubkey], '#d': [uuid] }, 8000)

@@ -5,7 +5,7 @@ import { Loader2, Pencil, Rocket, AlertCircle, ArrowRight, Trash2, FileText } fr
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
 import { KINDS } from '@/lib/constants'
-import { fetchDraft, fetchReleasesForDraft, releaseNevent, type Draft, type Release } from '@/lib/nostr/nipps'
+import { fetchDraft, fetchReleasesForDraft, getCachedDraft, whenEventCacheReady, releaseNevent, type Draft, type Release } from '@/lib/nostr/nipps'
 import { ensureEventPresent } from '@/lib/nostr/eventRedundancy'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
 import { Button } from '@/components/ui/button'
@@ -46,8 +46,18 @@ export function DraftPage() {
     setReleases([])
     const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
     ;(async () => {
-      const d = await fetchDraft(relays, addr.pubkey, addr.identifier)
+      // Paint from cache at once if a list (or a previous visit) already had
+      // this draft, then re-fetch: a newer revision replaces it, a tombstone
+      // turns the page into "not found".
+      await whenEventCacheReady
       if (cancelled) return
+      const cached = getCachedDraft(addr.pubkey, addr.identifier)
+      if (cached) { setDraft(cached); setLoading(false) }
+      const fetched = await fetchDraft(relays, addr.pubkey, addr.identifier)
+      if (cancelled) return
+      // No relay answer keeps the cached copy; a tombstone (fetchDraft → null
+      // while the cache now holds the deleted revision) clears it.
+      const d = fetched ?? (getCachedDraft(addr.pubkey, addr.identifier) ? cached : null)
       setDraft(d)
       setLoading(false)
       if (!d) { setChecking(false); return }

@@ -25,9 +25,16 @@ interface PersistShape {
   events: NostrEvent[]
 }
 
+/**
+ * Cache key. Addressable events key by coordinate so newer revisions replace
+ * older ones; regular events (immutable, e.g. releases) key by id.
+ */
 export function coordOf(ev: NostrEvent): string {
-  const d = ev.tags.find(t => t[0] === 'd')?.[1] ?? ''
-  return `${ev.kind}:${ev.pubkey}:${d}`
+  if (ev.kind >= 30000 && ev.kind < 40000) {
+    const d = ev.tags.find(t => t[0] === 'd')?.[1] ?? ''
+    return `${ev.kind}:${ev.pubkey}:${d}`
+  }
+  return `${ev.kind}:${ev.id}`
 }
 
 // ── Persistence ─────────────────────────────────────────────────────

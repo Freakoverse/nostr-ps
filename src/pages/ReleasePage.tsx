@@ -13,6 +13,7 @@ import { KINDS } from '@/lib/constants'
 import { signAndPublish } from '@/lib/nostr/publish'
 import {
   fetchRelease, fetchReleasesOf, fetchClaimsFor, fetchReleaseReviews, fetchClaimReviews, fetchBackups,
+  getCachedRelease, whenEventCacheReady,
   buildBackupEvent, draftNaddr, releaseNevent, releaseLabel,
   type Release, type Claim, type Review, type Backup,
 } from '@/lib/nostr/nipps'
@@ -71,7 +72,12 @@ export function ReleasePage() {
     setLoading(true)
     const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
     ;(async () => {
-      const r = await fetchRelease(relays, id)
+      // A release is immutable, so a cached copy is the release: paint it and
+      // skip the fetch. Only the data around it (versions, claims, reviews,
+      // backups) is loaded from relays.
+      await whenEventCacheReady
+      if (cancelled) return
+      const r = getCachedRelease(id) ?? await fetchRelease(relays, id)
       if (cancelled) return
       setRelease(r)
       setLoading(false)
