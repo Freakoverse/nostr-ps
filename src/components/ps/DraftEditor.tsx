@@ -67,12 +67,12 @@ export function DraftEditor({ initial, prefill }: { initial?: Draft; prefill?: P
     <div className="space-y-5">
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-neutral-200">Title</label>
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Threaded chat rooms" className="border-[#262626] bg-[#1c1c1c]" maxLength={120} />
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Threaded chat rooms" className="border-edge bg-panel" maxLength={120} />
       </div>
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-neutral-200">Summary <span className="text-neutral-500">(optional)</span></label>
-        <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="One paragraph: what this spec does and why." rows={2} className="border-[#262626] bg-[#1c1c1c]" maxLength={500} />
+        <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="One paragraph: what this spec does and why." rows={2} className="border-edge bg-panel" maxLength={500} />
       </div>
 
       <div className="space-y-1.5">
@@ -87,11 +87,11 @@ export function DraftEditor({ initial, prefill }: { initial?: Draft; prefill?: P
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-neutral-200">Topics <span className="text-neutral-500">(comma separated)</span></label>
-          <Input value={topics} onChange={(e) => setTopics(e.target.value)} placeholder="chat, groups, moderation" className="border-[#262626] bg-[#1c1c1c]" />
+          <Input value={topics} onChange={(e) => setTopics(e.target.value)} placeholder="chat, groups, moderation" className="border-edge bg-panel" />
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-4 rounded-lg border border-[#262626] bg-[#1c1c1c] px-3 py-2.5">
+      <div className="flex items-center justify-between gap-4 rounded-lg border border-edge bg-panel px-3 py-2.5">
         <div>
           <p className="text-sm font-medium text-neutral-200">Mark as work in progress</p>
           <p className="text-xs text-neutral-500">Sets the draft&apos;s status to &quot;review&quot;. Purely informational.</p>

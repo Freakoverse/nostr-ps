@@ -13,7 +13,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { NoteContent } from './NoteContent'
 import { ThreadModal } from './ThreadModal'
 
-const tabTrigger = 'py-1.5 data-[state=active]:bg-[#262626] data-[state=active]:text-purple-400'
+const tabTrigger = 'py-1.5 data-[state=active]:bg-edge data-[state=active]:text-purple-400'
 
 function ToggleChip({ label, active, onClick }: { label: string; active: boolean; onClick: () => void }) {
   return (
@@ -21,7 +21,7 @@ function ToggleChip({ label, active, onClick }: { label: string; active: boolean
       onClick={onClick}
       className={cn(
         'rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-        active ? 'border-purple-500/50 bg-purple-500/15 text-purple-300' : 'border-[#262626] text-neutral-500 hover:border-[#404040]',
+        active ? 'border-purple-500/50 bg-purple-500/15 text-purple-300' : 'border-edge text-neutral-500 hover:border-edge-2',
       )}
     >
       {label}
@@ -52,7 +52,7 @@ function Actor({ pubkey, suffix }: { pubkey: string; suffix: React.ReactNode }) 
       <Link to={`/profile/${npub}`} onClick={(e) => e.stopPropagation()} className="shrink-0">
         <Avatar className="h-7 w-7">
           {profile?.picture ? <AvatarImage src={profile.picture as string} alt={name} /> : null}
-          <AvatarFallback className="bg-[#212121] text-neutral-400"><User className="h-3.5 w-3.5" /></AvatarFallback>
+          <AvatarFallback className="bg-panel-2 text-neutral-400"><User className="h-3.5 w-3.5" /></AvatarFallback>
         </Avatar>
       </Link>
       <div className="min-w-0">
@@ -94,10 +94,10 @@ function SocialNotifRow({ notif }: { notif: SocialNotif }) {
   const clickable = !!notif.rootNote
 
   return (
-    <div className="rounded-lg border border-[#262626] bg-[#1c1c1c]">
+    <div className="rounded-lg border border-edge bg-panel">
       <div
         onClick={() => clickable && setThreadOpen(true)}
-        className={cn('rounded-lg p-3', clickable && 'cursor-pointer hover:bg-[#212121]')}
+        className={cn('rounded-lg p-3', clickable && 'cursor-pointer hover:bg-panel-2')}
       >
         <div className="flex items-center gap-2">
           <Actor pubkey={notif.actor} suffix={verb} />
@@ -209,7 +209,7 @@ function AddrNotifRow({ notif, title }: { notif: AddrNotif; title: string }) {
   return (
     <div
       onClick={() => href && navigate(href)}
-      className={cn('rounded-lg border border-[#262626] bg-[#1c1c1c] p-3', href && 'cursor-pointer hover:border-[#404040]')}
+      className={cn('rounded-lg border border-edge bg-panel p-3', href && 'cursor-pointer hover:border-edge-2')}
     >
       <div className="flex items-center gap-2">
         <Actor pubkey={notif.actor} suffix={<>{verb} <span className="text-neutral-300">"{title}"</span></>} />
@@ -314,7 +314,7 @@ export function NotificationsView({ myPubkey }: { myPubkey: string }) {
 
   return (
     <Tabs defaultValue="drafts" className="w-full">
-      <TabsList className="grid h-auto w-full grid-cols-2 items-stretch bg-[#1c1c1c] border border-[#262626]">
+      <TabsList className="grid h-auto w-full grid-cols-2 items-stretch bg-panel border border-edge">
         <TabsTrigger value="drafts" className={tabTrigger}><TabLabel label="Drafts" dot={dot('drafts')} /></TabsTrigger>
         <TabsTrigger value="social" className={tabTrigger}><TabLabel label="Social" dot={dot('social')} /></TabsTrigger>
       </TabsList>

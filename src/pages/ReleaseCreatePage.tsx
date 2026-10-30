@@ -133,7 +133,7 @@ export function ReleaseCreatePage() {
       </div>
 
       {releases.length > 0 && (
-        <div className="rounded-lg border border-[#262626] bg-[#1c1c1c] p-2">
+        <div className="rounded-lg border border-edge bg-panel p-2">
           <p className="px-3 pb-1 pt-1 text-xs font-medium uppercase tracking-wider text-neutral-500">Existing versions</p>
           {releases.map((r) => <ReleaseRow key={r.id} r={r} />)}
         </div>
@@ -143,7 +143,7 @@ export function ReleaseCreatePage() {
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-neutral-200">Version</label>
           <div className="flex items-center gap-2">
-            <Input value={version} onChange={(e) => setVersion(e.target.value.trim())} className={cn('w-28 border-[#262626] bg-[#1c1c1c] font-mono', !versionOk && 'border-red-500/60')} />
+            <Input value={version} onChange={(e) => setVersion(e.target.value.trim())} className={cn('w-28 border-edge bg-panel font-mono', !versionOk && 'border-red-500/60')} />
             <Button type="button" variant="ghost" size="sm" onClick={() => setVersion(nextMajor(prev?.version ?? null))} className="text-xs text-neutral-400">major</Button>
             <Button type="button" variant="ghost" size="sm" onClick={() => setVersion(nextMinor(prev?.version ?? null))} className="text-xs text-neutral-400">minor</Button>
           </div>
@@ -151,13 +151,13 @@ export function ReleaseCreatePage() {
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-neutral-200">Title</label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} className="border-[#262626] bg-[#1c1c1c]" maxLength={120} />
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} className="border-edge bg-panel" maxLength={120} />
         </div>
       </div>
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-neutral-200">Summary <span className="text-neutral-500">(optional)</span></label>
-        <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} className="border-[#262626] bg-[#1c1c1c]" maxLength={500} />
+        <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} className="border-edge bg-panel" maxLength={500} />
       </div>
 
       <div className="space-y-1.5">
@@ -165,11 +165,11 @@ export function ReleaseCreatePage() {
         <MarkdownEditor value={content} onChange={setContent} />
       </div>
 
-      <details className="rounded-lg border border-[#262626] bg-[#1c1c1c] p-3 text-sm">
+      <details className="rounded-lg border border-edge bg-panel p-3 text-sm">
         <summary className="cursor-pointer text-neutral-300">Fork ancestry</summary>
         <div className="mt-3 space-y-1.5">
           <label className="text-xs font-medium text-neutral-300">Parent release event id <span className="text-neutral-600">(hex, optional)</span></label>
-          <Input value={forkOfId} onChange={(e) => setForkOfId(e.target.value)} placeholder="64 hex characters" className="border-[#262626] bg-[#1c1c1c] font-mono text-xs" />
+          <Input value={forkOfId} onChange={(e) => setForkOfId(e.target.value)} placeholder="64 hex characters" className="border-edge bg-panel font-mono text-xs" />
           <p className="text-[11px] text-neutral-600">Only for the first release of a fork. Later versions chain to the previous one automatically.</p>
         </div>
       </details>
@@ -192,7 +192,7 @@ function Missing({ text }: { text: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
       <p className="text-neutral-300">{text}</p>
-      <Button asChild variant="outline" className="border-[#262626]"><Link to="/drafts">Back to drafts</Link></Button>
+      <Button asChild variant="outline" className="border-edge"><Link to="/drafts">Back to drafts</Link></Button>
     </div>
   )
 }

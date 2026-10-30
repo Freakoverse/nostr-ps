@@ -253,7 +253,7 @@ function VerifiedImage({ alt, className, fallback, loading = 'lazy', onLoad, onE
   // loading. SkeletonImage layers its own skeleton over this; on its own,
   // BlossomImage still needs to look busy rather than empty.
   if (!result) {
-    return <div ref={placeholderRef} className={cn(className, 'animate-pulse bg-[#262626]')} aria-hidden />
+    return <div ref={placeholderRef} className={cn(className, 'animate-pulse bg-edge')} aria-hidden />
   }
 
   return (

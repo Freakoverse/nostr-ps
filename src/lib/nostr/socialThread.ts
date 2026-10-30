@@ -4,7 +4,7 @@
  * Social posts and their replies are plain kind-1 notes linked with `e` tags,
  * the way most Nostr clients do it — so replies authored elsewhere show up here
  * (and ours show up there). This is separate from the NIP-22 (kind 1111)
- * comment system used for mods and blogs.
+ * comment system used for drafts and releases.
  */
 
 import type { Event as NostrEvent, UnsignedEvent } from 'nostr-tools'

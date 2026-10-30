@@ -1,5 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { FileText, Settings, User, Menu, X, Eye, Pencil, LogOut, Bell, PlusSquare, BookOpen } from 'lucide-react'
+import { FileText, Settings, User, Menu, X, Eye, Pencil, LogOut, Bell, PlusSquare, BookOpen, Sun, Moon } from 'lucide-react'
 import { CreateMenu } from '@/components/shared/CreateMenu'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
@@ -9,6 +9,7 @@ import { useLoginModalStore } from '@/stores/loginModalStore'
 import { useUserStore, type UserProfile } from '@/stores/userStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useNotificationsStore, selectHasUnread } from '@/stores/notificationsStore'
+import { useThemeStore } from '@/stores/themeStore'
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
@@ -58,14 +59,14 @@ function ProfileButton() {
             <span className="truncate text-xs font-medium">{displayName}</span>
           </Button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="bg-[#1c1c1c] border-[#262626]">
+        <DropdownMenuContent align="end" className="bg-panel border-edge">
           <DropdownMenuItem onClick={() => navigate('/profile')} className="cursor-pointer">
             <Eye className="h-4 w-4 mr-2" /> Profile
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setEditOpen(true)} className="cursor-pointer">
             <Pencil className="h-4 w-4 mr-2" /> Edit profile
           </DropdownMenuItem>
-          <DropdownMenuSeparator className="bg-[#262626]" />
+          <DropdownMenuSeparator className="bg-edge" />
           <DropdownMenuItem onClick={() => { logout(); navigate('/') }} className="cursor-pointer text-red-400 focus:text-red-300">
             <LogOut className="h-4 w-4 mr-2" /> Logout
           </DropdownMenuItem>
@@ -88,6 +89,8 @@ export function Header() {
   const isAuthenticated = useAuthStore(s => s.isAuthenticated)
   const pubkey = useAuthStore(s => s.pubkey)
   const hasUnread = useNotificationsStore(selectHasUnread)
+  const theme = useThemeStore((s) => s.theme)
+  const toggleTheme = useThemeStore((s) => s.toggle)
 
   // Refresh the unread state on login (throttled inside the store).
   useEffect(() => {
@@ -101,10 +104,7 @@ export function Header() {
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
         {/* Logo: links to home */}
         <Link to="/" className="flex items-center gap-2.5">
-          <img src="/logo.png" alt="NIP-PS" className="h-8 w-auto" />
-          <span className="text-lg font-bold tracking-tight hidden sm:block">
-            NIP-PS
-          </span>
+          <span className="text-lg font-bold tracking-tight">Permissionless Standards</span>
         </Link>
 
         {/* Desktop Nav */}
@@ -146,6 +146,15 @@ export function Header() {
             className="text-muted-foreground hover:text-foreground hover:bg-transparent"
           >
             <PlusSquare size={18} />
+          </Button>
+          <Button
+            variant="ghost"
+            size="icon"
+            aria-label={theme === 'dark' ? 'Switch to light mode' : 'Switch to dark mode'}
+            onClick={toggleTheme}
+            className="text-muted-foreground hover:text-foreground hover:bg-transparent"
+          >
+            {theme === 'dark' ? <Sun size={18} /> : <Moon size={18} />}
           </Button>
           <Link to="/settings">
             <Button variant="ghost" size="icon" className="text-muted-foreground hover:text-foreground hover:bg-transparent">

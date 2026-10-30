@@ -97,7 +97,7 @@ export function FollowButton({ pubkey, className }: FollowButtonProps) {
         className={cn(
           'flex items-center justify-center gap-1.5 rounded-lg px-3 py-2 text-sm font-medium transition-colors disabled:opacity-60',
           following
-            ? 'border border-[#262626] text-neutral-300 hover:border-red-500/40 hover:text-red-400'
+            ? 'border border-edge text-neutral-300 hover:border-red-500/40 hover:text-red-400'
             : 'bg-purple-600 text-white hover:bg-purple-700',
           className,
         )}
@@ -113,7 +113,7 @@ export function FollowButton({ pubkey, className }: FollowButtonProps) {
       </button>
 
       <Dialog open={warnOpen} onOpenChange={setWarnOpen}>
-        <DialogContent className="bg-[#1c1c1c] border-[#262626]">
+        <DialogContent className="bg-panel border-edge">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-neutral-100">
               <AlertTriangle className="h-5 w-5 text-yellow-400" />
@@ -125,10 +125,10 @@ export function FollowButton({ pubkey, className }: FollowButtonProps) {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col gap-2 sm:flex-row">
-            <Button variant="outline" onClick={() => setWarnOpen(false)} className="border-[#262626]">
+            <Button variant="outline" onClick={() => setWarnOpen(false)} className="border-edge">
               Cancel
             </Button>
-            <Button variant="outline" onClick={handleRetry} disabled={retrying} className="border-[#262626]">
+            <Button variant="outline" onClick={handleRetry} disabled={retrying} className="border-edge">
               {retrying ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
               Retry fetch
             </Button>

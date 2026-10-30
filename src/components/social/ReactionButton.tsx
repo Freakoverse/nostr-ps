@@ -95,7 +95,7 @@ export function ReactionButton({ target, content = '+', bucket = 'positive', ico
       disabled={busy}
       className={cn(
         'inline-flex items-center gap-1.5 rounded-lg border px-3 py-1.5 text-sm transition-colors',
-        reacted ? activeStyle : 'border-[#262626] text-neutral-400 hover:border-[#404040] hover:text-neutral-200',
+        reacted ? activeStyle : 'border-edge text-neutral-400 hover:border-edge-2 hover:text-neutral-200',
         busy && 'opacity-60',
         className,
       )}

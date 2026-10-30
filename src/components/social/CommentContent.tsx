@@ -32,7 +32,7 @@ export function CommentContent({ content }: { content: string }) {
               src={part}
               alt=""
               loading="lazy"
-              className="my-1.5 block max-h-80 max-w-full rounded-lg border border-[#262626]"
+              className="my-1.5 block max-h-80 max-w-full rounded-lg border border-edge"
             />
           )
         }
@@ -42,7 +42,7 @@ export function CommentContent({ content }: { content: string }) {
               key={i}
               src={part}
               controls
-              className="my-1.5 block max-h-80 max-w-full rounded-lg border border-[#262626]"
+              className="my-1.5 block max-h-80 max-w-full rounded-lg border border-edge"
             />
           )
         }

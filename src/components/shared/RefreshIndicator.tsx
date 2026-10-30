@@ -10,7 +10,7 @@ export function RefreshIndicator() {
   const active = useRefreshActive()
   if (!active) return null
   return (
-    <div className="fixed bottom-4 right-4 z-[60] flex items-center gap-2 rounded-lg border border-[#2e2932] bg-[#1f1b22] px-3 py-2 text-sm text-neutral-200 shadow-lg shadow-black/30">
+    <div className="fixed bottom-4 right-4 z-[60] flex items-center gap-2 rounded-lg border border-panel-3 bg-panel-2 px-3 py-2 text-sm text-neutral-200 shadow-lg shadow-black/30">
       <Loader2 className="h-4 w-4 animate-spin text-purple-400" />
       Checking for updates…
     </div>

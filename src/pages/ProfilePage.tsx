@@ -17,7 +17,7 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
 import { User } from 'lucide-react'
 
-const tabTrigger = 'py-1.5 data-[state=active]:bg-[#262626] data-[state=active]:text-purple-400'
+const tabTrigger = 'py-1.5 data-[state=active]:bg-edge data-[state=active]:text-purple-400'
 const hideInactive = 'mt-4 data-[state=inactive]:hidden'
 
 const TABS = ['drafts', 'releases', 'adopted', 'reviews'] as const
@@ -135,7 +135,7 @@ export default function ProfilePage() {
         <div className="lg:col-span-2 min-w-0">
           {targetPubkey ? (
             <Tabs value={tab} onValueChange={setTab} className="w-full">
-              <TabsList className="grid h-auto w-full grid-cols-4 items-stretch bg-[#1c1c1c] border border-[#262626]">
+              <TabsList className="grid h-auto w-full grid-cols-4 items-stretch bg-panel border border-edge">
                 <TabsTrigger value="drafts" className={tabTrigger}>Drafts</TabsTrigger>
                 <TabsTrigger value="releases" className={tabTrigger}>Releases</TabsTrigger>
                 <TabsTrigger value="adopted" className={tabTrigger}>Adopted</TabsTrigger>
@@ -156,7 +156,7 @@ export default function ProfilePage() {
               </TabsContent>
             </Tabs>
           ) : (
-            <Skeleton className="h-10 w-full rounded-lg bg-[#212121]" />
+            <Skeleton className="h-10 w-full rounded-lg bg-panel-2" />
           )}
         </div>
 
@@ -165,12 +165,12 @@ export default function ProfilePage() {
           {targetPubkey && !profileLoading ? (
             <ProfileCard pubkey={targetPubkey} />
           ) : (
-            <div className="overflow-hidden rounded-lg bg-[#1c1c1c]">
-              <Skeleton className="h-35 w-full rounded-none bg-[#212121]" />
+            <div className="overflow-hidden rounded-lg bg-panel">
+              <Skeleton className="h-35 w-full rounded-none bg-panel-2" />
               <div className="px-4 pb-4">
-                <Skeleton className="-mt-8 h-16 w-16 rounded-full bg-[#212121] ring-4 ring-[#1c1c1c]" />
-                <Skeleton className="mt-3 h-4 w-32 bg-[#212121]" />
-                <Skeleton className="mt-2 h-3 w-24 bg-[#212121]" />
+                <Skeleton className="-mt-8 h-16 w-16 rounded-full bg-panel-2 ring-4 ring-panel" />
+                <Skeleton className="mt-3 h-4 w-32 bg-panel-2" />
+                <Skeleton className="mt-2 h-3 w-24 bg-panel-2" />
               </div>
             </div>
           )}

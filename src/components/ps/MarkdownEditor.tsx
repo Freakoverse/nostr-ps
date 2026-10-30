@@ -37,8 +37,8 @@ export function MarkdownEditor({
   }
 
   return (
-    <div className={cn('rounded-lg border border-[#262626] bg-[#1c1c1c]', className)}>
-      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-[#262626] px-2 py-1.5">
+    <div className={cn('rounded-lg border border-edge bg-panel', className)}>
+      <div className="flex flex-wrap items-center justify-between gap-2 border-b border-edge px-2 py-1.5">
         {!preview ? <MarkdownToolbar textareaRef={ref} value={value} onChange={onChange} /> : <span className="px-1 text-xs text-neutral-500">Preview</span>}
         <div className="flex items-center gap-1">
           {!preview && (
@@ -67,9 +67,9 @@ export function MarkdownEditor({
       )}
 
       <Dialog open={imageOpen} onOpenChange={setImageOpen}>
-        <DialogContent className="border-[#262626] bg-[#1a1a1a] sm:max-w-md">
+        <DialogContent className="border-edge bg-dialog sm:max-w-md">
           <DialogHeader>
-            <DialogTitle className="text-white">Insert image</DialogTitle>
+            <DialogTitle className="text-foreground">Insert image</DialogTitle>
             <DialogDescription className="text-neutral-400">Uploads to your Blossom servers and inserts a markdown image at the cursor.</DialogDescription>
           </DialogHeader>
           <BlossomUploadField

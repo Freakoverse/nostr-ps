@@ -76,7 +76,7 @@ export function MarkdownToolbar({ textareaRef, value, onChange }: MarkdownToolba
     <div className="flex items-center gap-0.5 flex-wrap">
       {tools.map((tool, i) => {
         if ('type' in tool && tool.type === 'sep') {
-          return <div key={i} className="w-px h-5 bg-[#333] mx-1" />
+          return <div key={i} className="w-px h-5 bg-edge-2 mx-1" />
         }
         const Icon = tool.icon!
         return (
@@ -85,7 +85,7 @@ export function MarkdownToolbar({ textareaRef, value, onChange }: MarkdownToolba
               <button
                 type="button"
                 onClick={tool.action}
-                className="p-1.5 rounded-md text-neutral-500 hover:text-neutral-200 hover:bg-[#2a2a2a] transition-colors cursor-pointer"
+                className="p-1.5 rounded-md text-neutral-500 hover:text-neutral-200 hover:bg-panel-3 transition-colors cursor-pointer"
               >
                 <Icon size={15} />
               </button>

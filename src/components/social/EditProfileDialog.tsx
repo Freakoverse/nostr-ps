@@ -84,7 +84,7 @@ export function EditProfileDialog({ open, onOpenChange, profile, onSaved }: Edit
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1c1c1c] border-[#262626] max-w-xl max-h-[85vh] overflow-auto">
+      <DialogContent className="bg-panel border-edge max-w-xl max-h-[85vh] overflow-auto">
         <DialogHeader>
           <DialogTitle className="text-neutral-100">Edit profile</DialogTitle>
           <DialogDescription className="text-neutral-400">
@@ -94,16 +94,16 @@ export function EditProfileDialog({ open, onOpenChange, profile, onSaved }: Edit
 
         <div className="min-w-0 space-y-4 py-1">
           {/* Live preview */}
-          <div className="overflow-hidden rounded-lg border border-[#262626] bg-[#171717]">
-            <div className="relative h-28 bg-gradient-to-br from-purple-900/40 to-[#212121]">
+          <div className="overflow-hidden rounded-lg border border-edge bg-well">
+            <div className="relative h-28 bg-gradient-to-br from-purple-900/40 to-panel-2">
               {form.banner && <img src={form.banner} alt="" className="h-full w-full object-cover" />}
             </div>
             <div className="px-4 pb-3">
-              <Avatar className="-mt-8 h-16 w-16 ring-4 ring-[#171717]">
+              <Avatar className="-mt-8 h-16 w-16 ring-4 ring-well">
                 {form.picture ? <AvatarImage src={form.picture} alt="" /> : null}
                 <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-800 text-white"><User className="h-7 w-7" /></AvatarFallback>
               </Avatar>
-              <p className="mt-2 font-semibold text-white truncate">{form.display_name || 'Your name'}</p>
+              <p className="mt-2 font-semibold text-foreground truncate">{form.display_name || 'Your name'}</p>
               {form.about && <p className="mt-1 text-sm text-neutral-400 line-clamp-3 whitespace-pre-wrap">{form.about}</p>}
             </div>
           </div>
@@ -122,7 +122,7 @@ export function EditProfileDialog({ open, onOpenChange, profile, onSaved }: Edit
               value={form.picture ?? ''}
               onChange={(e) => set('picture', e.target.value)}
               placeholder="Image URL (or upload above)"
-              className="bg-[#212121] border-[#262626] text-white text-xs font-mono"
+              className="bg-panel-2 border-edge text-foreground text-xs font-mono"
             />
           </div>
 
@@ -140,7 +140,7 @@ export function EditProfileDialog({ open, onOpenChange, profile, onSaved }: Edit
               value={form.banner ?? ''}
               onChange={(e) => set('banner', e.target.value)}
               placeholder="Image URL (or upload above)"
-              className="bg-[#212121] border-[#262626] text-white text-xs font-mono"
+              className="bg-panel-2 border-edge text-foreground text-xs font-mono"
             />
           </div>
 
@@ -152,7 +152,7 @@ export function EditProfileDialog({ open, onOpenChange, profile, onSaved }: Edit
               onChange={(e) => set('about', e.target.value)}
               placeholder="Tell people about yourself"
               rows={3}
-              className="bg-[#212121] border-[#262626] text-white resize-none"
+              className="bg-panel-2 border-edge text-foreground resize-none"
             />
           </div>
 
@@ -164,14 +164,14 @@ export function EditProfileDialog({ open, onOpenChange, profile, onSaved }: Edit
                 value={form[f.key] ?? ''}
                 onChange={(e) => set(f.key, e.target.value)}
                 placeholder={f.placeholder}
-                className="bg-[#212121] border-[#262626] text-white"
+                className="bg-panel-2 border-edge text-foreground"
               />
             </div>
           ))}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-[#262626]">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-edge">
             Cancel
           </Button>
           <Button onClick={handleSave} disabled={saving || !canPublish} className="bg-purple-600 hover:bg-purple-700">

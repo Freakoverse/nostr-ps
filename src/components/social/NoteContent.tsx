@@ -161,7 +161,7 @@ function ImageGroup({ urls, onOpen }: { urls: string[]; onOpen: (url: string) =>
     return (
       <SafeImage src={urls[0]} alt="" loading="lazy"
         onClick={(e) => { e.stopPropagation(); onOpen(urls[0]) }}
-        className="block max-h-96 max-w-full cursor-pointer rounded-lg border border-[#262626]" />
+        className="block max-h-96 max-w-full cursor-pointer rounded-lg border border-edge" />
     )
   }
   return (
@@ -199,7 +199,7 @@ export function NoteContent({ event, noEmbed = false }: { event: NostrEvent; noE
       {blocks.map((b, i) => {
         if (b.type === 'text') return <div key={i} className="whitespace-pre-wrap break-words [overflow-wrap:anywhere]">{b.parts}</div>
         if (b.type === 'images') return <ImageGroup key={i} urls={b.urls} onOpen={open} />
-        if (b.type === 'video') return <video key={i} src={b.url} controls className="block max-h-96 max-w-full rounded-lg border border-[#262626]" />
+        if (b.type === 'video') return <video key={i} src={b.url} controls className="block max-h-96 max-w-full rounded-lg border border-edge" />
         if (b.type === 'audio') return <audio key={i} src={b.url} controls className="block w-full" />
         if (b.type === 'linkembed') return <LinkEmbed key={i} embed={b.info} />
         return <EmbeddedNote key={i} embed={b.ref} />

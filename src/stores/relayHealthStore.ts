@@ -10,10 +10,10 @@
  * search indexer) is judged on READ alone — write-probing it would always read
  * broken since it rejects writes by design.
  *
- * The write probe reuses the user's OWN most-recent MOD event for the sweep: a
- * mod (kind 31142) is an accepted kind on DEG Mods' scoped relays (a plain note
- * is rejected outright there, which would falsely read as broken) and it already
- * carries PoW, so the write actually exercises the relay's accept path. Falls back
+ * The write probe reuses the user's OWN most-recent draft for the sweep: it is
+ * an accepted kind on scoped relays (where a plain note may be rejected, which
+ * would falsely read as broken) and it already carries PoW, so the write
+ * actually exercises the relay's accept path. Falls back
  * to any authored event, then any public note, for general relays. Re-publishing a
  * public event needs no signer; nothing new is ever signed.
  */

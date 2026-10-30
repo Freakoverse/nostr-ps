@@ -79,9 +79,9 @@ export function ReviewDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!busy) onOpenChange(v) }}>
-      <DialogContent className="border-[#262626] bg-[#1a1a1a] sm:max-w-lg">
+      <DialogContent className="border-edge bg-dialog sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-white">{target.kind === 'release' ? 'Review this spec' : 'Is this implementation real?'}</DialogTitle>
+          <DialogTitle className="text-foreground">{target.kind === 'release' ? 'Review this spec' : 'Is this implementation real?'}</DialogTitle>
           <DialogDescription className="text-neutral-400">
             <span className="text-neutral-200">{title}</span>. {target.kind === 'release'
               ? 'Your opinion of the spec itself. It says nothing about any implementer.'
@@ -97,7 +97,7 @@ export function ReviewDialog({
                 type="button"
                 data-on={verdict === o.v}
                 onClick={() => setVerdict(o.v)}
-                className={cn('rounded-lg border border-[#262626] bg-[#1c1c1c] px-3 py-2.5 text-left transition-colors hover:border-[#404040]', o.cls)}
+                className={cn('rounded-lg border border-edge bg-panel px-3 py-2.5 text-left transition-colors hover:border-edge-2', o.cls)}
               >
                 <p className="text-sm font-medium">{o.label}</p>
                 <p className="mt-0.5 text-[11px] text-neutral-500">{o.hint}</p>
@@ -108,7 +108,7 @@ export function ReviewDialog({
             <label className="text-xs font-medium text-neutral-300">
               {target.kind === 'release' ? 'Reasoning' : 'What did you check?'} <span className="text-neutral-600">(markdown)</span>
             </label>
-            <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={5} placeholder={target.kind === 'release' ? 'What works, what does not, what you would change.' : 'Installed it, confirmed it speaks the spec; or: no code, no users, nothing behind the npub.'} className="border-[#262626] bg-[#1c1c1c]" maxLength={5000} />
+            <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={5} placeholder={target.kind === 'release' ? 'What works, what does not, what you would change.' : 'Installed it, confirmed it speaks the spec; or: no code, no users, nothing behind the npub.'} className="border-edge bg-panel" maxLength={5000} />
           </div>
         </div>
 

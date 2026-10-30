@@ -4,13 +4,13 @@ import { idbStorage } from '@/lib/storage/idbStorage'
 import { createPersister } from '@/lib/storage/persist'
 
 /**
- * In-session cache of the latest raw addressable event (mods/blogs) by
+ * In-session cache of the latest raw addressable event (drafts, claims) by
  * coordinate. Populated whenever an event is parsed (list or detail), so opening
  * a post can render instantly from what a list already fetched, while a
  * background re-fetch checks for a newer version.
  *
  * Persisted to IndexedDB (newest N by created_at, debounced) so a full page
- * reload — including a deep-link straight to a mod/blog page — still paints from
+ * reload — including a deep-link straight to a draft page — still paints from
  * cache instead of spinning. Consumers await `whenEventCacheReady` before their
  * first synchronous `getCachedEvent`, so the async hydration is in place.
  */

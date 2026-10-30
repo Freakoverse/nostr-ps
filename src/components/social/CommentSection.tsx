@@ -168,7 +168,7 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
       </div>
 
       {/* New top-level comment */}
-      <div className="rounded-lg bg-[#1c1c1c] p-4 shadow-md shadow-black/20">
+      <div className="rounded-lg bg-panel p-4 shadow-md shadow-black/20">
         <CommentForm root={root} onPublished={handlePublished} />
       </div>
 

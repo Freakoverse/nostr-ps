@@ -258,7 +258,7 @@ function stripSelfCoordPrefix(kind: number, pubkey: string, identifier: string):
  * Decode a note route param — a short address, or an `nevent1…`/`note1…`.
  *
  * Returns the event itself, since a note has no coordinate to look it up by
- * later: unlike a mod or blog it's a regular event, identified only by its id.
+ * later: unlike a draft it's a regular event, identified only by its id.
  */
 export async function decodeNoteParam(
   param: string,

@@ -6,7 +6,7 @@ import { AuthorLine } from '@/components/social/AuthorLine'
 import { Markdown } from '@/components/shared/Markdown'
 
 export function Chip({ children, className }: { children: React.ReactNode; className?: string }) {
-  return <span className={cn('inline-flex items-center gap-1 rounded-md border border-[#2e2e2e] bg-[#212121] px-1.5 py-0.5 text-[11px] text-neutral-400', className)}>{children}</span>
+  return <span className={cn('inline-flex items-center gap-1 rounded-md border border-edge bg-panel-2 px-1.5 py-0.5 text-[11px] text-neutral-400', className)}>{children}</span>
 }
 
 export function KindChips({ kinds }: { kinds: { kind: number; name?: string }[] }) {
@@ -27,7 +27,7 @@ export function TopicChips({ topics }: { topics: string[] }) {
 
 export function DraftCard({ draft }: { draft: Draft }) {
   return (
-    <Link to={`/draft/${draftNaddr(draft.pubkey, draft.uuid)}`} className="block rounded-lg border border-[#262626] bg-[#1c1c1c] p-4 transition-colors hover:border-purple-500/40">
+    <Link to={`/draft/${draftNaddr(draft.pubkey, draft.uuid)}`} className="block rounded-lg border border-edge bg-panel p-4 transition-colors hover:border-purple-500/40">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold text-neutral-100">{draft.title}</h3>
@@ -53,7 +53,7 @@ export function DraftCard({ draft }: { draft: Draft }) {
 export function ProposalCard({ p, verified }: { p: ProposalSummary; verified?: number }) {
   const r = p.latest
   return (
-    <Link to={`/release/${releaseNevent(r.id, r.pubkey)}`} className="block rounded-lg border border-[#262626] bg-[#1c1c1c] p-4 transition-colors hover:border-purple-500/40">
+    <Link to={`/release/${releaseNevent(r.id, r.pubkey)}`} className="block rounded-lg border border-edge bg-panel p-4 transition-colors hover:border-purple-500/40">
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold text-neutral-100">
@@ -87,7 +87,7 @@ export function ReleaseRow({ r, current }: { r: Release; current?: boolean }) {
   return (
     <Link
       to={`/release/${releaseNevent(r.id, r.pubkey)}`}
-      className={cn('flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:bg-[#212121]', current && 'bg-[#212121]')}
+      className={cn('flex items-center justify-between gap-3 rounded-md px-3 py-2 text-sm transition-colors hover:bg-panel-2', current && 'bg-panel-2')}
     >
       <span className="flex items-center gap-2">
         <span className={cn('font-mono', current ? 'text-purple-300' : 'text-neutral-300')}>v{r.version}</span>
@@ -102,7 +102,7 @@ export function ReleaseRow({ r, current }: { r: Release; current?: boolean }) {
 
 export function ClaimCard({ claim, legit = 0, fake = 0, onReview, mine }: { claim: Claim; legit?: number; fake?: number; onReview?: () => void; mine?: boolean }) {
   return (
-    <div className={cn('rounded-lg border border-[#262626] bg-[#1c1c1c] p-4', claim.withdrawn && 'opacity-60')}>
+    <div className={cn('rounded-lg border border-edge bg-panel p-4', claim.withdrawn && 'opacity-60')}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-neutral-100">
@@ -157,7 +157,7 @@ export function VerdictChip({ verdict }: { verdict: string }) {
 
 export function ReviewCard({ review, targetLabel }: { review: Review; targetLabel?: React.ReactNode }) {
   return (
-    <div className="rounded-lg border border-[#262626] bg-[#1c1c1c] p-4">
+    <div className="rounded-lg border border-edge bg-panel p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <AuthorLine pubkey={review.pubkey} at={review.createdAt} size="xs" />
         <div className="flex items-center gap-2">

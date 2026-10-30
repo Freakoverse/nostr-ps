@@ -37,7 +37,7 @@ export function SkeletonImage({
       {src && !settled && (
         <div
           className={cn(
-            'absolute inset-0 bg-[#262626] animate-pulse z-[1]',
+            'absolute inset-0 bg-edge animate-pulse z-[1]',
             skeletonClassName
           )}
         />

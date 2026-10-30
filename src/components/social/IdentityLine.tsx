@@ -44,14 +44,14 @@ export function IdentityLine({ pubkey, npub, nip05 }: IdentityLineProps) {
   const cycle = () => setIndex((i) => (i + 1) % items.length)
 
   return (
-    <div className="flex items-center gap-2 rounded-lg bg-[#212121] px-2 py-1">
+    <div className="flex items-center gap-2 rounded-lg bg-panel-2 px-2 py-1">
       <span className={cn('min-w-0 flex-1 truncate font-mono text-sm', current.kind === 'npub' ? 'text-neutral-400' : 'text-purple-400')}>
         {current.display}
       </span>
       {items.length > 1 && (
         <Tooltip>
           <TooltipTrigger asChild>
-            <button onClick={cycle} className="shrink-0 rounded p-1 text-neutral-400 transition-colors hover:bg-[#2a2a2a] hover:text-neutral-200" aria-label="Switch ID">
+            <button onClick={cycle} className="shrink-0 rounded p-1 text-neutral-400 transition-colors hover:bg-panel-3 hover:text-neutral-200" aria-label="Switch ID">
               <ArrowLeftRight className="h-3.5 w-3.5" />
             </button>
           </TooltipTrigger>
@@ -60,7 +60,7 @@ export function IdentityLine({ pubkey, npub, nip05 }: IdentityLineProps) {
       )}
       <Tooltip>
         <TooltipTrigger asChild>
-          <button onClick={copy} className="shrink-0 rounded p-1 text-neutral-400 transition-colors hover:bg-[#2a2a2a] hover:text-purple-400" aria-label="Copy">
+          <button onClick={copy} className="shrink-0 rounded p-1 text-neutral-400 transition-colors hover:bg-panel-3 hover:text-purple-400" aria-label="Copy">
             {copied ? <Check className="h-3.5 w-3.5" /> : <Copy className="h-3.5 w-3.5" />}
           </button>
         </TooltipTrigger>

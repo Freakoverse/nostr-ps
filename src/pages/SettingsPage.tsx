@@ -147,7 +147,7 @@ function RelayRow({
   const healthStatus = useRelayHealthStore(s => s.statusOf(relay.url))
   const healthProgress = useRelayHealthStore(s => s.progress[relay.url])
   return (
-    <div className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-[#212121] transition-colors group">
+    <div className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-panel-2 transition-colors group">
       <Switch checked={relay.enabled} onCheckedChange={onToggle} />
       <span className={cn('text-sm flex-1 truncate', !relay.enabled && 'text-muted-foreground')}>
         {relay.url}
@@ -193,7 +193,7 @@ function BlossomRow({
   const healthStatus = useBlossomHealthStore(s => s.statusOf(server.url))
   const healthProgress = useBlossomHealthStore(s => s.progress[server.url])
   return (
-    <div className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-[#212121] transition-colors group">
+    <div className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-panel-2 transition-colors group">
       <Switch checked={server.enabled} onCheckedChange={onToggle} />
       <span className={cn('text-sm flex-1 truncate', !server.enabled && 'text-muted-foreground')}>
         {server.url}
@@ -226,7 +226,7 @@ function DnnNodeRow({
   readOnly?: boolean
 }) {
   return (
-    <div className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-[#212121] transition-colors group">
+    <div className="flex items-center gap-3 py-2.5 px-3 rounded-lg hover:bg-panel-2 transition-colors group">
       <HealthDot status={node.healthy} />
       {onToggle && !readOnly ? (
         <Switch checked={node.enabled} onCheckedChange={onToggle} />
@@ -257,7 +257,7 @@ function SectionHeader({ title, description }: { title: string; description?: st
 // ─── Boxed group (matches the Preferences/Admin section style) ──────────
 
 function SettingsBox({ children }: { children: React.ReactNode }) {
-  return <div className="rounded-lg border border-[#262626] bg-[#1c1c1c] p-4 space-y-5">{children}</div>
+  return <div className="rounded-lg border border-edge bg-panel p-4 space-y-5">{children}</div>
 }
 
 function ResetToDefault({ onClick }: { onClick: () => void }) {
@@ -343,7 +343,7 @@ function DnnNodes() {
         </div>
       </SettingsBox>
 
-      <Button variant="outline" onClick={recheck} disabled={checking} className="w-full border-[#262626]">
+      <Button variant="outline" onClick={recheck} disabled={checking} className="w-full border-edge">
         {checking ? <Loader2 size={16} className="mr-2 animate-spin" /> : <RefreshCw size={16} className="mr-2" />}
         Re-check Health
       </Button>
@@ -361,7 +361,7 @@ function AddInput({ placeholder, onAdd }: { placeholder: string; onAdd: (value: 
         value={value}
         onChange={(e) => setValue(e.target.value)}
         placeholder={placeholder}
-        className="flex-1 bg-[#1c1c1c] border-[#262626] text-sm"
+        className="flex-1 bg-panel border-edge text-sm"
         onKeyDown={(e) => {
           if (e.key === 'Enter' && value.trim()) {
             onAdd(value.trim())
@@ -372,7 +372,7 @@ function AddInput({ placeholder, onAdd }: { placeholder: string; onAdd: (value: 
       <Button
         variant="outline"
         size="icon"
-        className="border-[#262626] hover:bg-[#262626]"
+        className="border-edge hover:bg-edge"
         onClick={() => {
           if (value.trim()) {
             onAdd(value.trim())
@@ -511,17 +511,17 @@ function NetworkSettings() {
 
   return (
     <Tabs defaultValue="posting">
-      <TabsList className="bg-[#1c1c1c] border border-[#262626] mb-6">
-        <TabsTrigger value="posting" className="text-xs data-[state=active]:bg-[#262626]">
+      <TabsList className="bg-panel border border-edge mb-6">
+        <TabsTrigger value="posting" className="text-xs data-[state=active]:bg-edge">
           <Send size={14} className="mr-1.5" /> Posting
         </TabsTrigger>
-        <TabsTrigger value="relays" className="text-xs data-[state=active]:bg-[#262626]">
+        <TabsTrigger value="relays" className="text-xs data-[state=active]:bg-edge">
           <ArrowUpDown size={14} className="mr-1.5" /> Relays
         </TabsTrigger>
-        <TabsTrigger value="blossom" className="text-xs data-[state=active]:bg-[#262626]">
+        <TabsTrigger value="blossom" className="text-xs data-[state=active]:bg-edge">
           <Database size={14} className="mr-1.5" /> Blossom
         </TabsTrigger>
-        <TabsTrigger value="dnn" className="text-xs data-[state=active]:bg-[#262626]">
+        <TabsTrigger value="dnn" className="text-xs data-[state=active]:bg-edge">
           <Globe size={14} className="mr-1.5" /> DNN
         </TabsTrigger>
       </TabsList>
@@ -531,7 +531,7 @@ function NetworkSettings() {
         <SettingsBox>
           <div>
             <SectionHeader title="Posting behavior" description="Control where events are published and how media is uploaded." />
-            <div className="divide-y divide-[#262626]">
+            <div className="divide-y divide-edge">
               <PostingToggle title="Post to client relays" description="Publish events to your configured client relays" checked={settings.postToClientRelays} onChange={settings.setPostToClientRelays} />
               <PostingToggle title="Post to user relays" description="Publish events to your NIP-65 relay list" checked={settings.postToUserRelays} onChange={settings.setPostToUserRelays} />
               <PostingToggle title="Post to custom local relays" description="Publish events to your custom local relays" checked={settings.postToCustomRelays} onChange={settings.setPostToCustomRelays} />
@@ -639,7 +639,7 @@ function NetworkSettings() {
 
         {/* Warn before creating a brand-new relay list when none was found. */}
         <Dialog open={relayWarnOpen} onOpenChange={setRelayWarnOpen}>
-          <DialogContent className="bg-[#1c1c1c] border-[#262626]">
+          <DialogContent className="bg-panel border-edge">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-neutral-100">
                 <AlertTriangle className="h-5 w-5 text-yellow-400" />
@@ -651,8 +651,8 @@ function NetworkSettings() {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex-col gap-2 sm:flex-row">
-              <Button variant="outline" onClick={() => setRelayWarnOpen(false)} className="border-[#262626]">Cancel</Button>
-              <Button variant="outline" onClick={retryRelays} disabled={retrying} className="border-[#262626]">
+              <Button variant="outline" onClick={() => setRelayWarnOpen(false)} className="border-edge">Cancel</Button>
+              <Button variant="outline" onClick={retryRelays} disabled={retrying} className="border-edge">
                 {retrying ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                 Retry fetch
               </Button>
@@ -826,7 +826,7 @@ function NetworkSettings() {
         </SettingsBox>
 
         <Dialog open={blossomWarnOpen} onOpenChange={setBlossomWarnOpen}>
-          <DialogContent className="bg-[#1c1c1c] border-[#262626]">
+          <DialogContent className="bg-panel border-edge">
             <DialogHeader>
               <DialogTitle className="flex items-center gap-2 text-neutral-100">
                 <AlertTriangle className="h-5 w-5 text-yellow-400" />
@@ -838,8 +838,8 @@ function NetworkSettings() {
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="flex-col gap-2 sm:flex-row">
-              <Button variant="outline" onClick={() => setBlossomWarnOpen(false)} className="border-[#262626]">Cancel</Button>
-              <Button variant="outline" onClick={retryBlossoms} disabled={retrying} className="border-[#262626]">
+              <Button variant="outline" onClick={() => setBlossomWarnOpen(false)} className="border-edge">Cancel</Button>
+              <Button variant="outline" onClick={retryBlossoms} disabled={retrying} className="border-edge">
                 {retrying ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
                 Retry fetch
               </Button>
@@ -921,7 +921,7 @@ function PreferencesSettings() {
         title="Comments"
         description="By default, comments and replies show plain text only — links aren't clickable and media isn't embedded. Enable each below to render it (applies to comments only)."
       >
-        <div className="divide-y divide-[#262626]">
+        <div className="divide-y divide-edge">
           <ToggleRow
             label="Render images"
             description="Show image links as embedded images in comments."
@@ -974,7 +974,7 @@ function PreferencesSettings() {
           <span className="text-lg font-bold text-foreground w-8 text-right">{powFilterDifficulty}</span>
           <ResetToDefault onClick={() => setPowFilterDifficulty(15)} />
         </div>
-        <div className="mt-3 flex items-start gap-2 rounded-lg border border-[#262626] bg-[#212121] px-3 py-2.5">
+        <div className="mt-3 flex items-start gap-2 rounded-lg border border-edge bg-panel-2 px-3 py-2.5">
           <BadgeCheck className="h-3.5 w-3.5 shrink-0 mt-0.5 text-emerald-400" />
           <p className="text-xs text-neutral-400">
             <span className="text-neutral-200 font-medium">People you follow are always shown.</span> Their proposals,
@@ -993,7 +993,7 @@ function PreferencesSettings() {
             Hash rate: <span className="font-bold text-purple-400">{Math.round(hashRate).toLocaleString()}</span> hashes/sec
           </p>
         )}
-        <Button variant="outline" onClick={runBenchmark} disabled={benchmarking} className="border-[#262626] w-fit">
+        <Button variant="outline" onClick={runBenchmark} disabled={benchmarking} className="border-edge w-fit">
           {benchmarking ? <Loader2 size={16} className="animate-spin mr-2" /> : <Cpu size={16} className="mr-2" />}
           {benchmarking ? 'Running Benchmark...' : 'Run Benchmark'}
         </Button>
@@ -1013,10 +1013,10 @@ function SettingsCard({
   children: React.ReactNode
 }) {
   return (
-    <div className="rounded-lg border border-[#262626] bg-[#1c1c1c] p-4 space-y-3">
+    <div className="rounded-lg border border-edge bg-panel p-4 space-y-3">
       <div className="flex items-center gap-2">
         <Icon size={15} className="text-purple-400 shrink-0" />
-        <h3 className="text-sm font-semibold text-white">{title}</h3>
+        <h3 className="text-sm font-semibold text-foreground">{title}</h3>
       </div>
       {description && <p className="text-xs text-neutral-500 leading-relaxed">{description}</p>}
       <div className="space-y-4 pt-0.5">{children}</div>
@@ -1055,8 +1055,8 @@ export default function SettingsPage() {
               className={cn(
                 'flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left',
                 activeTab === id
-                  ? 'bg-[#262626] text-foreground'
-                  : 'text-muted-foreground hover:text-foreground hover:bg-[#1c1c1c]'
+                  ? 'bg-edge text-foreground'
+                  : 'text-muted-foreground hover:text-foreground hover:bg-panel'
               )}
             >
               <Icon size={16} />
@@ -1065,13 +1065,13 @@ export default function SettingsPage() {
           ))}
           {pubkey && (
             <>
-              <Separator className="my-2 bg-[#262626]" />
+              <Separator className="my-2 bg-edge" />
               <button
                 onClick={() => {
                   useAuthStore.getState().logout()
                   toast.success('Logged out')
                 }}
-                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left text-red-400 hover:text-red-300 hover:bg-[#1c1c1c] cursor-pointer"
+                className="flex items-center gap-2.5 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors text-left text-red-400 hover:text-red-300 hover:bg-panel cursor-pointer"
               >
                 <LogOut size={16} />
                 Logout
@@ -1082,7 +1082,7 @@ export default function SettingsPage() {
 
         {/* Content */}
         <div className="flex-1 min-w-0">
-          <div className="bg-[#0f0f0f] border border-[#262626] rounded-xl p-6">
+          <div className="bg-sunken border border-edge rounded-xl p-6">
             {activeTab === 'lens' && <LensSettings />}
             {activeTab === 'network' && <NetworkSettings />}
             {activeTab === 'preferences' && <PreferencesSettings />}

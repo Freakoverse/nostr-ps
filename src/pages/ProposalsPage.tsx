@@ -1,16 +1,90 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Loader2, RefreshCw, Search } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useLensStore, requestScores } from '@/stores/lensStore'
-import { fetchReleases, fetchClaimsForMany, summarizeProposals, type ProposalSummary } from '@/lib/nostr/nipps'
+import { fetchReleases, fetchClaimsForMany, summarizeProposals, type ProposalSummary, type Release, type Claim } from '@/lib/nostr/nipps'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
+import { usePaged } from '@/hooks/usePaged'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { LensBar } from '@/components/lens/LensBar'
+import { TieredList } from '@/components/lens/TieredList'
+import { Pagination } from '@/components/shared/Pagination'
 import { ProposalCard } from '@/components/ps/Cards'
 import { cn } from '@/lib/utils'
 
 type Sort = 'adoption' | 'newest'
+const PER_PAGE = 10
+const BATCH = 100
+
+/**
+ * Progressive proposal feed: releases newest first via an `until` cursor,
+ * claims fetched for every new uuid, rolled up per proposal (§5).
+ */
+function useProposalFeed(tick: number) {
+  const [items, setItems] = useState<ProposalSummary[]>([])
+  const [loading, setLoading] = useState(true)
+  const [loadingMore, setLoadingMore] = useState(false)
+  const [reachedEnd, setReachedEnd] = useState(false)
+  const releases = useRef(new Map<string, Release>())
+  const claims = useRef(new Map<string, Claim[]>())
+  const oldest = useRef<number | undefined>(undefined)
+  const inFlight = useRef(false)
+
+  const ingest = useCallback(async (relays: string[], batch: Release[]): Promise<number> => {
+    let fresh = 0
+    const newUuids = new Set<string>()
+    for (const r of batch) {
+      if (!releases.current.has(r.id)) { fresh++; if (!claims.current.has(r.uuid)) newUuids.add(r.uuid) }
+      releases.current.set(r.id, r)
+      if (oldest.current === undefined || r.createdAt < oldest.current) oldest.current = r.createdAt
+    }
+    if (newUuids.size) {
+      const got = await fetchClaimsForMany(relays, [...newUuids]).catch(() => new Map<string, Claim[]>())
+      for (const u of newUuids) claims.current.set(u, got.get(u) ?? [])
+    }
+    setItems(summarizeProposals([...releases.current.values()], claims.current))
+    return fresh
+  }, [])
+
+  useEffect(() => {
+    let cancelled = false
+    releases.current = new Map(); claims.current = new Map(); oldest.current = undefined; inFlight.current = false
+    setItems([]); setReachedEnd(false); setLoading(true)
+    const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
+    ;(async () => {
+      try {
+        const rs = await fetchReleases(relays, { limit: BATCH })
+        if (cancelled) return
+        const n = await ingest(relays, rs)
+        if (!cancelled && n === 0) setReachedEnd(true)
+      } catch {
+        if (!cancelled) setReachedEnd(true)
+      } finally {
+        if (!cancelled) setLoading(false)
+      }
+    })()
+    return () => { cancelled = true }
+  }, [tick, ingest])
+
+  const loadMore = useCallback(async () => {
+    if (inFlight.current || reachedEnd || oldest.current === undefined) return
+    inFlight.current = true
+    setLoadingMore(true)
+    const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
+    try {
+      const rs = await fetchReleases(relays, { until: oldest.current - 1, limit: BATCH })
+      if ((await ingest(relays, rs)) === 0) setReachedEnd(true)
+    } catch {
+      setReachedEnd(true)
+    } finally {
+      inFlight.current = false
+      setLoadingMore(false)
+    }
+  }, [reachedEnd, ingest])
+
+  return { items, loading, loadingMore, reachedEnd, loadMore }
+}
 
 /**
  * Released specs, one row per proposal (author + uuid), ranked by adoption.
@@ -19,36 +93,16 @@ type Sort = 'adoption' | 'newest'
  */
 export function ProposalsPage() {
   useSeoMeta({ title: 'Proposals', description: 'Released specs ranked by who implements them.' })
-  const [items, setItems] = useState<ProposalSummary[]>([])
-  const [loading, setLoading] = useState(true)
   const [q, setQ] = useState('')
   const [sort, setSort] = useState<Sort>('adoption')
   const [tick, setTick] = useState(0)
+  const { items, loading, loadingMore, reachedEnd, loadMore } = useProposalFeed(tick)
 
   const enabled = useLensStore((s) => s.enabled)
   const threshold = useLensStore((s) => s.threshold)
   const scores = useLensStore((s) => s.scores)
   const bucketOf = useLensStore((s) => s.bucketOf)
   const sources = useLensStore((s) => s.sources)
-
-  useEffect(() => {
-    let cancelled = false
-    setLoading(true)
-    const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
-    ;(async () => {
-      try {
-        const releases = await fetchReleases(relays, { limit: 300 })
-        const uuids = [...new Set(releases.map((r) => r.uuid))]
-        const claims = await fetchClaimsForMany(relays, uuids)
-        if (!cancelled) setItems(summarizeProposals(releases, claims))
-      } catch {
-        if (!cancelled) setItems([])
-      } finally {
-        if (!cancelled) setLoading(false)
-      }
-    })()
-    return () => { cancelled = true }
-  }, [tick])
 
   // Score every claim author so the "above threshold" count is real.
   useEffect(() => {
@@ -85,6 +139,8 @@ export function ProposalsPage() {
     })
   }, [items, q, sort, verifiedCount])
 
+  const { page, setPage, totalPages, paged } = usePaged(visible, PER_PAGE, { loadMore, reachedEnd, loading: loading || loadingMore, resetKey: `${q}|${sort}` })
+
   return (
     <div className="space-y-6 py-6">
       <div className="space-y-1">
@@ -97,11 +153,11 @@ export function ProposalsPage() {
       <div className="flex flex-wrap items-center gap-2">
         <div className="relative min-w-[200px] flex-1">
           <Search className="pointer-events-none absolute left-3 top-1/2 h-4 w-4 -translate-y-1/2 text-neutral-500" />
-          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by title, topic, or kind…" className="border-[#262626] bg-[#1c1c1c] pl-9" />
+          <Input value={q} onChange={(e) => setQ(e.target.value)} placeholder="Search by title, topic, or kind…" className="border-edge bg-panel pl-9" />
         </div>
-        <div className="flex rounded-lg border border-[#262626] bg-[#1c1c1c] p-0.5 text-xs">
+        <div className="flex rounded-lg border border-edge bg-panel p-0.5 text-xs">
           {(['adoption', 'newest'] as Sort[]).map((s) => (
-            <button key={s} type="button" onClick={() => setSort(s)} className={cn('rounded-md px-2.5 py-1.5 capitalize transition-colors', sort === s ? 'bg-[#2a2a2a] text-purple-300' : 'text-neutral-400 hover:text-neutral-200')}>{s}</button>
+            <button key={s} type="button" onClick={() => setSort(s)} className={cn('rounded-md px-2.5 py-1.5 capitalize transition-colors', sort === s ? 'bg-panel-3 text-purple-300' : 'text-neutral-400 hover:text-neutral-200')}>{s}</button>
           ))}
         </div>
         <Button variant="ghost" size="icon" onClick={() => setTick((t) => t + 1)} disabled={loading} aria-label="Refresh" className="text-neutral-400">
@@ -111,12 +167,17 @@ export function ProposalsPage() {
 
       {loading ? (
         <div className="flex items-center justify-center gap-2 py-16 text-sm text-neutral-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading releases and claims…</div>
-      ) : visible.length === 0 ? (
-        <p className="py-16 text-center text-sm text-neutral-500">{q ? 'No proposals match.' : 'No releases on your relays yet. Drafts become proposals once their author publishes a release.'}</p>
       ) : (
-        <div className="space-y-3">
-          {visible.map((p) => <ProposalCard key={p.key} p={p} verified={enabled ? verifiedCount.get(p.key) : undefined} />)}
-        </div>
+        <>
+          <TieredList
+            items={paged.map((p) => ({ ...p, pubkey: p.latest.pubkey }))}
+            keyOf={(p) => p.key}
+            render={(p) => <ProposalCard p={p} verified={enabled ? verifiedCount.get(p.key) : undefined} />}
+            empty={<p className="py-16 text-center text-sm text-neutral-500">{q ? 'No proposals match.' : 'No releases on your relays yet. Drafts become proposals once their author publishes a release.'}</p>}
+            toolbar={<span className="text-xs text-neutral-500">{visible.length}{reachedEnd ? '' : '+'} proposals · page {page} of {totalPages}{reachedEnd ? '' : '+'}</span>}
+          />
+          <Pagination page={page} totalPages={totalPages} onPage={setPage} reachedEnd={reachedEnd} loadingMore={loadingMore} />
+        </>
       )}
     </div>
   )

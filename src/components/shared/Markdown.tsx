@@ -23,13 +23,13 @@ function CodeBlock({ lang, code }: { lang?: string; code: string }) {
     setTimeout(() => setCopied(false), 2000)
   }
   return (
-    <div className="my-4 overflow-hidden rounded-lg border border-[#262626] bg-[#171717]">
-      <div className="flex items-center justify-between border-b border-[#262626] bg-[#1c1c1c] px-3 py-1.5">
+    <div className="my-4 overflow-hidden rounded-lg border border-edge bg-well">
+      <div className="flex items-center justify-between border-b border-edge bg-panel px-3 py-1.5">
         <span className="font-mono text-xs text-neutral-500">{lang || 'text'}</span>
         <button
           type="button"
           onClick={copy}
-          className="inline-flex items-center gap-1 text-xs text-neutral-400 transition-colors hover:text-white"
+          className="inline-flex items-center gap-1 text-xs text-neutral-400 transition-colors hover:text-foreground"
         >
           {copied ? (
             <><Check className="h-3.5 w-3.5 text-green-400" /> Copied</>
@@ -79,7 +79,7 @@ function MarkdownMedia({ src, kind, poster }: { src: string; kind: 'video' | 'au
       preload="metadata"
       poster={poster}
       src={src}
-      className="my-4 block h-auto w-full rounded-lg border border-[#262626]"
+      className="my-4 block h-auto w-full rounded-lg border border-edge"
     />
   )
 }
@@ -102,12 +102,12 @@ function MarkdownImage({ src, alt }: { src?: string; alt?: string }) {
   return (
     <span
       className={cn(
-        'relative my-4 block overflow-hidden rounded-lg border border-[#262626]',
+        'relative my-4 block overflow-hidden rounded-lg border border-edge',
         !loaded && 'min-h-[160px]'
       )}
     >
       {!loaded && (
-        <span className="absolute inset-0 z-[1] block bg-[#262626] animate-pulse" />
+        <span className="absolute inset-0 z-[1] block bg-edge animate-pulse" />
       )}
       <BlossomImage
         src={src}
@@ -193,7 +193,7 @@ const components: Components = {
   blockquote: ({ node, ...props }) => (
     <blockquote className="mb-4 border-l-2 border-purple-500/50 pl-4 italic text-neutral-400" {...props} />
   ),
-  hr: ({ node, ...props }) => <hr className="my-6 border-[#262626]" {...props} />,
+  hr: ({ node, ...props }) => <hr className="my-6 border-edge" {...props} />,
   strong: ({ node, ...props }) => <strong className="font-semibold text-neutral-100" {...props} />,
   em: ({ node, ...props }) => <em className="italic" {...props} />,
   // Block code is rendered by the `code` handler as a full <CodeBlock>, so `pre`
@@ -206,7 +206,7 @@ const components: Components = {
     if (!isBlock) {
       return (
         <code
-          className="rounded bg-[#262626] px-1.5 py-0.5 font-mono text-[0.85em] text-purple-200"
+          className="rounded bg-edge px-1.5 py-0.5 font-mono text-[0.85em] text-purple-200"
           {...props}
         >
           {children}
@@ -221,9 +221,9 @@ const components: Components = {
     </div>
   ),
   th: ({ node, ...props }) => (
-    <th className="border border-[#262626] bg-[#1c1c1c] px-3 py-1.5 text-left font-semibold text-neutral-200" {...props} />
+    <th className="border border-edge bg-panel px-3 py-1.5 text-left font-semibold text-neutral-200" {...props} />
   ),
-  td: ({ node, ...props }) => <td className="border border-[#262626] px-3 py-1.5" {...props} />,
+  td: ({ node, ...props }) => <td className="border border-edge px-3 py-1.5" {...props} />,
 }
 
 interface MarkdownProps {
@@ -262,7 +262,7 @@ const sanitizeSchema = {
 }
 
 /**
- * Renders user-authored markdown (mod bodies, blog posts) with GFM support,
+ * Renders user-authored markdown (spec bodies, reviews, comments) with GFM support,
  * single-newline line breaks, and dark-theme styling. Some legacy posts store
  * raw HTML bodies rather than markdown, so raw HTML IS rendered — but only after
  * rehype-sanitize strips anything unsafe, so output stays XSS-safe.

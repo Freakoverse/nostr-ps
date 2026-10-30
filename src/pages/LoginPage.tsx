@@ -275,27 +275,20 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
   //  Render
   // ═══════════════════════════════════════════════════════════════════
   return (
-    <div className="fixed inset-0 top-16 z-30 flex items-center justify-center overflow-hidden p-4">
-      {/* ── Background image ─────────────────────────────────────── */}
-      <img
-        src="/login-bg.jpg"
-        alt=""
-        className="fixed inset-0 w-full h-full object-cover object-right-bottom pointer-events-none"
-      />
-
+    <div className="fixed inset-0 top-16 z-30 flex items-center justify-center overflow-hidden bg-surface-background/50 p-4 backdrop-blur-md">
       {/* ── Close (overlay/modal mode only) ──────────────────────── */}
       {onClose && (
         <button
           onClick={onClose}
           aria-label="Close"
-          className="fixed right-4 top-20 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-[#262626] bg-[#1c1c1c]/80 text-neutral-300 backdrop-blur-sm transition-colors hover:bg-[#262626] hover:text-white"
+          className="fixed right-4 top-20 z-20 flex h-9 w-9 items-center justify-center rounded-full border border-edge bg-panel/80 text-neutral-300 backdrop-blur-sm transition-colors hover:bg-edge hover:text-foreground"
         >
           <X className="h-5 w-5" />
         </button>
       )}
 
       {/* ── Login card ───────────────────────────────────────────── */}
-      <Card className="w-full max-w-sm relative z-10 border-[#262626] bg-[#1c1c1c]/90 backdrop-blur-sm">
+      <Card className="w-full max-w-sm relative z-10 border-edge bg-panel/90 backdrop-blur-sm">
         <CardContent className="p-8 flex flex-col items-center gap-6">
           <AnimatePresence mode="wait">
             {/* ── Main Screen ────────────────────────────────── */}
@@ -311,16 +304,15 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
               >
                 {/* Logo + title */}
                 <div className="flex flex-col items-center gap-3 mb-6">
-                  <img src="/logo.png" className="h-14 w-auto" alt="NIP-PS" />
-                  <h1 className="text-2xl font-bold text-white">NIP-PS</h1>
+                  <h1 className="text-2xl font-bold text-foreground">Permissionless Standards</h1>
                 </div>
 
-                {/* Sign-in methods: each opens its own flow, DEN Chat style */}
+                {/* Sign-in methods: each opens its own flow */}
                 <div className="w-full flex flex-col gap-2">
                   <div className="w-full flex flex-wrap gap-2">
                     <Button
                       variant="outline"
-                      className="grow gap-1.5 text-xs border-[#262626] bg-[#212121] text-white hover:bg-[#2a2a2a]"
+                      className="grow gap-1.5 text-xs border-edge bg-panel-2 text-foreground hover:bg-panel-3"
                       onClick={() => setScreen('upv2')}
                       disabled={!!loading}
                     >
@@ -329,7 +321,7 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
                     </Button>
                     <Button
                       variant="outline"
-                      className="grow gap-1.5 text-xs border-[#262626] bg-[#212121] text-white hover:bg-[#2a2a2a]"
+                      className="grow gap-1.5 text-xs border-edge bg-panel-2 text-foreground hover:bg-panel-3"
                       onClick={handleLocalSignerDiscover}
                       disabled={loading === 'pc55'}
                     >
@@ -342,7 +334,7 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
                     </Button>
                     <Button
                       variant="outline"
-                      className="grow gap-1.5 text-xs border-[#262626] bg-[#212121] text-white hover:bg-[#2a2a2a]"
+                      className="grow gap-1.5 text-xs border-edge bg-panel-2 text-foreground hover:bg-panel-3"
                       onClick={() => setScreen('nip46')}
                       disabled={!!loading}
                     >
@@ -351,7 +343,7 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
                     </Button>
                     <Button
                       variant="outline"
-                      className="grow gap-1.5 text-xs border-[#262626] bg-[#212121] text-white hover:bg-[#2a2a2a]"
+                      className="grow gap-1.5 text-xs border-edge bg-panel-2 text-foreground hover:bg-panel-3"
                       onClick={handleExtensionLogin}
                       disabled={loading === 'nip07'}
                     >
@@ -395,10 +387,10 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
                 <ScreenHeader title="Nostr Connect" onBack={goBack} />
 
                 <Tabs defaultValue="qr" className="w-full">
-                  <TabsList className="mb-4 w-full bg-[#212121]">
+                  <TabsList className="mb-4 w-full bg-panel-2">
                     <TabsTrigger
                       value="qr"
-                      className="flex-1 data-[state=active]:bg-[#2a2a2a]"
+                      className="flex-1 data-[state=active]:bg-panel-3"
                       onClick={() => {
                         if (!connectDetails) openNostrConnect()
                       }}
@@ -406,7 +398,7 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
                       <QrCode className="mr-1.5 h-3.5 w-3.5" />
                       QR Code
                     </TabsTrigger>
-                    <TabsTrigger value="bunker" className="flex-1 data-[state=active]:bg-[#2a2a2a]">
+                    <TabsTrigger value="bunker" className="flex-1 data-[state=active]:bg-panel-3">
                       <Link2 className="mr-1.5 h-3.5 w-3.5" />
                       Bunker URL
                     </TabsTrigger>
@@ -414,13 +406,13 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
 
                   <TabsContent value="bunker" className="space-y-4">
                     <p className="text-sm text-neutral-400">
-                      Paste your <code className="rounded bg-[#262626] px-1.5 py-0.5 text-xs text-purple-300">bunker://</code> URL from your remote signer.
+                      Paste your <code className="rounded bg-edge px-1.5 py-0.5 text-xs text-purple-300">bunker://</code> URL from your remote signer.
                     </p>
                     <Input
                       placeholder="bunker://..."
                       value={bunkerUrl}
                       onChange={(e) => setBunkerUrl(e.target.value)}
-                      className="border-[#262626] bg-[#212121] text-white placeholder:text-neutral-500"
+                      className="border-edge bg-panel-2 text-foreground placeholder:text-neutral-500"
                       onKeyDown={(e) => e.key === 'Enter' && handleBunkerLogin()}
                     />
                     <Button
@@ -440,12 +432,12 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
                         <p className="text-center text-sm text-neutral-400">
                           Scan this QR code with your signer app, or copy the connection string.
                         </p>
-                        <div className="rounded-xl border border-[#262626] bg-white p-4">
+                        <div className="rounded-xl border border-edge bg-white p-4">
                           <QRCodeSVG value={connectDetails.connectionString} size={200} level="M" />
                         </div>
                         <Button
                           variant="outline"
-                          className="w-full border-[#262626] bg-[#212121] text-white hover:bg-[#2a2a2a]"
+                          className="w-full border-edge bg-panel-2 text-foreground hover:bg-panel-3"
                           onClick={copyConnectionString}
                         >
                           {copied ? (
@@ -487,11 +479,11 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
 
                 {discoveryResult ? (
                   <div className="space-y-4">
-                    <div className="rounded-lg border border-[#262626] bg-[#212121] p-4">
+                    <div className="rounded-lg border border-edge bg-panel-2 p-4">
                       <div className="flex items-center gap-2 text-sm text-neutral-400">
                         <Monitor className="h-4 w-4 text-green-400" />
                         <span>
-                          Found: <span className="font-medium text-white">{discoveryResult.name}</span>
+                          Found: <span className="font-medium text-foreground">{discoveryResult.name}</span>
                           {discoveryResult.version && (
                             <span className="ml-1 text-neutral-500">v{discoveryResult.version}</span>
                           )}
@@ -507,13 +499,13 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
                         {discoveryResult.accounts.map((account) => (
                           <div
                             key={account.npub}
-                            className="flex items-center gap-3 rounded-lg border border-[#262626] bg-[#212121] px-4 py-3"
+                            className="flex items-center gap-3 rounded-lg border border-edge bg-panel-2 px-4 py-3"
                           >
                             <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/20 text-purple-400">
                               <Key className="h-4 w-4" />
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium text-white">
+                              <p className="truncate text-sm font-medium text-foreground">
                                 {account.display_name || 'Unnamed'}
                               </p>
                               <p className="truncate text-xs text-neutral-500">
@@ -571,7 +563,7 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
                         placeholder="npub1... or nabandon..."
                         value={identifier}
                         onChange={(e) => setIdentifier(e.target.value)}
-                        className="border-[#262626] bg-[#212121] text-white placeholder:text-neutral-500"
+                        className="border-edge bg-panel-2 text-foreground placeholder:text-neutral-500"
                       />
                     </div>
 
@@ -585,7 +577,7 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
                           placeholder="Enter your password"
                           value={password}
                           onChange={(e) => setPassword(e.target.value)}
-                          className="border-[#262626] bg-[#212121] pr-10 text-white placeholder:text-neutral-500"
+                          className="border-edge bg-panel-2 pr-10 text-foreground placeholder:text-neutral-500"
                           onKeyDown={(e) => e.key === 'Enter' && handleUPV2Login()}
                         />
                         <button
@@ -632,7 +624,7 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
   )
 }
 
-// ── "New user?" Getting-Started guide (in-app, like DEN Chat) ────────
+// ── "New user?" Getting-Started guide (in-app) ────────
 function GettingStartedGuide({
   open, onClose, onExtension, onConnect, onLocal,
 }: {
@@ -668,22 +660,22 @@ function GettingStartedGuide({
     <div className="fixed inset-0 z-[200] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
 
-      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-xl border border-[#262626] bg-[#1c1c1c] shadow-2xl">
+      <div className="relative z-10 mx-4 w-full max-w-lg overflow-hidden rounded-xl border border-edge bg-panel shadow-2xl">
         {/* Header */}
-        <div className="flex items-center justify-between border-b border-[#262626] px-5 py-4">
+        <div className="flex items-center justify-between border-b border-edge px-5 py-4">
           <div className="flex items-center gap-2.5">
             {track !== 'choice' && (
               <button
                 onClick={() => { setTrack('choice'); setPage(0) }}
-                className="rounded-md p-1 text-neutral-400 hover:bg-[#2a2a2a] hover:text-white transition-colors cursor-pointer"
+                className="rounded-md p-1 text-neutral-400 hover:bg-panel-3 hover:text-foreground transition-colors cursor-pointer"
               >
                 <ChevronLeft size={16} />
               </button>
             )}
             <BookOpen size={18} className="text-purple-400" />
-            <h2 className="font-semibold text-white">Getting Started</h2>
+            <h2 className="font-semibold text-foreground">Getting Started</h2>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-neutral-400 hover:bg-[#2a2a2a] hover:text-white transition-colors cursor-pointer">
+          <button onClick={onClose} className="rounded-md p-1 text-neutral-400 hover:bg-panel-3 hover:text-foreground transition-colors cursor-pointer">
             <X size={16} />
           </button>
         </div>
@@ -694,13 +686,13 @@ function GettingStartedGuide({
             <p className="mb-4 text-center text-sm text-neutral-400">New to Nostr? Here's how to get going.</p>
             <button
               onClick={() => { setTrack('quick'); setPage(0) }}
-              className="group flex w-full items-center gap-4 rounded-xl border border-[#262626] bg-[#212121] p-4 text-left transition-all hover:border-purple-500/30 hover:bg-[#242424] cursor-pointer"
+              className="group flex w-full items-center gap-4 rounded-xl border border-edge bg-panel-2 p-4 text-left transition-all hover:border-purple-500/30 hover:bg-panel-2 cursor-pointer"
             >
               <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-xl bg-purple-500/10 transition-colors group-hover:bg-purple-500/15">
                 <Rocket size={24} className="text-purple-400" />
               </div>
               <div className="min-w-0 flex-1">
-                <h3 className="text-sm font-semibold text-white">Quick Start</h3>
+                <h3 className="text-sm font-semibold text-foreground">Quick Start</h3>
                 <p className="mt-0.5 text-xs text-neutral-500">Up and running in under a minute</p>
               </div>
               <ChevronRight size={16} className="shrink-0 text-neutral-500" />
@@ -716,7 +708,7 @@ function GettingStartedGuide({
                 <div className={cn('mb-5 flex h-20 w-20 items-center justify-center rounded-2xl', SLIDES[page].bg)}>
                   {SLIDES[page].icon}
                 </div>
-                <h3 className="mb-2 text-lg font-bold text-white">{SLIDES[page].title}</h3>
+                <h3 className="mb-2 text-lg font-bold text-foreground">{SLIDES[page].title}</h3>
                 <p className="max-w-sm text-sm leading-relaxed text-neutral-400">{SLIDES[page].body}</p>
               </div>
             )}
@@ -726,7 +718,7 @@ function GettingStartedGuide({
                 <div className="mb-4 flex h-16 w-16 items-center justify-center rounded-2xl bg-purple-500/10">
                   <Rocket size={32} className="text-purple-400" />
                 </div>
-                <h3 className="mb-1 text-lg font-bold text-white">Log in with a signer</h3>
+                <h3 className="mb-1 text-lg font-bold text-foreground">Log in with a signer</h3>
                 <p className="mb-5 max-w-sm text-sm leading-relaxed text-neutral-400">
                   Pick how your keys are stored. Don't have an account yet? Pick a method below —
                   each one will point you to the right signer to set one up.
@@ -735,10 +727,10 @@ function GettingStartedGuide({
                   <Button onClick={onExtension} className="w-full gap-2 bg-purple-600 text-white hover:bg-purple-700">
                     <Key size={15} /> Browser extension
                   </Button>
-                  <Button onClick={onConnect} variant="outline" className="w-full gap-2 border-[#262626] bg-[#212121] text-white hover:bg-[#2a2a2a]">
+                  <Button onClick={onConnect} variant="outline" className="w-full gap-2 border-edge bg-panel-2 text-foreground hover:bg-panel-3">
                     <Globe size={15} /> Connect a signer app
                   </Button>
-                  <Button onClick={onLocal} variant="outline" className="w-full gap-2 border-[#262626] bg-[#212121] text-white hover:bg-[#2a2a2a]">
+                  <Button onClick={onLocal} variant="outline" className="w-full gap-2 border-edge bg-panel-2 text-foreground hover:bg-panel-3">
                     <Monitor size={15} /> Local signer
                   </Button>
                 </div>
@@ -746,20 +738,20 @@ function GettingStartedGuide({
             )}
 
             {/* Footer: progress dots + next/back */}
-            <div className="flex items-center justify-between border-t border-[#262626] px-5 py-3">
+            <div className="flex items-center justify-between border-t border-edge px-5 py-3">
               <button
                 onClick={() => setPage((p) => Math.max(0, p - 1))}
                 disabled={page === 0}
                 className={cn(
                   'text-xs transition-colors',
-                  page === 0 ? 'text-neutral-700' : 'text-neutral-400 hover:text-white cursor-pointer',
+                  page === 0 ? 'text-neutral-700' : 'text-neutral-400 hover:text-foreground cursor-pointer',
                 )}
               >
                 Back
               </button>
               <div className="flex items-center gap-1.5">
                 {Array.from({ length: lastPage + 1 }).map((_, i) => (
-                  <span key={i} className={cn('h-1.5 rounded-full transition-all', i === page ? 'w-4 bg-purple-500' : 'w-1.5 bg-[#333]')} />
+                  <span key={i} className={cn('h-1.5 rounded-full transition-all', i === page ? 'w-4 bg-purple-500' : 'w-1.5 bg-edge-2')} />
                 ))}
               </div>
               {page < lastPage ? (
@@ -780,7 +772,7 @@ function GettingStartedGuide({
   )
 }
 
-// ── "No extension detected" install guide (like DEN Chat) ────────────
+// ── "No extension detected" install guide ────────────
 const CHROME_EXTENSIONS = [
   { name: 'nos2x', url: 'https://chromewebstore.google.com/detail/nos2x/kpgefcfmnafjgpblomihpgmejjdanjjp' },
   { name: 'Keys.Band', url: 'https://chromewebstore.google.com/detail/keysband/jdencabhccnfhedpfoojbbdlgmecnlkm' },
@@ -796,7 +788,7 @@ function ExtLink({ name, url }: { name: string; url: string }) {
       href={url}
       target="_blank"
       rel="noopener noreferrer"
-      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-[#262626] bg-[#212121] px-3 py-2 text-xs font-medium text-white transition-colors hover:bg-[#2a2a2a]"
+      className="flex flex-1 items-center justify-center gap-1.5 rounded-lg border border-edge bg-panel-2 px-3 py-2 text-xs font-medium text-foreground transition-colors hover:bg-panel-3"
     >
       {name}
       <ExternalLink size={11} className="text-neutral-500" />
@@ -809,13 +801,13 @@ function ExtensionGuideModal({ open, onClose }: { open: boolean; onClose: () => 
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 mx-4 w-full max-w-md overflow-hidden rounded-xl border border-[#262626] bg-[#1c1c1c] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-[#262626] px-5 py-4">
+      <div className="relative z-10 mx-4 w-full max-w-md overflow-hidden rounded-xl border border-edge bg-panel shadow-2xl">
+        <div className="flex items-center justify-between border-b border-edge px-5 py-4">
           <div className="flex items-center gap-2.5">
             <Puzzle size={18} className="text-purple-400" />
-            <h2 className="font-semibold text-white">Browser extension required</h2>
+            <h2 className="font-semibold text-foreground">Browser extension required</h2>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-neutral-400 hover:bg-[#2a2a2a] hover:text-white transition-colors cursor-pointer">
+          <button onClick={onClose} className="rounded-md p-1 text-neutral-400 hover:bg-panel-3 hover:text-foreground transition-colors cursor-pointer">
             <X size={16} />
           </button>
         </div>
@@ -852,7 +844,7 @@ function ExtensionGuideModal({ open, onClose }: { open: boolean; onClose: () => 
           </div>
         </div>
 
-        <div className="border-t border-[#262626] px-5 py-3">
+        <div className="border-t border-edge px-5 py-3">
           <Button onClick={onClose} className="w-full bg-purple-600 text-white hover:bg-purple-700">Close</Button>
         </div>
       </div>
@@ -866,20 +858,20 @@ function LocalSignerGuideModal({ open, onClose, onRetry }: { open: boolean; onCl
   return (
     <div className="fixed inset-0 z-[200] flex items-center justify-center">
       <div className="absolute inset-0 bg-black/70 backdrop-blur-sm" onClick={onClose} />
-      <div className="relative z-10 mx-4 w-full max-w-md overflow-hidden rounded-xl border border-[#262626] bg-[#1c1c1c] shadow-2xl">
-        <div className="flex items-center justify-between border-b border-[#262626] px-5 py-4">
+      <div className="relative z-10 mx-4 w-full max-w-md overflow-hidden rounded-xl border border-edge bg-panel shadow-2xl">
+        <div className="flex items-center justify-between border-b border-edge px-5 py-4">
           <div className="flex items-center gap-2.5">
             <Monitor size={18} className="text-purple-400" />
-            <h2 className="font-semibold text-white">Local signer not found</h2>
+            <h2 className="font-semibold text-foreground">Local signer not found</h2>
           </div>
-          <button onClick={onClose} className="rounded-md p-1 text-neutral-400 hover:bg-[#2a2a2a] hover:text-white transition-colors cursor-pointer">
+          <button onClick={onClose} className="rounded-md p-1 text-neutral-400 hover:bg-panel-3 hover:text-foreground transition-colors cursor-pointer">
             <X size={16} />
           </button>
         </div>
 
         <div className="space-y-4 px-5 py-4">
           <p className="text-[13px] leading-relaxed text-neutral-400">
-            No local signer was detected on <code className="rounded bg-[#262626] px-1.5 py-0.5 text-xs text-purple-300">ws://localhost:7777</code>.
+            No local signer was detected on <code className="rounded bg-edge px-1.5 py-0.5 text-xs text-purple-300">ws://localhost:7777</code>.
             A local signer is a desktop app that holds your keys on this device and signs for the sites you use.
           </p>
 
@@ -892,8 +884,8 @@ function LocalSignerGuideModal({ open, onClose, onRetry }: { open: boolean; onCl
           </div>
         </div>
 
-        <div className="flex gap-2 border-t border-[#262626] px-5 py-3">
-          <Button onClick={onClose} variant="outline" className="flex-1 border-[#262626] bg-[#212121] text-white hover:bg-[#2a2a2a]">Close</Button>
+        <div className="flex gap-2 border-t border-edge px-5 py-3">
+          <Button onClick={onClose} variant="outline" className="flex-1 border-edge bg-panel-2 text-foreground hover:bg-panel-3">Close</Button>
           <Button onClick={onRetry} className="flex-1 gap-1.5 bg-purple-600 text-white hover:bg-purple-700">
             <RefreshCw size={14} /> Try again
           </Button>
@@ -909,11 +901,11 @@ function ScreenHeader({ title, onBack }: { title: string; onBack: () => void }) 
     <div className="mb-6 flex items-center gap-3">
       <button
         onClick={onBack}
-        className="flex h-8 w-8 items-center justify-center rounded-lg border border-[#262626] bg-[#212121] text-neutral-400 hover:bg-[#2a2a2a] hover:text-white transition-colors cursor-pointer"
+        className="flex h-8 w-8 items-center justify-center rounded-lg border border-edge bg-panel-2 text-neutral-400 hover:bg-panel-3 hover:text-foreground transition-colors cursor-pointer"
       >
         <ChevronLeft className="h-4 w-4" />
       </button>
-      <h2 className="text-lg font-semibold text-white">{title}</h2>
+      <h2 className="text-lg font-semibold text-foreground">{title}</h2>
     </div>
   )
 }

@@ -14,7 +14,7 @@ export interface ServerUpload {
   slow: boolean
 }
 
-// The DEG Mods node rejects uploads averaging below this (over a 5s window). Warn
+// Some nodes reject uploads averaging below this (over a 5s window). Warn
 // once a server's speed has stayed under it for that long.
 export const MIN_SPEED_BPS = 50 * 1024
 export const SLOW_GRACE_MS = 5000
@@ -84,7 +84,7 @@ export function ServerBar({ server }: { server: ServerUpload }) {
           {status === 'pending' && <span>Waiting…</span>}
         </div>
       </div>
-      <div className="h-1.5 overflow-hidden rounded-full bg-[#262626]">
+      <div className="h-1.5 overflow-hidden rounded-full bg-edge">
         <div
           className={cn('h-full rounded-full transition-all duration-300', barColor, status === 'error' && 'opacity-40')}
           style={{ width: `${width}%` }}

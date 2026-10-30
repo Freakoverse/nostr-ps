@@ -34,7 +34,7 @@ export function TrustBadge({ pubkey, className, compact = false }: { pubkey: str
             'inline-flex items-center gap-1 rounded-md border px-1.5 py-0.5 text-[10px] font-medium tabular-nums',
             state === 'above' && 'border-emerald-500/40 bg-emerald-500/10 text-emerald-400',
             state === 'below' && 'border-red-500/40 bg-red-500/10 text-red-400',
-            state === 'unknown' && 'border-[#333] bg-[#1f1f1f] text-neutral-500',
+            state === 'unknown' && 'border-edge-2 bg-panel-2 text-neutral-500',
             className,
           )}
           aria-label={`Trust ${combined === null ? 'unknown' : combined}`}

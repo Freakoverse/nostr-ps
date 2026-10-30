@@ -20,7 +20,7 @@ function CommentReplyBox({ root, focused, onReplyPublished }: { root: NostrTarge
   const npub = nip19.npubEncode(focused.event.pubkey)
   const name = profile?.display_name || `${npub.slice(0, 10)}…`
   return (
-    <div className="rounded-lg bg-[#1c1c1c]">
+    <div className="rounded-lg bg-panel">
       <CommentForm
         root={root}
         replyTo={{ id: focused.event.id, pubkey: focused.event.pubkey, kind: 1111 }}
@@ -71,11 +71,11 @@ export function CommentThreadModal({ open, onOpenChange, tree, focusId, root, on
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1c1c1c] border-[#262626] max-h-[85vh] overflow-auto sm:max-w-2xl">
+      <DialogContent className="bg-panel border-edge max-h-[85vh] overflow-auto sm:max-w-2xl">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-neutral-100">
             {stack.length > 1 && (
-              <button onClick={back} className="rounded-md p-1 text-neutral-400 hover:bg-[#262626] hover:text-white" aria-label="Back">
+              <button onClick={back} className="rounded-md p-1 text-neutral-400 hover:bg-edge hover:text-foreground" aria-label="Back">
                 <ChevronLeft className="h-4 w-4" />
               </button>
             )}

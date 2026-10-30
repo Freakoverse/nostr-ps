@@ -2,13 +2,13 @@
 
 > Permissionless Standards for Nostr. Anyone may propose; adoption is the signal; trust is a lens you choose.
 
-Client application. Forked from the DEG Mods client (Nostr core, auth, PoW, Blossom, DNN) with the domain removed and the NIP-PS kinds added.
+Client application: a general Nostr client foundation (relay pool, auth, PoW, Blossom, DNN) with the NIP-PS kinds on top.
 
 ## Docs
 
 - [NIP-PS spec](docs/NIP-PS.md) — the protocol: drafts, releases, backups, adoption claims, reviews.
 - [Client lens](docs/CLIENT-LENS.md) — client-side trust scoring via NIP-85 providers and graph viewpoints.
-- [Deploying](docs/deploying.md) — static build + GitHub Pages notes (inherited; names still reference the original client).
+- [Deploying](docs/deploying.md) — static build, GitHub Pages, nginx.
 
 ## Develop
 
@@ -45,4 +45,4 @@ npm run dev
 
 - Set `ADMIN_PUBKEY` / `ADMIN_NPUB` in `src/lib/constants.ts` to the operator's key. It signs the announcement banner and is the anonymous default viewpoint.
 - Kind numbers `8201`, `8202`, `30851`, `30852` are provisional (spec §12). `30817` is shared with an existing NIP directory on purpose.
-- Replace `public/logo.png`, `public/favicon.png`, `public/login-bg.jpg`.
+- Replace `public/favicon.png`.

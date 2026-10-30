@@ -29,9 +29,9 @@ export function CreateMenu({ open, onOpenChange }: { open: boolean; onOpenChange
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="border-[#262626] bg-[#1a1a1a] sm:max-w-md">
+      <DialogContent className="border-edge bg-dialog sm:max-w-md">
         <DialogHeader>
-          <DialogTitle className="text-white">Create</DialogTitle>
+          <DialogTitle className="text-foreground">Create</DialogTitle>
           <DialogDescription className="text-neutral-400">What would you like to publish?</DialogDescription>
         </DialogHeader>
         <div className="space-y-2 py-1">
@@ -40,7 +40,7 @@ export function CreateMenu({ open, onOpenChange }: { open: boolean; onOpenChange
               key={to}
               type="button"
               onClick={() => go(to)}
-              className="group flex w-full items-center gap-3 rounded-lg border border-[#262626] bg-[#212121] px-3 py-3 text-left transition-colors hover:border-purple-500/40 hover:bg-[#262626]"
+              className="group flex w-full items-center gap-3 rounded-lg border border-edge bg-panel-2 px-3 py-3 text-left transition-colors hover:border-purple-500/40 hover:bg-edge"
             >
               <span className="flex h-9 w-9 shrink-0 items-center justify-center rounded-lg bg-purple-500/10 text-purple-400">
                 <Icon size={18} />

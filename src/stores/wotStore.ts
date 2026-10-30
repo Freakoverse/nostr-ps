@@ -37,15 +37,14 @@ export const WOT_DEPTH_MAX = 3
 
 /* ─── Types ─── */
 
-export type WotContext = 'mods' | 'comments' | 'jams'
+export type WotContext = 'posts' | 'comments'
 
 export interface WotSettings {
   scoreThreshold: number // -5..+5, default 0
   followDepth: number    // 0..3, default 1
   dnnBonus: boolean      // verified DNN ID = +1, default true
-  applyMods: boolean     // filter mod listings, default true
+  applyPosts: boolean    // filter post listings, default true
   applyComments: boolean // filter comments, default true
-  applyJams: boolean     // filter mod jam listings, default true
 }
 
 interface EventSnapshot { id: string; created_at: number }
@@ -101,9 +100,8 @@ const DEFAULT_SETTINGS: WotSettings = {
   scoreThreshold: 0,
   followDepth: 1,
   dnnBonus: true,
-  applyMods: true,
+  applyPosts: true,
   applyComments: true,
-  applyJams: true,
 }
 
 /* ─── Module-level graph + caches ─── */
@@ -300,9 +298,8 @@ export const useWotStore = create<WotState>()(
 
       shouldHide: (pubkey, context) => {
         const { settings } = get()
-        if (context === 'mods' && !settings.applyMods) return false
+        if (context === 'posts' && !settings.applyPosts) return false
         if (context === 'comments' && !settings.applyComments) return false
-        if (context === 'jams' && !settings.applyJams) return false
         return get().isLowTrust(pubkey)
       },
 

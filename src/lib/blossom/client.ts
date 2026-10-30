@@ -366,7 +366,7 @@ export async function downloadFileWithProgress(
   arm()
 
   try {
-    // Defaults to `no-store`: never keep the (often hundreds-of-MB) mod file in
+    // Defaults to `no-store`: never keep a (possibly huge) archive in
     // the browser's HTTP cache — the user already gets the saved file; an
     // invisible second copy would just eat disk. It also guarantees the download
     // gate is re-evaluated instead of a cached 200 slipping past it. Hash
@@ -504,7 +504,7 @@ const verifiedImageCache = new LRUCache<string, VerifiedImageResult>({
 
 // De-dupe concurrent loads of the same hash: without this, two components that
 // mount together (e.g. the slider's foreground image and its blurred background,
-// or the same mod in both the slider and the grid) would each kick off their own
+// or the same image in two lists) would each kick off their own
 // fetch before either populates the result cache. Sharing the in-flight promise
 // collapses them into a single network fetch.
 const inflightImageLoads = new Map<string, Promise<VerifiedImageResult>>()
@@ -559,7 +559,7 @@ async function loadVerifiedImageUncached(
     hadError = false
     for (const url of candidates) {
       try {
-        // 'default' rather than the no-store used for mod files: an image is
+        // 'default' rather than the no-store used for archives: an image is
         // re-fetched on every visit only to re-hash it, so the HTTP cache is
         // exactly what should answer the second time.
         const blob = await downloadFileWithProgress(url, { stallTimeoutMs, cache: 'default' })

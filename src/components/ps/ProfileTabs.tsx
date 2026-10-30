@@ -48,7 +48,7 @@ export function ReleasesTab({ pubkey }: { pubkey: string }) {
       {groups.map((list) => {
         const latest = list[0]
         return (
-          <div key={`${latest.pubkey}:${latest.uuid}`} className="rounded-lg border border-[#262626] bg-[#1c1c1c] p-3">
+          <div key={`${latest.pubkey}:${latest.uuid}`} className="rounded-lg border border-edge bg-panel p-3">
             <div className="flex items-center justify-between gap-2 px-1 pb-2">
               <Link to={`/release/${releaseNevent(latest.id, latest.pubkey)}`} className="truncate text-sm font-semibold text-neutral-100 hover:text-purple-300">{latest.title}</Link>
               <Chip>{list.length} {list.length === 1 ? 'version' : 'versions'}</Chip>

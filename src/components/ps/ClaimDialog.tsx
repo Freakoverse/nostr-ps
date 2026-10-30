@@ -83,9 +83,9 @@ export function ClaimDialog({
 
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!busy) onOpenChange(v) }}>
-      <DialogContent className="border-[#262626] bg-[#1a1a1a] sm:max-w-lg">
+      <DialogContent className="border-edge bg-dialog sm:max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-white">{existing ? 'Update adoption claim' : 'Claim adoption'}</DialogTitle>
+          <DialogTitle className="text-foreground">{existing ? 'Update adoption claim' : 'Claim adoption'}</DialogTitle>
           <DialogDescription className="text-neutral-400">
             &quot;We implement <span className="text-neutral-200">{release.title} v{release.version}</span>.&quot; A claim is a statement by you. Publishing one does not make it true; others can review it.
           </DialogDescription>
@@ -94,9 +94,9 @@ export function ClaimDialog({
         <div className="space-y-4">
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-neutral-300">Role</label>
-            <div className="grid grid-cols-4 gap-1 rounded-lg border border-[#262626] bg-[#1c1c1c] p-1">
+            <div className="grid grid-cols-4 gap-1 rounded-lg border border-edge bg-panel p-1">
               {CLAIM_ROLES.map((r) => (
-                <button key={r} type="button" onClick={() => setRole(r)} className={cn('rounded-md px-2 py-1.5 text-xs capitalize transition-colors', role === r ? 'bg-[#2a2a2a] text-purple-300' : 'text-neutral-400 hover:text-neutral-200')}>{r}</button>
+                <button key={r} type="button" onClick={() => setRole(r)} className={cn('rounded-md px-2 py-1.5 text-xs capitalize transition-colors', role === r ? 'bg-panel-3 text-purple-300' : 'text-neutral-400 hover:text-neutral-200')}>{r}</button>
               ))}
             </div>
           </div>
@@ -104,41 +104,41 @@ export function ClaimDialog({
           <div className="grid gap-3 sm:grid-cols-2">
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-neutral-300">Software name</label>
-              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Amethyst" className="border-[#262626] bg-[#1c1c1c]" maxLength={80} />
+              <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Amethyst" className="border-edge bg-panel" maxLength={80} />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-neutral-300">Software version <span className="text-neutral-600">(optional)</span></label>
-              <Input value={implVersion} onChange={(e) => setImplVersion(e.target.value)} placeholder="1.4.0 or a commit" className="border-[#262626] bg-[#1c1c1c]" maxLength={80} />
+              <Input value={implVersion} onChange={(e) => setImplVersion(e.target.value)} placeholder="1.4.0 or a commit" className="border-edge bg-panel" maxLength={80} />
             </div>
           </div>
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-neutral-300">Links to source, commit, or release <span className="text-neutral-600">(one per line)</span></label>
-            <Textarea value={urls} onChange={(e) => setUrls(e.target.value)} rows={2} placeholder="https://…" className="border-[#262626] bg-[#1c1c1c]" />
+            <Textarea value={urls} onChange={(e) => setUrls(e.target.value)} rows={2} placeholder="https://…" className="border-edge bg-panel" />
           </div>
 
           {role === 'client' && (
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-neutral-300">NIP-89 handler address <span className="text-neutral-600">(optional, 31990:pubkey:d)</span></label>
-              <Input value={handler} onChange={(e) => setHandler(e.target.value)} placeholder="31990:…:…" className="border-[#262626] bg-[#1c1c1c] font-mono text-xs" />
+              <Input value={handler} onChange={(e) => setHandler(e.target.value)} placeholder="31990:…:…" className="border-edge bg-panel font-mono text-xs" />
               <p className="text-[11px] text-neutral-600">Lets observed traffic be attributed to this client.</p>
             </div>
           )}
           {role === 'relay' && (
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-neutral-300">Relay URL</label>
-              <Input value={relay} onChange={(e) => setRelay(e.target.value)} placeholder="wss://…" className="border-[#262626] bg-[#1c1c1c] font-mono text-xs" />
+              <Input value={relay} onChange={(e) => setRelay(e.target.value)} placeholder="wss://…" className="border-edge bg-panel font-mono text-xs" />
               <p className="text-[11px] text-neutral-600">Sign this claim with the key the relay publishes in its NIP-11 document.</p>
             </div>
           )}
           {role === 'library' && (
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-neutral-300">NIP-34 repository address <span className="text-neutral-600">(optional, 30617:pubkey:d)</span></label>
-              <Input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="30617:…:…" className="border-[#262626] bg-[#1c1c1c] font-mono text-xs" />
+              <Input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="30617:…:…" className="border-edge bg-panel font-mono text-xs" />
             </div>
           )}
 
-          <div className="flex items-center justify-between gap-3 rounded-lg border border-[#262626] bg-[#1c1c1c] px-3 py-2">
+          <div className="flex items-center justify-between gap-3 rounded-lg border border-edge bg-panel px-3 py-2">
             <div>
               <p className="text-sm text-neutral-200">Partial implementation</p>
               <p className="text-[11px] text-neutral-500">Say so if parts of the spec are missing. Explain in the notes.</p>
@@ -148,7 +148,7 @@ export function ClaimDialog({
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-neutral-300">Notes <span className="text-neutral-600">(optional)</span></label>
-            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Scope, caveats, what is not supported yet." className="border-[#262626] bg-[#1c1c1c]" maxLength={1000} />
+            <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Scope, caveats, what is not supported yet." className="border-edge bg-panel" maxLength={1000} />
           </div>
         </div>
 

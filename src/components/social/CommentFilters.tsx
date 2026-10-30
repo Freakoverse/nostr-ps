@@ -30,7 +30,7 @@ export function CommentFilters({ open, onOpenChange, filters, onChange }: Commen
         </DialogHeader>
 
         <div className="space-y-3">
-          <div className="flex items-center justify-between gap-3 rounded-md border border-[#262626] bg-[#1c1c1c] px-3 py-2.5">
+          <div className="flex items-center justify-between gap-3 rounded-md border border-edge bg-panel px-3 py-2.5">
             <div className="space-y-0.5">
               <p className="text-sm font-medium text-neutral-200">Author only comments</p>
               <p className="text-xs text-neutral-500">

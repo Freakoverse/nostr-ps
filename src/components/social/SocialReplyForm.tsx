@@ -51,11 +51,11 @@ export function SocialReplyForm({ root, parent, placeholder, autoFocus, onPublis
         autoFocus={autoFocus}
         rows={2}
         onKeyDown={(e) => { if (e.key === 'Enter' && (e.ctrlKey || e.metaKey)) { e.preventDefault(); submit() } }}
-        className="bg-[#212121] border-[#262626] text-white resize-y"
+        className="bg-panel-2 border-edge text-foreground resize-y"
       />
       <div className="flex items-center justify-end gap-2">
         {onCancel && (
-          <Button variant="outline" size="sm" onClick={onCancel} className="border-[#262626] text-xs">Cancel</Button>
+          <Button variant="outline" size="sm" onClick={onCancel} className="border-edge text-xs">Cancel</Button>
         )}
         <Button size="sm" onClick={submit} disabled={posting || !text.trim()} className="bg-purple-600 hover:bg-purple-700 text-xs">
           {posting ? <Loader2 className="h-3.5 w-3.5 mr-1.5 animate-spin" /> : <Send className="h-3.5 w-3.5 mr-1.5" />}

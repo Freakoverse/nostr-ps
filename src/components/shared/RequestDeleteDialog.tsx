@@ -22,7 +22,7 @@ const PHASE_TEXT: Record<Phase, string> = {
 
 function StepRow({ label, phase }: { label: string; phase: Phase }) {
   return (
-    <div className="flex items-center gap-3 rounded-lg border border-[#262626] bg-[#212121] p-3">
+    <div className="flex items-center gap-3 rounded-lg border border-edge bg-panel-2 p-3">
       <span className="flex h-5 w-5 shrink-0 items-center justify-center">
         {phase === 'done' ? (
           <Check className="h-4 w-4 text-green-400" />
@@ -48,7 +48,7 @@ interface RequestDeleteDialogProps {
   event: NostrEvent
   /** Title of the thing being deleted (shown in the prompt). */
   title: string
-  /** Lowercase noun, e.g. "mod" or "blog post". */
+  /** Lowercase noun, e.g. "draft" or "comment". */
   noun: string
   /** Only broadcast the kind-5 deletion request (skip the tombstone edit). For
    *  non-replaceable events like kind-1 notes where editing doesn't apply. */
@@ -96,7 +96,7 @@ export function RequestDeleteDialog({ open, onOpenChange, event, title, noun, re
 
   return (
     <Dialog open={open} onOpenChange={(o) => { if (!running) onOpenChange(o) }}>
-      <DialogContent className="bg-[#1c1c1c] border-[#262626]">
+      <DialogContent className="bg-panel border-edge">
         {!running ? (
           <>
             <DialogHeader>
@@ -113,7 +113,7 @@ export function RequestDeleteDialog({ open, onOpenChange, event, title, noun, re
               </DialogDescription>
             </DialogHeader>
             <DialogFooter className="gap-2 sm:gap-0">
-              <Button variant="outline" onClick={() => onOpenChange(false)} className="border-[#262626]">
+              <Button variant="outline" onClick={() => onOpenChange(false)} className="border-edge">
                 Cancel
               </Button>
               <Button variant="destructive" onClick={run}>

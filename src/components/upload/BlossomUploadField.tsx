@@ -22,10 +22,10 @@ interface BlossomUploadFieldProps {
   maxServers?: number
   /** Override the size limit (MB). Defaults to the user's media upload limit. */
   maxSizeMb?: number
-  /** Mod-file upload: use the full server set incl. the pinned mod-file node (brs).
-   *  Default (media) excludes brs — it's archive-only — and fails over past any
-   *  server that errors until `maxServers` mirrors succeed. */
-  modFile?: boolean
+  /** Archive upload: use the full server set incl. pinned servers. Default (media)
+   *  excludes pinned archive-only servers and fails over past any server that
+   *  errors until `maxServers` mirrors succeed. */
+  includePinned?: boolean
 }
 
 type Status = 'idle' | 'uploading' | 'success' | 'error'
@@ -44,7 +44,7 @@ export function BlossomUploadField({
   resetAfter,
   maxServers = 3,
   maxSizeMb,
-  modFile = false,
+  includePinned = false,
 }: BlossomUploadFieldProps) {
   const [status, setStatus] = useState<Status>('idle')
   const [fileName, setFileName] = useState('')
@@ -54,12 +54,12 @@ export function BlossomUploadField({
 
   const handleFile = async (file: File) => {
     const settings = useSettingsStore.getState()
-    // Mod file: the full set incl. the pinned mod-file node, mirror to all. Media:
-    // the non-pinned set, mirror to `maxServers` with failover past dead servers.
-    const serverUrls = modFile
+    // Archive: the full set incl. pinned servers, mirror to all. Media: the
+    // non-pinned set, mirror to `maxServers` with failover past dead servers.
+    const serverUrls = includePinned
       ? settings.getAllEnabledBlossomUrls().slice(0, maxServers)
       : settings.getMediaBlossomUrls()
-    const targetSuccesses = modFile ? undefined : maxServers
+    const targetSuccesses = includePinned ? undefined : maxServers
     if (serverUrls.length === 0) {
       toast.error('No Blossom servers configured')
       return
@@ -102,7 +102,7 @@ export function BlossomUploadField({
         targetSuccesses,
       )
       if (results.length === 0) throw new Error('All servers failed')
-      // Carry the original filename so callers (e.g. the mod download field) can
+      // Carry the original filename so callers can
       // preserve it — the blob itself stays hash-addressed on the server.
       onUploaded({ ...results[0], filename: file.name })
       toast.success(`Uploaded to ${results.length}/${serverUrls.length} server${results.length > 1 ? 's' : ''}`)
@@ -123,9 +123,9 @@ export function BlossomUploadField({
   const anySlow = servers.some((s) => s.status === 'uploading' && s.slow)
 
   return (
-    <div className="space-y-2.5 rounded-lg border border-[#262626] bg-[#1c1c1c] p-3">
+    <div className="space-y-2.5 rounded-lg border border-edge bg-panel p-3">
       <div className="flex items-center justify-between gap-2">
-        <span className="min-w-0 truncate text-sm text-white">{fileName}</span>
+        <span className="min-w-0 truncate text-sm text-foreground">{fileName}</span>
         <span className="shrink-0 text-[11px] text-neutral-500">{successCount}/{servers.length} servers</span>
       </div>
 
@@ -143,7 +143,7 @@ export function BlossomUploadField({
           variant="outline"
           size="sm"
           onClick={() => setStatus('idle')}
-          className="text-xs border-[#262626]"
+          className="text-xs border-edge"
         >
           {status === 'success' ? 'Replace current file' : 'Try again'}
         </Button>

@@ -28,7 +28,7 @@ export function HomePage() {
       <div className="grid gap-4 sm:grid-cols-2">
         <Link
           to="/proposals"
-          className="group rounded-xl border border-[#262626] bg-[#1c1c1c] p-5 transition-colors hover:border-purple-500/40"
+          className="group rounded-xl border border-edge bg-panel p-5 transition-colors hover:border-purple-500/40"
         >
           <div className="flex items-center gap-2 text-purple-400">
             <BookOpen size={18} />
@@ -43,7 +43,7 @@ export function HomePage() {
         </Link>
         <Link
           to="/drafts"
-          className="group rounded-xl border border-[#262626] bg-[#1c1c1c] p-5 transition-colors hover:border-purple-500/40"
+          className="group rounded-xl border border-edge bg-panel p-5 transition-colors hover:border-purple-500/40"
         >
           <div className="flex items-center gap-2 text-purple-400">
             <FileText size={18} />

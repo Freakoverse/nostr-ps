@@ -19,7 +19,7 @@ export function LensBar({ className }: { className?: string }) {
   const active = sources.filter((s) => s.enabled)
 
   return (
-    <div className={cn('flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-[#262626] bg-[#1c1c1c] px-3 py-2 text-xs', className)}>
+    <div className={cn('flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-edge bg-panel px-3 py-2 text-xs', className)}>
       <div className="flex items-center gap-2">
         {enabled ? <Eye className="h-3.5 w-3.5 text-purple-400" /> : <EyeOff className="h-3.5 w-3.5 text-neutral-500" />}
         <span className="font-medium text-neutral-200">Lens</span>

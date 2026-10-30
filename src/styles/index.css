@@ -4,8 +4,8 @@
 @custom-variant dark (&:where(.dark, .dark *));
 
 /*
- * DEG MODS: Design System
- * Purple-based dark theme. Uses shadcn/ui HSL CSS variable token system.
+ * NIP-PS: Design System
+ * Purple accent, light and dark themes. Uses shadcn/ui HSL CSS variable tokens.
  */
 
 @theme inline {
@@ -38,11 +38,97 @@
   --radius-lg: var(--radius);
   --radius-md: calc(var(--radius) - 2px);
   --radius-sm: calc(var(--radius) - 4px);
+
+  /* Surfaces (see the theme blocks below). */
+  --color-sunken: hsl(var(--sunken));
+  --color-well: hsl(var(--well));
+  --color-dialog: hsl(var(--dialog));
+  --color-panel: hsl(var(--panel));
+  --color-panel-2: hsl(var(--panel-2));
+  --color-panel-3: hsl(var(--panel-3));
+  --color-edge: hsl(var(--edge));
+  --color-edge-2: hsl(var(--edge-2));
 }
 
-/* ─── Dark Mode (default and only mode) ─── */
+/* A softer purple than Tailwind's default: lower saturation, lighter steps.
+ * The text shades (200-500) are re-tuned per theme in the blocks below. */
+@theme {
+  --color-purple-50: hsl(262 60% 97%);
+  --color-purple-100: hsl(262 60% 94%);
+  --color-purple-200: hsl(262 60% 88%);
+  --color-purple-300: hsl(262 60% 80%);
+  --color-purple-400: hsl(262 58% 72%);
+  --color-purple-500: hsl(262 55% 64%);
+  --color-purple-600: hsl(262 52% 58%);
+  --color-purple-700: hsl(262 50% 50%);
+  --color-purple-800: hsl(262 48% 42%);
+  --color-purple-900: hsl(262 45% 32%);
+  --color-purple-950: hsl(262 45% 22%);
+}
+
+/* ─── Themes ───
+ *
+ * Light is the base; `.dark` on <html> switches to dark (the default, set by
+ * the inline script in index.html before first paint, then by themeStore).
+ *
+ * Surface tokens (panel, edge, …) replace the hex greys the components used
+ * to hardcode, so one set of values restyles everything per theme.
+ */
 
 :root {
+  --surface-background: 0 0% 97%;
+  --background: 0 0% 100%;
+  --foreground: 0 0% 9%;
+  --card: 0 0% 100%;
+  --card-foreground: 0 0% 9%;
+  --popover: 0 0% 100%;
+  --popover-foreground: 0 0% 9%;
+  --primary: 262 52% 56%;
+  --primary-hover: 262 52% 50%;
+  --primary-foreground: 0 0% 100%;
+  --secondary: 0 0% 94%;
+  --secondary-foreground: 0 0% 9%;
+  --muted: 0 0% 94%;
+  --muted-foreground: 0 0% 40%;
+  --accent: 0 0% 94%;
+  --accent-foreground: 0 0% 9%;
+  --destructive: 0 72% 50%;
+  --destructive-foreground: 0 0% 100%;
+  --border: 0 0% 87%;
+  --input: 0 0% 85%;
+  --ring: 262 52% 56%;
+  --success: 142 60% 38%;
+  --warning: 38 90% 45%;
+  --radius: 0.625rem;
+
+  --sunken: 0 0% 95%;
+  --well: 0 0% 96%;
+  --dialog: 0 0% 100%;
+  --panel: 0 0% 100%;
+  --panel-2: 0 0% 96%;
+  --panel-3: 0 0% 92%;
+  --edge: 0 0% 87%;
+  --edge-2: 0 0% 76%;
+
+  /* Grey text scale, flipped for a light ground. */
+  --color-neutral-100: hsl(0 0% 9%);
+  --color-neutral-200: hsl(0 0% 13%);
+  --color-neutral-300: hsl(0 0% 22%);
+  --color-neutral-400: hsl(0 0% 36%);
+  --color-neutral-500: hsl(0 0% 46%);
+  --color-neutral-600: hsl(0 0% 58%);
+  --color-neutral-700: hsl(0 0% 70%);
+  --color-neutral-800: hsl(0 0% 82%);
+  --color-neutral-900: hsl(0 0% 90%);
+
+  /* Purple text shades need more depth on white. */
+  --color-purple-200: hsl(262 48% 34%);
+  --color-purple-300: hsl(262 48% 40%);
+  --color-purple-400: hsl(262 48% 46%);
+  --color-purple-500: hsl(262 50% 54%);
+}
+
+.dark {
   --surface-background: 0 0% 7%;
   --background: 0 0% 11%;
   --foreground: 0 0% 98%;
@@ -50,9 +136,9 @@
   --card-foreground: 0 0% 98%;
   --popover: 0 0% 9%;
   --popover-foreground: 0 0% 98%;
-  --primary: 263 70% 58%;
-  --primary-hover: 263 70% 68%;
-  --primary-foreground: 0 0% 98%;
+  --primary: 262 52% 64%;
+  --primary-hover: 262 52% 70%;
+  --primary-foreground: 0 0% 100%;
   --secondary: 0 0% 15%;
   --secondary-foreground: 0 0% 98%;
   --muted: 0 0% 15%;
@@ -63,10 +149,33 @@
   --destructive-foreground: 0 0% 98%;
   --border: 0 0% 15%;
   --input: 0 0% 15%;
-  --ring: 263 70% 58%;
+  --ring: 262 52% 64%;
   --success: 142 70% 45%;
   --warning: 38 95% 55%;
-  --radius: 0.625rem;
+
+  --sunken: 0 0% 6%;
+  --well: 0 0% 9%;
+  --dialog: 0 0% 10%;
+  --panel: 0 0% 11%;
+  --panel-2: 0 0% 13%;
+  --panel-3: 0 0% 16.5%;
+  --edge: 0 0% 15%;
+  --edge-2: 0 0% 25%;
+
+  --color-neutral-100: hsl(0 0% 96%);
+  --color-neutral-200: hsl(0 0% 90%);
+  --color-neutral-300: hsl(0 0% 83%);
+  --color-neutral-400: hsl(0 0% 64%);
+  --color-neutral-500: hsl(0 0% 45%);
+  --color-neutral-600: hsl(0 0% 32%);
+  --color-neutral-700: hsl(0 0% 25%);
+  --color-neutral-800: hsl(0 0% 15%);
+  --color-neutral-900: hsl(0 0% 9%);
+
+  --color-purple-200: hsl(262 60% 88%);
+  --color-purple-300: hsl(262 60% 80%);
+  --color-purple-400: hsl(262 58% 72%);
+  --color-purple-500: hsl(262 55% 64%);
 }
 
 /* ─── Base Layer ─── */

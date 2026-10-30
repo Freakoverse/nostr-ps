@@ -47,13 +47,13 @@ export function Comment({ node, root, onReplyPublished, onOpenThread, focused = 
 
   return (
     <div className={focused
-      ? 'rounded-lg border border-[#262626] bg-[#171717] p-4'
-      : 'rounded-lg border border-[#262626] bg-[#1c1c1c] p-3'}>
+      ? 'rounded-lg border border-edge bg-well p-4'
+      : 'rounded-lg border border-edge bg-panel p-3'}>
       <div className="flex items-center gap-3">
         <Link to={`/profile/${npub}`} className="shrink-0">
           <Avatar className="h-9 w-9">
             {profile?.picture ? <AvatarImage src={profile.picture} alt={name} /> : null}
-            <AvatarFallback className="bg-[#212121] text-neutral-400"><User className="h-4 w-4" /></AvatarFallback>
+            <AvatarFallback className="bg-panel-2 text-neutral-400"><User className="h-4 w-4" /></AvatarFallback>
           </Avatar>
         </Link>
         <div className="min-w-0 flex-1">
@@ -88,7 +88,7 @@ export function Comment({ node, root, onReplyPublished, onOpenThread, focused = 
         <button
           onClick={focused ? undefined : () => onOpenThread(event.id)}
           disabled={focused}
-          className="inline-flex items-center gap-1.5 rounded-lg border border-[#262626] px-2 py-1 text-xs text-neutral-400 transition-colors enabled:hover:border-[#404040] enabled:hover:text-neutral-200 disabled:opacity-100"
+          className="inline-flex items-center gap-1.5 rounded-lg border border-edge px-2 py-1 text-xs text-neutral-400 transition-colors enabled:hover:border-edge-2 enabled:hover:text-neutral-200 disabled:opacity-100"
         >
           <MessageSquare className="h-3.5 w-3.5" />
           {replies.length}
@@ -97,7 +97,7 @@ export function Comment({ node, root, onReplyPublished, onOpenThread, focused = 
         {!focused && (
           <button
             onClick={() => setReplyOpen(o => !o)}
-            className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-[#262626] px-2.5 py-1 text-xs text-neutral-400 transition-colors hover:border-[#404040] hover:text-neutral-200"
+            className="ml-auto inline-flex items-center gap-1.5 rounded-lg border border-edge px-2.5 py-1 text-xs text-neutral-400 transition-colors hover:border-edge-2 hover:text-neutral-200"
           >
             <MessageSquare className="h-3.5 w-3.5" />
             Reply

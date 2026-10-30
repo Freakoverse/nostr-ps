@@ -56,7 +56,7 @@ export function ImageTooLarge({ size, onOverride, className, compact }: {
   if (compact) {
     return (
       <div
-        className={cn('flex items-center justify-center bg-[#212121] border border-[#262626] rounded', className)}
+        className={cn('flex items-center justify-center bg-panel-2 border border-edge rounded', className)}
         title={size ? `Image too large (${formatBytes(size)}) — over your download limit` : 'Image too large'}
         onClick={(e) => { e.stopPropagation(); onOverride() }}
       >
@@ -65,7 +65,7 @@ export function ImageTooLarge({ size, onOverride, className, compact }: {
     )
   }
   return (
-    <div className={cn('flex flex-col items-center justify-center gap-2 rounded-lg bg-[#212121] border border-[#262626] py-5 px-4', className)}>
+    <div className={cn('flex flex-col items-center justify-center gap-2 rounded-lg bg-panel-2 border border-edge py-5 px-4', className)}>
       <ImageOff className="h-5 w-5 text-neutral-500" />
       <div className="text-center">
         <p className="text-xs text-neutral-400">Image too large</p>

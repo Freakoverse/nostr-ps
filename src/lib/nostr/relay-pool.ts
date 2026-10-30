@@ -425,7 +425,7 @@ function fetchEventsUnthrottled(
 /**
  * Fetch a single event across relays and return the NEWEST one by `created_at`.
  *
- * Almost every use of this is an addressable/replaceable event (a mod, blog,
+ * Almost every use of this is an addressable/replaceable event (a draft,
  * profile, contact list, relay list, admin config doc, …). Different relays can
  * hold different revisions of the same coordinate, so resolving on the first
  * relay to answer would happily return a stale copy. Instead we collect from all

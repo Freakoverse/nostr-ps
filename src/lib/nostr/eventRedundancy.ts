@@ -18,7 +18,7 @@
  *   - ensureEventRedundancy(kind, pubkey, dTag?) — we don't hold the event, so
  *     query relays to find the latest, then rebroadcast. Used for admin config.
  *   - ensureEventPresent(event) — we already have the (latest) signed event
- *     because we're viewing it. Used per mod / blog post opened.
+ *     because we're viewing it. Used per draft or release opened.
  *
  * Checks are deduped per session and processed through a sequential queue so we
  * never flood relays.
@@ -170,7 +170,7 @@ export function ensureEventRedundancy(kind: number, pubkey: string, dTag?: strin
   enqueue(() => checkAndRebroadcast(filter, key, pubkey, undefined))
 }
 
-/** Ensure a specific event we already hold (e.g. the mod/blog being viewed) is replicated. */
+/** Ensure a specific event we already hold (e.g. the draft being viewed) is replicated. */
 export function ensureEventPresent(event: NostrEvent) {
   const dTag = event.tags.find((t) => t[0] === 'd')?.[1]
   const key = keyOf(event.kind, event.pubkey, dTag)

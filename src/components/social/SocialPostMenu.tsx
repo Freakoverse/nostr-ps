@@ -47,11 +47,11 @@ export function SocialPostMenu({ event, onDeleted }: { event: NostrEvent; onDele
     <>
       <DropdownMenu>
         <DropdownMenuTrigger asChild>
-          <button className="shrink-0 rounded-md p-1 text-neutral-500 transition-colors hover:bg-[#262626] hover:text-white" aria-label="More">
+          <button className="shrink-0 rounded-md p-1 text-neutral-500 transition-colors hover:bg-edge hover:text-foreground" aria-label="More">
             <MoreHorizontal className="h-4 w-4" />
           </button>
         </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="bg-[#1c1c1c] border-[#262626]">
+        <DropdownMenuContent align="end" className="bg-panel border-edge">
           <DropdownMenuItem onSelect={(e) => { e.preventDefault(); void copyShortLink() }} className="cursor-pointer">
             {copying ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Link2 className="h-4 w-4 mr-2" />} Copy short link
           </DropdownMenuItem>
@@ -63,7 +63,7 @@ export function SocialPostMenu({ event, onDeleted }: { event: NostrEvent; onDele
           </DropdownMenuItem>
           {isOwner && (
             <>
-              <DropdownMenuSeparator className="bg-[#262626]" />
+              <DropdownMenuSeparator className="bg-edge" />
               <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="cursor-pointer text-red-400 focus:text-red-400">
                 <Trash2 className="h-4 w-4 mr-2" /> Request delete
               </DropdownMenuItem>

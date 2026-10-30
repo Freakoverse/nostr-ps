@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
-import { FileJson, Loader2, Pencil, Rocket, AlertCircle, ArrowRight, Trash2 } from 'lucide-react'
+import { Loader2, Pencil, Rocket, AlertCircle, ArrowRight, Trash2 } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
 import { KINDS } from '@/lib/constants'
@@ -10,11 +10,12 @@ import { ensureEventPresent } from '@/lib/nostr/eventRedundancy'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
 import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/shared/Markdown'
-import { RawEventDialog } from '@/components/shared/RawEventDialog'
 import { RequestDeleteDialog } from '@/components/shared/RequestDeleteDialog'
 import { CommentSection } from '@/components/social/CommentSection'
 import { AuthorLine } from '@/components/social/AuthorLine'
 import { Chip, KindChips, TopicChips } from '@/components/ps/Cards'
+import { PostMenu } from '@/components/ps/PostMenu'
+import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 
 export function DraftPage() {
   const { naddr } = useParams<{ naddr: string }>()
@@ -24,7 +25,6 @@ export function DraftPage() {
   const [draft, setDraft] = useState<Draft | null>(null)
   const [releases, setReleases] = useState<Release[]>([])
   const [loading, setLoading] = useState(true)
-  const [rawOpen, setRawOpen] = useState(false)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
   const addr = useMemo(() => {
@@ -65,10 +65,19 @@ export function DraftPage() {
   return (
     <div className="space-y-6 py-6">
       <div className="space-y-3">
-        <div className="flex flex-wrap items-center gap-2">
-          <Chip>draft</Chip>
-          {draft.status === 'review' && <Chip className="border-yellow-500/30 text-yellow-400">in review</Chip>}
-          {draft.deleted && <Chip className="border-red-500/30 text-red-400">deleted</Chip>}
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <Chip>draft</Chip>
+            {draft.status === 'review' && <Chip className="border-yellow-500/30 text-yellow-400">in review</Chip>}
+            {draft.deleted && <Chip className="border-red-500/30 text-red-400">deleted</Chip>}
+          </div>
+          <PostMenu event={draft.event}>
+            {isAuthor && (
+              <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="cursor-pointer text-red-400 focus:text-red-300">
+                <Trash2 className="h-4 w-4 mr-2" /> Request deletion
+              </DropdownMenuItem>
+            )}
+          </PostMenu>
         </div>
         <h1 className="text-3xl font-bold tracking-tight">{draft.title}</h1>
         {draft.summary && <p className="text-neutral-400">{draft.summary}</p>}
@@ -90,29 +99,23 @@ export function DraftPage() {
         </Link>
       )}
 
-      <div className="flex flex-wrap items-center gap-2">
-        {isAuthor && (
-          <>
-            <Button asChild variant="outline" size="sm" className="gap-1.5 border-[#262626]">
-              <Link to={`/draft/${naddr}/edit`}><Pencil className="h-3.5 w-3.5" /> Edit</Link>
-            </Button>
-            <Button asChild size="sm" className="gap-1.5 bg-purple-600 text-white hover:bg-purple-700">
-              <Link to={`/draft/${naddr}/release`}><Rocket className="h-3.5 w-3.5" /> {latest ? 'Release new version' : 'Publish release'}</Link>
-            </Button>
-          </>
-        )}
-        <Button variant="ghost" size="sm" onClick={() => setRawOpen(true)} className="gap-1.5 text-neutral-400"><FileJson className="h-3.5 w-3.5" /> Raw event</Button>
-        {isAuthor && (
-          <Button variant="ghost" size="sm" onClick={() => setDeleteOpen(true)} className="ml-auto gap-1.5 text-red-400 hover:text-red-300"><Trash2 className="h-3.5 w-3.5" /> Delete</Button>
-        )}
-      </div>
+      {isAuthor && (
+        <div className="flex flex-wrap items-center gap-2">
+          <Button asChild variant="outline" size="sm" className="gap-1.5 border-edge">
+            <Link to={`/draft/${naddr}/edit`}><Pencil className="h-3.5 w-3.5" /> Edit</Link>
+          </Button>
+          <Button asChild size="sm" className="gap-1.5 bg-purple-600 text-white hover:bg-purple-700">
+            <Link to={`/draft/${naddr}/release`}><Rocket className="h-3.5 w-3.5" /> {latest ? 'Release new version' : 'Publish release'}</Link>
+          </Button>
+        </div>
+      )}
 
-      <article className="rounded-lg border border-[#262626] bg-[#1c1c1c] p-6">
+      <article className="rounded-lg border border-edge bg-panel p-6">
         <Markdown content={draft.content} className="text-[15px]" />
       </article>
 
       {!latest && (
-        <div className="flex items-start gap-2 rounded-lg border border-[#262626] bg-[#171717] px-4 py-3 text-xs text-neutral-500">
+        <div className="flex items-start gap-2 rounded-lg border border-edge bg-well px-4 py-3 text-xs text-neutral-500">
           <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
           <p>
             Drafts are editable, so nothing can claim adoption of one. Implement it experimentally, say so in the discussion, and the author releases a frozen version once the text has stopped changing.
@@ -128,7 +131,6 @@ export function DraftPage() {
         />
       </section>
 
-      <RawEventDialog open={rawOpen} onOpenChange={setRawOpen} event={draft.event} />
       <RequestDeleteDialog
         open={deleteOpen}
         onOpenChange={setDeleteOpen}
@@ -145,7 +147,7 @@ function Missing({ text }: { text: string }) {
   return (
     <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
       <p className="text-neutral-300">{text}</p>
-      <Button asChild variant="outline" className="border-[#262626]"><Link to="/drafts">Back to drafts</Link></Button>
+      <Button asChild variant="outline" className="border-edge"><Link to="/drafts">Back to drafts</Link></Button>
     </div>
   )
 }

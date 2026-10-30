@@ -29,7 +29,7 @@ interface ProfileCardProps {
 }
 
 const iconBtn =
-  'flex flex-1 items-center justify-center rounded-lg border border-[#262626] p-2 text-neutral-400 transition-colors hover:border-[#404040] hover:text-white'
+  'flex flex-1 items-center justify-center rounded-lg border border-edge p-2 text-neutral-400 transition-colors hover:border-edge-2 hover:text-foreground'
 
 /** Author card: banner, avatar, identity, follow, block/report menu. */
 export function ProfileCard({ pubkey }: ProfileCardProps) {
@@ -112,10 +112,10 @@ export function ProfileCard({ pubkey }: ProfileCardProps) {
     : null
 
   return (
-    <div className="overflow-hidden rounded-lg bg-[#1c1c1c] shadow-md shadow-black/20">
+    <div className="overflow-hidden rounded-lg bg-panel shadow-md shadow-black/20">
       {/* Banner */}
       <Link to={profileHref} className="block">
-        <div className="relative h-35 w-full bg-gradient-to-br from-purple-900/40 to-[#212121]">
+        <div className="relative h-35 w-full bg-gradient-to-br from-purple-900/40 to-panel-2">
           {profile?.banner && (
             <SafeImage src={profile.banner as string} alt="" className="h-full w-full object-cover" />
           )}
@@ -125,7 +125,7 @@ export function ProfileCard({ pubkey }: ProfileCardProps) {
       <div className="px-4 pb-4">
         {/* Avatar overlapping the banner */}
         <Link to={profileHref} className="inline-block">
-          <Avatar className="-mt-8 h-16 w-16 ring-4 ring-[#1c1c1c]">
+          <Avatar className="-mt-8 h-16 w-16 ring-4 ring-panel">
             {profile?.picture ? <AvatarImage src={profile.picture as string} alt={displayName} /> : null}
             <AvatarFallback className="bg-gradient-to-br from-purple-600 to-purple-800 text-white">
               <User className="h-7 w-7" />
@@ -137,7 +137,7 @@ export function ProfileCard({ pubkey }: ProfileCardProps) {
         <div className="mt-2 flex items-center justify-between gap-2">
           <div className="min-w-0">
             <Link to={profileHref} className="block">
-              <p className="font-semibold text-white truncate hover:text-purple-300 transition-colors">
+              <p className="font-semibold text-foreground truncate hover:text-purple-300 transition-colors">
                 {displayName}
               </p>
             </Link>
@@ -145,11 +145,11 @@ export function ProfileCard({ pubkey }: ProfileCardProps) {
 
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <button className="shrink-0 rounded-md p-1.5 text-neutral-400 transition-colors hover:bg-[#262626] hover:text-white" aria-label="More">
+              <button className="shrink-0 rounded-md p-1.5 text-neutral-400 transition-colors hover:bg-edge hover:text-foreground" aria-label="More">
                 <MoreHorizontal className="h-4 w-4" />
               </button>
             </DropdownMenuTrigger>
-            <DropdownMenuContent align="end" className="bg-[#1c1c1c] border-[#262626]">
+            <DropdownMenuContent align="end" className="bg-panel border-edge">
               <DropdownMenuItem onClick={() => navigate(profileHref)} className="cursor-pointer">
                 <Eye className="h-4 w-4 mr-2" /> View profile
               </DropdownMenuItem>
@@ -160,7 +160,7 @@ export function ProfileCard({ pubkey }: ProfileCardProps) {
               )}
               {!isSelf && (
                 <>
-                  <DropdownMenuSeparator className="bg-[#262626]" />
+                  <DropdownMenuSeparator className="bg-edge" />
                   <DropdownMenuItem onClick={() => setReportOpen(true)} className="cursor-pointer">
                     <Flag className="h-4 w-4 mr-2" /> Report user
                   </DropdownMenuItem>
@@ -223,7 +223,7 @@ export function ProfileCard({ pubkey }: ProfileCardProps) {
 
       {/* Block-list-not-loaded warning (mirrors the follow flow) */}
       <Dialog open={warnOpen} onOpenChange={setWarnOpen}>
-        <DialogContent className="bg-[#1c1c1c] border-[#262626]">
+        <DialogContent className="bg-panel border-edge">
           <DialogHeader>
             <DialogTitle className="flex items-center gap-2 text-neutral-100">
               <AlertTriangle className="h-5 w-5 text-yellow-400" />
@@ -235,10 +235,10 @@ export function ProfileCard({ pubkey }: ProfileCardProps) {
             </DialogDescription>
           </DialogHeader>
           <DialogFooter className="flex-col gap-2 sm:flex-row">
-            <Button variant="outline" onClick={() => setWarnOpen(false)} className="border-[#262626]">
+            <Button variant="outline" onClick={() => setWarnOpen(false)} className="border-edge">
               Cancel
             </Button>
-            <Button variant="outline" onClick={handleRetry} disabled={retrying} className="border-[#262626]">
+            <Button variant="outline" onClick={handleRetry} disabled={retrying} className="border-edge">
               {retrying ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <RefreshCw className="h-4 w-4 mr-2" />}
               Retry fetch
             </Button>

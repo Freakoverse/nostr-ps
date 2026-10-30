@@ -15,7 +15,7 @@ interface BlockTypeModalProps {
 export function BlockTypeModal({ open, onOpenChange, onSelect, displayName }: BlockTypeModalProps) {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1c1c1c] border-[#262626]">
+      <DialogContent className="bg-panel border-edge">
         <DialogHeader>
           <DialogTitle className="text-neutral-100">
             Block {displayName ? `"${displayName}"` : 'user'}
@@ -28,7 +28,7 @@ export function BlockTypeModal({ open, onOpenChange, onSelect, displayName }: Bl
         <div className="space-y-2.5 py-1">
           <button
             onClick={() => onSelect('private')}
-            className="w-full flex items-start gap-3 px-4 py-3 rounded-lg border border-[#262626] bg-[#212121] hover:border-[#404040] transition-colors text-left"
+            className="w-full flex items-start gap-3 px-4 py-3 rounded-lg border border-edge bg-panel-2 hover:border-edge-2 transition-colors text-left"
           >
             <Lock size={16} className="mt-0.5 shrink-0 text-neutral-400" />
             <div>
@@ -41,7 +41,7 @@ export function BlockTypeModal({ open, onOpenChange, onSelect, displayName }: Bl
 
           <button
             onClick={() => onSelect('public')}
-            className="w-full flex items-start gap-3 px-4 py-3 rounded-lg border border-[#262626] bg-[#212121] hover:border-[#404040] transition-colors text-left"
+            className="w-full flex items-start gap-3 px-4 py-3 rounded-lg border border-edge bg-panel-2 hover:border-edge-2 transition-colors text-left"
           >
             <Globe size={16} className="mt-0.5 shrink-0 text-neutral-400" />
             <div>

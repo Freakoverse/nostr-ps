@@ -53,7 +53,7 @@ export function DraftEditPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
         <p className="text-neutral-300">Publishing a draft needs a signer.</p>
-        <Button variant="outline" className="border-[#262626]" onClick={() => useLoginModalStore.getState().open()}>Log in</Button>
+        <Button variant="outline" className="border-edge" onClick={() => useLoginModalStore.getState().open()}>Log in</Button>
       </div>
     )
   }
@@ -62,7 +62,7 @@ export function DraftEditPage() {
     return (
       <div className="flex flex-col items-center justify-center gap-3 py-24 text-center">
         <p className="text-neutral-300">{draft ? 'Only the author can edit this draft.' : 'Draft not found.'}</p>
-        <Button asChild variant="outline" className="border-[#262626]"><Link to="/drafts">Back to drafts</Link></Button>
+        <Button asChild variant="outline" className="border-edge"><Link to="/drafts">Back to drafts</Link></Button>
       </div>
     )
   }

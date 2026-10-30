@@ -115,10 +115,10 @@ export function FileUpload({
   return (
     <div className={className}>
       {selectedFile ? (
-        <div className="flex items-center gap-3 p-3 rounded-lg border border-[#262626] bg-[#1c1c1c]">
+        <div className="flex items-center gap-3 p-3 rounded-lg border border-edge bg-panel">
           <FileIcon size={20} className="text-purple-400 shrink-0" />
           <div className="min-w-0 flex-1">
-            <p className="text-sm text-white truncate">{selectedFile.name}</p>
+            <p className="text-sm text-foreground truncate">{selectedFile.name}</p>
             <p className="text-xs text-neutral-500">{formatSize(selectedFile.size)}</p>
           </div>
           <button onClick={clearFile} className="text-neutral-500 hover:text-neutral-300 cursor-pointer">
@@ -133,7 +133,7 @@ export function FileUpload({
           onClick={() => !disabled && inputRef.current?.click()}
           className={cn(
             'flex flex-col items-center justify-center gap-2 p-8 rounded-lg border-2 border-dashed transition-colors cursor-pointer',
-            isDragging ? 'border-purple-500 bg-purple-500/5' : 'border-[#262626] hover:border-[#404040]',
+            isDragging ? 'border-purple-500 bg-purple-500/5' : 'border-edge hover:border-edge-2',
             disabled && 'opacity-50 cursor-not-allowed',
           )}
         >

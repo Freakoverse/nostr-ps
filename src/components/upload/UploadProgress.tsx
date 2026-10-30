@@ -37,7 +37,7 @@ export function UploadProgress({
           {status === 'uploading' && <Loader2 size={14} className="animate-spin text-purple-400 shrink-0" />}
           {status === 'success' && <CheckCircle size={14} className="text-green-500 shrink-0" />}
           {status === 'error' && <XCircle size={14} className="text-red-500 shrink-0" />}
-          {fileName && <span className="text-sm text-white truncate">{fileName}</span>}
+          {fileName && <span className="text-sm text-foreground truncate">{fileName}</span>}
         </div>
         <div className="flex items-center gap-2 text-xs text-neutral-500 shrink-0">
           {status === 'hashing' && <span>Hashing...</span>}
@@ -54,7 +54,7 @@ export function UploadProgress({
 
       {/* Progress bar */}
       {(status === 'uploading' || status === 'hashing') && (
-        <div className="h-1.5 rounded-full bg-[#262626] overflow-hidden">
+        <div className="h-1.5 rounded-full bg-edge overflow-hidden">
           <div
             className={cn(
               'h-full rounded-full transition-all duration-300',

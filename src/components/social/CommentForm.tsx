@@ -77,7 +77,7 @@ export function CommentForm({ root, replyTo, onPublished, onCancel, autoFocus, p
         onKeyDown={e => {
           if ((e.metaKey || e.ctrlKey) && e.key === 'Enter') submit()
         }}
-        className="bg-[#212121] border-[#262626] text-white resize-y min-h-[76px]"
+        className="bg-panel-2 border-edge text-foreground resize-y min-h-[76px]"
       />
       <div className="flex items-center justify-between gap-2">
         <CharCounter value={content} max={COMMENT_MAX} />

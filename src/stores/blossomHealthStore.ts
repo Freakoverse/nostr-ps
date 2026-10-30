@@ -9,8 +9,8 @@
  * The probe payload is FIXED (a minimal valid ~100-byte ZIP), so it's content-
  * addressed to the SAME sha256 every time: re-probing is an idempotent re-PUT of
  * identical bytes and each server ends up holding exactly ONE tiny blob forever,
- * not a pile of random garbage. A ZIP (not a text blob) because DEG Mods' own node
- * only accepts archive uploads; see PROBE_BYTES.
+ * not a pile of random garbage. A ZIP (not a text blob) because some nodes
+ * only accept archive uploads; see PROBE_BYTES.
  *
  * The kind-24242 upload auth commits to the blob HASH (not the server), so one
  * signature is valid for every server: it's signed ONCE per sweep and reused.
@@ -24,10 +24,9 @@ import { signEvent, useAuthStore } from '@/stores/authStore'
 const OP_TIMEOUT = 8000
 // Constant probe payload → stable content hash → idempotent, litter-free re-PUTs
 // (each server ends up holding this one tiny blob, never a pile of random garbage).
-// It's a minimal valid ZIP (one empty entry): DEG Mods' own node is a mod-file
-// store that sniffs upload magic bytes and only accepts archive types, so a plain
-// text/octet blob is rejected there (it would read as broken) — general servers
-// accept the zip just as happily.
+// It's a minimal valid ZIP (one empty entry): some archive-only nodes sniff
+// upload magic bytes and reject a plain text/octet blob (which would read as
+// broken) — general servers accept the zip just as happily.
 const PROBE_BYTES = new Uint8Array([
   80, 75, 3, 4, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0, 0, 112,
   80, 75, 1, 2, 20, 0, 20, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1, 0, 0,

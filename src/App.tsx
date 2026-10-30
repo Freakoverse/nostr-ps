@@ -10,6 +10,7 @@ import { useDnnStore } from '@/stores/dnnStore'
 import { useRelayCapabilityStore } from '@/stores/relayCapabilityStore'
 import { useLoginModalStore } from '@/stores/loginModalStore'
 import { bindLensToAuth } from '@/stores/lensStore'
+import { useThemeStore } from '@/stores/themeStore'
 import { StorageKey } from '@/lib/constants'
 import { restoreSession } from '@/lib/auth/restore'
 import { MainLayout } from '@/components/layout/MainLayout'
@@ -36,6 +37,7 @@ function LoginModalHost() {
 }
 
 export default function App() {
+  const theme = useThemeStore((s) => s.theme)
   useEffect(() => {
     // Rehydrate persisted settings + login on startup (e.g. new tab / reload).
     useSettingsStore.getState().loadFromStorage()
@@ -132,13 +134,13 @@ export default function App() {
       <LoginModalHost />
       <RefreshIndicator />
       <Toaster
-        theme="dark"
+        theme={theme}
         position="bottom-right"
         toastOptions={{
           style: {
-            background: 'hsl(270 12% 12%)',
-            border: '1px solid hsl(270 10% 18%)',
-            color: 'hsl(270 5% 95%)',
+            background: 'hsl(var(--popover))',
+            border: '1px solid hsl(var(--border))',
+            color: 'hsl(var(--foreground))',
           },
         }}
       />

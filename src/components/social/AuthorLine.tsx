@@ -36,7 +36,7 @@ export function AuthorLine({
       <Link to={`/profile/${npub}`} className="shrink-0" onClick={(e) => e.stopPropagation()}>
         <Avatar className={avatar}>
           {profile?.picture ? <AvatarImage src={profile.picture as string} alt={name} /> : null}
-          <AvatarFallback className="bg-[#212121] text-neutral-400"><User className="h-3.5 w-3.5" /></AvatarFallback>
+          <AvatarFallback className="bg-panel-2 text-neutral-400"><User className="h-3.5 w-3.5" /></AvatarFallback>
         </Avatar>
       </Link>
       <Link to={`/profile/${npub}`} onClick={(e) => e.stopPropagation()} className="truncate text-sm font-medium text-neutral-200 hover:text-purple-400">

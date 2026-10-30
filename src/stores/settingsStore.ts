@@ -139,8 +139,8 @@ export interface SettingsState {
   // ─── Computed Helpers ──────────────────────────────────────
   getAllEnabledRelayUrls: (mode?: 'read' | 'write' | 'both') => string[]
   getAllEnabledBlossomUrls: () => string[]
-  /** Media (image/screenshot) upload targets: enabled servers EXCLUDING the pinned
-   *  mod-file node (which is archive-only and rejects media), in failover order. */
+  /** Media upload targets: enabled servers EXCLUDING pinned archive-only
+   *  servers, in failover order. */
   getMediaBlossomUrls: () => string[]
 
   // ─── Persistence ───────────────────────────────────────────
@@ -186,7 +186,7 @@ function pickRandom<T>(arr: T[], count: number): T[] {
 }
 
 /** Append any built-in defaults the stored client list doesn't have yet (so
- *  newly-added defaults, e.g. search relays or the mod-file node, appear for
+ *  newly-added defaults, e.g. search relays, appear for
  *  existing users). Works for both relay and blossom lists. */
 function withNewDefaults<T extends { url: string }>(stored: T[], defaults: T[]): T[] {
   const have = new Set(stored.map(r => r.url))
@@ -446,13 +446,13 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const seen = new Set<string>()
     const out: string[] = []
     // Normalize (trim + drop trailing slashes) and dedupe case-insensitively, so
-    // e.g. "https://brs.degmods.com" and "https://brs.degmods.com/" (or the same
-    // host added twice across lists) can't cause a duplicate upload/fetch.
+    // e.g. "https://x.example" and "https://x.example/" (or the same host added
+    // twice across lists) can't cause a duplicate upload/fetch.
     const norm = (u: string) => u.trim().replace(/\/+$/, '')
     const addList = (list: BlossomConfig[]) => {
       let enabled = list.filter(b => b.enabled)
       if (s.limitBlossomsPerList) {
-        // Pinned servers (the DEG Mods node) are always kept; the cap fills the
+        // Pinned servers are always kept; the cap fills the
         // remaining slots from the rest at random.
         const pinned = enabled.filter(b => b.pinned)
         const rest = pickRandom(enabled.filter(b => !b.pinned), Math.max(0, 3 - pinned.length))
@@ -475,8 +475,8 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     const norm = (u: string) => u.trim().replace(/\/+$/, '')
     const seen = new Set<string>()
     const out: string[] = []
-    // Every enabled server EXCEPT the pinned mod-file node (brs), which only
-    // accepts archives — an image upload there always fails. No per-list 3-cap:
+    // Every enabled server EXCEPT pinned archive-only servers, where an image
+    // upload always fails. No per-list 3-cap:
     // the full set is returned so the upload can fail over past dead servers.
     for (const list of [s.clientBlossoms, s.userBlossoms, s.customBlossoms]) {
       for (const b of list) {

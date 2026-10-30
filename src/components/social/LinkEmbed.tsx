@@ -53,7 +53,7 @@ export function LinkEmbed({ embed }: { embed: EmbedInfo }) {
   return (
     <div style={{ width: isVertical ? 325 : undefined, maxWidth: isVertical ? 325 : undefined }}>
       <div
-        className={`overflow-hidden rounded-lg ${isCard ? 'border border-[#262626]' : ''}`}
+        className={`overflow-hidden rounded-lg ${isCard ? 'border border-edge' : ''}`}
         style={{ aspectRatio: layout === 'video' ? '16/9' : undefined }}
         onClick={(e) => e.stopPropagation()}
       >

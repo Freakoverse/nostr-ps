@@ -39,25 +39,25 @@ export function EmbeddedNote({ embed }: { embed: EmbedRef }) {
 
   if (loading) {
     return (
-      <div className="flex items-center gap-2 rounded-lg border border-[#262626] bg-[#171717] p-3 text-xs text-neutral-500">
+      <div className="flex items-center gap-2 rounded-lg border border-edge bg-well p-3 text-xs text-neutral-500">
         <Loader2 className="h-3.5 w-3.5 animate-spin" /> Loading quoted post…
       </div>
     )
   }
   if (!event) {
-    return <div className="rounded-lg border border-[#262626] bg-[#171717] p-3 text-xs text-neutral-500">Quoted post not found.</div>
+    return <div className="rounded-lg border border-edge bg-well p-3 text-xs text-neutral-500">Quoted post not found.</div>
   }
 
   const npub = nip19.npubEncode(event.pubkey)
   const name = profile?.display_name || `${npub.slice(0, 10)}…`
 
   return (
-    <div className="rounded-lg border border-[#262626] bg-[#171717] p-3">
+    <div className="rounded-lg border border-edge bg-well p-3">
       <div className="flex items-center gap-2">
         <Link to={`/profile/${npub}`} className="shrink-0">
           <Avatar className="h-6 w-6">
             {profile?.picture ? <AvatarImage src={profile.picture as string} alt={name} /> : null}
-            <AvatarFallback className="bg-[#212121] text-neutral-400"><User className="h-3 w-3" /></AvatarFallback>
+            <AvatarFallback className="bg-panel-2 text-neutral-400"><User className="h-3 w-3" /></AvatarFallback>
           </Avatar>
         </Link>
         <Link to={`/profile/${npub}`} className="text-xs font-medium text-neutral-300 hover:text-purple-400 transition-colors truncate">{name}</Link>

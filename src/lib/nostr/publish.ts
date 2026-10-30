@@ -1,7 +1,7 @@
 /**
  * Publish pipeline: PoW mine → sign → publish to relays
  *
- * All event types go through this pipeline: mods, blogs, comments,
+ * All event types go through this pipeline: drafts, releases, claims, comments,
  * reactions, edits, and deletion events.
  */
 
@@ -31,7 +31,7 @@ export interface PublishResult {
  * @param onStatus - Optional callback for status updates
  * @param publishTimeoutMs - Timeout for publishing to relays (default 10s)
  * @param extraRelays - Additional relays to publish to, unioned with the write relays
- *                      (e.g. a mod jam's declared ballot/result relays)
+ *                      (e.g. a release's relay hints)
  */
 export async function signAndPublish(
   unsignedEvent: UnsignedEvent,

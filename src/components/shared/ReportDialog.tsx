@@ -39,7 +39,7 @@ export function ReportDialog({
 }: {
   open: boolean
   onOpenChange: (o: boolean) => void
-  /** A post (mod/blog) to report — enables the post/author toggle. */
+  /** A post to report — enables the post/author toggle. */
   target?: ReportTarget
   /** Person-only report (e.g. from a user card) — no toggle. */
   pubkey?: string
@@ -82,7 +82,7 @@ export function ReportDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="bg-[#1c1c1c] border-[#262626]">
+      <DialogContent className="bg-panel border-edge">
         <DialogHeader>
           <DialogTitle className="flex items-center gap-2 text-neutral-100">
             <Flag className="h-5 w-5 text-purple-400" /> {personOnly ? 'Report user' : 'Report'}
@@ -96,12 +96,12 @@ export function ReportDialog({
           {/* Target (only when reporting a post, which can also target its author) */}
           {!personOnly && (
             <div className="grid grid-cols-2 gap-2">
-              {([['post', 'This mod'], ['author', 'The author']] as const).map(([v, label]) => (
+              {([['post', 'This post'], ['author', 'The author']] as const).map(([v, label]) => (
                 <button
                   key={v}
                   onClick={() => setMode(v)}
                   className={cn('rounded-lg border px-3 py-2 text-sm transition-colors',
-                    mode === v ? 'border-purple-500/50 bg-purple-500/10 text-neutral-100' : 'border-[#262626] text-neutral-400 hover:border-[#404040]')}
+                    mode === v ? 'border-purple-500/50 bg-purple-500/10 text-neutral-100' : 'border-edge text-neutral-400 hover:border-edge-2')}
                 >
                   {label}
                 </button>
@@ -118,7 +118,7 @@ export function ReportDialog({
                   key={t.value}
                   onClick={() => setType(t.value)}
                   className={cn('rounded-full border px-3 py-1 text-xs font-medium transition-colors',
-                    type === t.value ? 'border-purple-500/50 bg-purple-500/15 text-purple-300' : 'border-[#262626] text-neutral-400 hover:border-[#404040]')}
+                    type === t.value ? 'border-purple-500/50 bg-purple-500/15 text-purple-300' : 'border-edge text-neutral-400 hover:border-edge-2')}
                 >
                   {t.label}
                 </button>
@@ -137,7 +137,7 @@ export function ReportDialog({
                     <div
                       key={h}
                       className={cn('flex items-center justify-between gap-2.5 rounded-md border px-2.5 py-2 transition-colors',
-                        on ? 'border-purple-500/50 bg-purple-500/10' : 'border-[#262626] bg-[#212121]')}
+                        on ? 'border-purple-500/50 bg-purple-500/10' : 'border-edge bg-panel-2')}
                     >
                       <span className={cn('truncate font-mono text-[11px]', on ? 'text-neutral-200' : 'text-neutral-400')}>{h}</span>
                       <Switch checked={on} onCheckedChange={() => toggleHash(h)} className="shrink-0" />
@@ -163,20 +163,20 @@ export function ReportDialog({
               onChange={(e) => setComment(e.target.value)}
               placeholder="Comment (optional)"
               rows={3}
-              className="bg-[#212121] border-[#262626] text-white resize-none"
+              className="bg-panel-2 border-edge text-foreground resize-none"
             />
           </div>
 
           {malware && mode === 'post' && (target?.hashes?.length ?? 0) === 0 && (
             <p className="flex items-start gap-1.5 text-[11px] text-neutral-500">
               <AlertTriangle className="h-3.5 w-3.5 shrink-0 mt-px text-yellow-500" />
-              This mod has no Blossom-hosted files with hashes to attach.
+              This post has no Blossom-hosted files with hashes to attach.
             </p>
           )}
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-[#262626]">Cancel</Button>
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="border-edge">Cancel</Button>
           <Button onClick={submit} disabled={publishing} className="bg-purple-600 hover:bg-purple-700">
             {publishing ? <Loader2 className="h-4 w-4 mr-2 animate-spin" /> : <Flag className="h-4 w-4 mr-2" />}
             Submit report

@@ -40,7 +40,7 @@ export function Pagination({ page, totalPages, onPage, reachedEnd = true, loadin
           <button
             onClick={() => onPage(Math.max(1, currentPage - 1))}
             disabled={currentPage <= 1}
-            className={cn('p-2 rounded-lg transition-colors', currentPage <= 1 ? 'text-neutral-600 cursor-not-allowed' : 'text-neutral-400 hover:bg-[#2a2a2a]')}
+            className={cn('p-2 rounded-lg transition-colors', currentPage <= 1 ? 'text-neutral-600 cursor-not-allowed' : 'text-neutral-400 hover:bg-panel-3')}
           >
             <ChevronLeft className="w-4 h-4" />
           </button>
@@ -54,7 +54,7 @@ export function Pagination({ page, totalPages, onPage, reachedEnd = true, loadin
                 onClick={() => onPage(n)}
                 className={cn(
                   'w-8 h-8 rounded-lg text-sm font-medium transition-colors',
-                  n === currentPage ? 'bg-purple-600 text-white' : 'text-neutral-400 hover:bg-[#2a2a2a]',
+                  n === currentPage ? 'bg-purple-600 text-white' : 'text-neutral-400 hover:bg-panel-3',
                 )}
               >
                 {n}
@@ -65,7 +65,7 @@ export function Pagination({ page, totalPages, onPage, reachedEnd = true, loadin
           <button
             onClick={() => onPage(Math.min(totalPages, currentPage + 1))}
             disabled={nextDisabled}
-            className={cn('p-2 rounded-lg transition-colors', nextDisabled ? 'text-neutral-600 cursor-not-allowed' : 'text-neutral-400 hover:bg-[#2a2a2a]')}
+            className={cn('p-2 rounded-lg transition-colors', nextDisabled ? 'text-neutral-600 cursor-not-allowed' : 'text-neutral-400 hover:bg-panel-3')}
           >
             <ChevronRight className="w-4 h-4" />
           </button>
