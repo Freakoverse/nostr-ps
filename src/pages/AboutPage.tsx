@@ -8,7 +8,7 @@ export function AboutPage() {
   useSeoMeta({ title: 'About', description: 'How NIP-PS works: drafts, releases, adoption claims, reviews, and the lens.' })
 
   return (
-    <div className="space-y-8 py-12">
+    <div className="space-y-8 py-6">
       <BackButton />
       <div className="space-y-2">
         <h1 className="text-3xl font-bold tracking-tight">About</h1>
