@@ -73,11 +73,16 @@ export function CommentFilters({ open, onOpenChange, filters, onChange, settings
               <span className="w-8 text-right font-mono text-sm text-neutral-200">{pending}</span>
             </div>
             <div className="flex flex-wrap items-center justify-end gap-2">
-              {overridden && (
-                <Button size="sm" variant="ghost" onClick={() => { onChange({ ...filters, minPow: null }); setPending(settingsPow) }} className="text-neutral-400">
-                  Use Settings value ({settingsPow})
-                </Button>
-              )}
+              {/* Reset puts the slider back on the Settings value and drops any temporary override. */}
+              <Button
+                size="sm"
+                variant="ghost"
+                onClick={() => { setPending(settingsPow); if (overridden) onChange({ ...filters, minPow: null }) }}
+                disabled={pending === settingsPow && !overridden}
+                className="text-neutral-400"
+              >
+                Reset to default ({settingsPow})
+              </Button>
               <Button size="sm" variant="outline" onClick={() => onChange({ ...filters, minPow: pending })} disabled={pending === effective} className="border-edge">
                 Set temporarily
               </Button>
