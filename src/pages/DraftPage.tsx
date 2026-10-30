@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BackButton } from '@/components/shared/BackButton'
 import { AuthorCard, MetaCard } from '@/components/ps/SideCards'
+import { CollapsibleBody } from '@/components/shared/CollapsibleBody'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
 import { Loader2, Pencil, Rocket, AlertCircle, ArrowRight, Trash2, FileText } from 'lucide-react'
@@ -145,7 +146,9 @@ export function DraftPage() {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
         <article className="min-w-0 rounded-lg border border-edge bg-panel p-6">
-          <Markdown content={draft.content} className="text-[15px]" />
+          <CollapsibleBody>
+            <Markdown content={draft.content} className="text-[15px]" />
+          </CollapsibleBody>
         </article>
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
           <AuthorCard pubkey={draft.pubkey} at={draft.createdAt} />

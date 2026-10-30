@@ -34,6 +34,7 @@ import { ItemMenu } from '@/components/ps/ItemMenu'
 import { AuthorCard, MetaCard, ReferenceCard } from '@/components/ps/SideCards'
 import { BackupDialog } from '@/components/ps/BackupDialog'
 import { ForkDialog } from '@/components/ps/ForkDialog'
+import { CollapsibleBody } from '@/components/shared/CollapsibleBody'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 const tabTrigger = 'py-1.5 data-[state=active]:bg-edge data-[state=active]:text-purple-400'
@@ -256,7 +257,9 @@ export function ReleasePage() {
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
         {/* Body */}
         <article className="min-w-0 rounded-lg border border-edge bg-panel p-6">
-          <Markdown content={release.content} className="text-[15px]" />
+          <CollapsibleBody>
+            <Markdown content={release.content} className="text-[15px]" />
+          </CollapsibleBody>
         </article>
 
         {/* Versions */}
