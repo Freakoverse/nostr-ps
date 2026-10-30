@@ -7,7 +7,6 @@ import { buildDraftEvent, generateUuid, draftNaddr, type Draft, type KindRef } f
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
-import { Switch } from '@/components/ui/switch'
 import { MarkdownEditor } from './MarkdownEditor'
 import { KindsEditor } from './KindsEditor'
 
@@ -26,7 +25,6 @@ export function DraftEditor({ initial, prefill }: { initial?: Draft; prefill?: P
   const [content, setContent] = useState(initial?.content ?? prefill?.content ?? '')
   const [kinds, setKinds] = useState<KindRef[]>(initial?.kinds ?? prefill?.kinds ?? [])
   const [topics, setTopics] = useState((initial?.topics ?? prefill?.topics ?? []).join(', '))
-  const [inReview, setInReview] = useState(initial ? initial.status === 'review' : true)
   const [status, setStatus] = useState<PublishStatus | null>(null)
 
   const busy = status !== null && status !== 'done' && status !== 'error'
@@ -43,7 +41,9 @@ export function DraftEditor({ initial, prefill }: { initial?: Draft; prefill?: P
       content,
       kinds,
       topics: topicList,
-      status: inReview ? 'review' : undefined,
+      // Drafts are work in progress by definition (§5.1); the release flow
+      // restamps this as "released". Shared-kind directories read it too.
+      status: initial?.status === 'released' ? 'released' : 'review',
       releaseId: initial?.releaseId,
     })
     // A fork hint so the release form can point at the parent (§4.2 `fork`).
@@ -86,17 +86,9 @@ export function DraftEditor({ initial, prefill }: { initial?: Draft; prefill?: P
           <KindsEditor value={kinds} onChange={setKinds} />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-neutral-200">Topics <span className="text-neutral-500">(comma separated)</span></label>
+          <label className="text-sm font-medium text-neutral-200">Topics/Hashtags <span className="text-neutral-500">(comma separated)</span></label>
           <Input value={topics} onChange={(e) => setTopics(e.target.value)} placeholder="chat, groups, moderation" className="border-edge bg-panel" />
         </div>
-      </div>
-
-      <div className="flex items-center justify-between gap-4 rounded-lg border border-edge bg-panel px-3 py-2.5">
-        <div>
-          <p className="text-sm font-medium text-neutral-200">Mark as work in progress</p>
-          <p className="text-xs text-neutral-500">Sets the draft&apos;s status to &quot;review&quot;. Purely informational.</p>
-        </div>
-        <Switch checked={inReview} onCheckedChange={setInReview} />
       </div>
 
       <div className="flex items-center justify-end gap-3">
