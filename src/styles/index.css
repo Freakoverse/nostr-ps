@@ -186,6 +186,13 @@
     text-rendering: optimizeLegibility;
     -webkit-tap-highlight-color: transparent;
   }
+
+  /* Labels sit above their field in a vertical stack. Inline labels ignore
+   * the stack's vertical margins, so they render flush against the input;
+   * block fixes that. Any label with its own display utility still wins. */
+  label {
+    display: block;
+  }
 }
 
 html {

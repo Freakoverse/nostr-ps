@@ -9,6 +9,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { MarkdownEditor } from './MarkdownEditor'
 import { KindsEditor } from './KindsEditor'
+import { TopicsEditor } from './TopicsEditor'
 
 const STATUS_TEXT: Record<PublishStatus, string> = {
   mining: 'Proof of work…', signing: 'Signing…', publishing: 'Publishing…', done: 'Done', error: 'Failed',
@@ -24,7 +25,7 @@ export function DraftEditor({ initial, prefill }: { initial?: Draft; prefill?: P
   const [summary, setSummary] = useState(initial?.summary ?? prefill?.summary ?? '')
   const [content, setContent] = useState(initial?.content ?? prefill?.content ?? '')
   const [kinds, setKinds] = useState<KindRef[]>(initial?.kinds ?? prefill?.kinds ?? [])
-  const [topics, setTopics] = useState((initial?.topics ?? prefill?.topics ?? []).join(', '))
+  const [topics, setTopics] = useState<string[]>(initial?.topics ?? prefill?.topics ?? [])
   const [status, setStatus] = useState<PublishStatus | null>(null)
 
   const busy = status !== null && status !== 'done' && status !== 'error'
@@ -33,14 +34,13 @@ export function DraftEditor({ initial, prefill }: { initial?: Draft; prefill?: P
     if (!title.trim()) { toast.error('Give the draft a title'); return }
     if (!content.trim()) { toast.error('The draft body is empty'); return }
     const uuid = initial?.uuid ?? generateUuid()
-    const topicList = topics.split(',').map((t) => t.trim().toLowerCase()).filter(Boolean)
     const event = buildDraftEvent({
       uuid,
       title,
       summary: summary.trim() || undefined,
       content,
       kinds,
-      topics: topicList,
+      topics,
       // Drafts are work in progress by definition (§5.1); the release flow
       // restamps this as "released". Shared-kind directories read it too.
       status: initial?.status === 'released' ? 'released' : 'review',
@@ -86,8 +86,8 @@ export function DraftEditor({ initial, prefill }: { initial?: Draft; prefill?: P
           <KindsEditor value={kinds} onChange={setKinds} />
         </div>
         <div className="space-y-1.5">
-          <label className="text-sm font-medium text-neutral-200">Topics/Hashtags <span className="text-neutral-500">(comma separated)</span></label>
-          <Input value={topics} onChange={(e) => setTopics(e.target.value)} placeholder="chat, groups, moderation" className="border-edge bg-panel" />
+          <label className="text-sm font-medium text-neutral-200">Topics/Hashtags</label>
+          <TopicsEditor value={topics} onChange={setTopics} />
         </div>
       </div>
 
