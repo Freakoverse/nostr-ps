@@ -5,9 +5,10 @@ import { Loader2, Pencil, Rocket, AlertCircle, ArrowRight, Trash2, FileText } fr
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
 import { KINDS } from '@/lib/constants'
-import { fetchDraft, fetchReleasesForDraft, getCachedDraft, whenEventCacheReady, releaseNevent, type Draft, type Release } from '@/lib/nostr/nipps'
+import { fetchDraft, fetchReleasesForDraft, getCachedDraft, getCachedVersions, whenEventCacheReady, releaseNevent, type Draft, type Release } from '@/lib/nostr/nipps'
 import { ensureEventPresent } from '@/lib/nostr/eventRedundancy'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
+import { cn } from '@/lib/utils'
 import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/shared/Markdown'
 import { RequestDeleteDialog } from '@/components/shared/RequestDeleteDialog'
@@ -62,6 +63,10 @@ export function DraftPage() {
       setLoading(false)
       if (!d) { setChecking(false); return }
       ensureEventPresent(d.event)
+      // Cached releases of this draft show the banner at once; the query
+      // below still decides, and `checking` stays on until it answers.
+      const cvs = getCachedVersions(d.pubkey, d.uuid)
+      if (cvs.length) setReleases(cvs)
       const rs = await fetchReleasesForDraft(relays, d).catch(() => [])
       if (cancelled) return
       setReleases(rs)
@@ -108,17 +113,18 @@ export function DraftPage() {
         </div>
       </div>
 
-      {checking ? (
+      {checking && !latest ? (
         <div className="flex items-center gap-3 rounded-lg border border-edge bg-panel px-4 py-3 text-sm text-neutral-500">
           <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
           Checking for a release post…
         </div>
       ) : latest ? (
-        <Link to={`/release/${releaseNevent(latest.id, latest.pubkey)}`} className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm transition-colors hover:border-emerald-500/60">
+        <Link to={`/release/${releaseNevent(latest.id, latest.pubkey)}`} className={cn('flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm transition-colors hover:border-emerald-500/60', checking && 'animate-pulse')}>
           <Rocket className="h-4 w-4 shrink-0 text-emerald-400" />
           <span className="min-w-0 flex-1 text-neutral-200">
             This draft has been released. Latest: <span className="font-mono">v{latest.version}</span>
             {releases.length > 1 && <span className="text-neutral-500"> · {releases.length} versions</span>}
+            {checking && <span className="text-neutral-500"> · checking for newer…</span>}
           </span>
           <ArrowRight className="h-4 w-4 shrink-0 text-neutral-500" />
         </Link>

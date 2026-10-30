@@ -26,7 +26,7 @@ export function ProposalsPage() {
   const [q, setQ] = useState('')
   const [sort, setSort] = useState<Sort>('adoption')
   const [tick, setTick] = useState(0)
-  const { items, loading, loadingMore, reachedEnd, loadMore } = useProposalFeed(tick)
+  const { items, loading, refreshing, loadingMore, reachedEnd, loadMore } = useProposalFeed(tick)
 
   const enabled = useLensStore((s) => s.enabled)
   const threshold = useLensStore((s) => s.threshold)
@@ -106,7 +106,10 @@ export function ProposalsPage() {
           ) : (
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs text-neutral-500">{main.length}{reachedEnd ? '' : '+'} proposals · page {page} of {totalPages}{reachedEnd ? '' : '+'}</span>
+                <span className="flex items-center gap-1.5 text-xs text-neutral-500">
+                  {main.length}{reachedEnd ? '' : '+'} proposals · page {page} of {totalPages}{reachedEnd ? '' : '+'}
+                  {refreshing && <span className="flex items-center gap-1 animate-pulse"><Loader2 className="h-3 w-3 animate-spin" /> refreshing</span>}
+                </span>
                 {lensActive && <ScoreFilterMenu value={filter} onChange={setFilter} counts={counts} />}
               </div>
               {paged.length === 0 ? <EmptyFiltered filter={filter} /> : paged.map((p) => <ProposalCard key={p.key} p={p} verified={enabled ? verifiedCount.get(p.key) : undefined} />)}

@@ -534,6 +534,36 @@ export function getCachedReleaseReviews(releaseId: string): Review[] {
   return latestPerAuthor(all.filter((r) => r.target === 'release' && r.releaseId === releaseId))
 }
 
+/** All cached, non-deleted drafts, newest first. Seeds listings before relays answer. */
+export function getCachedDrafts(): Draft[] {
+  return latestByCoord(parseAll(getCachedEventsOfKind(KINDS.PS_DRAFT), parseDraft))
+    .filter((d) => !d.deleted)
+    .sort((a, b) => b.createdAt - a.createdAt)
+}
+
+/** All cached releases (any proposal). */
+export function getCachedReleases(): Release[] {
+  return parseAll(getCachedEventsOfKind(KINDS.PS_RELEASE), parseRelease)
+}
+
+/** All cached claims, keyed by uuid. */
+export function getCachedClaimsByUuid(): Map<string, Claim[]> {
+  const out = new Map<string, Claim[]>()
+  for (const c of parseAll(getCachedEventsOfKind(KINDS.PS_CLAIM), parseClaim)) {
+    const list = out.get(c.uuid) ?? []
+    list.push(c)
+    out.set(c.uuid, list)
+  }
+  return out
+}
+
+/** Draft coordinates that some cached release points at (chip seed for listings). */
+export function getCachedReleasedCoords(): Set<string> {
+  const out = new Set<string>()
+  for (const r of getCachedReleases()) if (r.draftCoord) out.add(r.draftCoord)
+  return out
+}
+
 export { whenEventCacheReady }
 
 export async function fetchDraft(relays: string[], pubkey: string, uuid: string): Promise<Draft | null> {

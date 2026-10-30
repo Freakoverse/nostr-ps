@@ -1,7 +1,8 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import {
-  fetchReleases, fetchLatestUpdates, fetchClaimsForMany, summarizeProposals, PS_ORIGIN_TAG,
+  fetchReleases, fetchLatestUpdates, fetchClaimsForMany, summarizeProposals,
+  getCachedReleases, getCachedClaimsByUuid, whenEventCacheReady, PS_ORIGIN_TAG,
   type ProposalSummary, type Release, type Claim,
 } from '@/lib/nostr/nipps'
 
@@ -15,18 +16,23 @@ const BATCH = 100
 const INCLUDE_UNTAGGED_LEGACY = true
 
 /**
- * Progressive proposal feed (spec §6.1): originals newest first via an `until`
- * cursor, one event per proposal regardless of version count; then the latest
- * update per proposal on the page (limit 1 each), claims for every new uuid,
- * rolled up per proposal (§5).
+ * Progressive proposal feed (spec §6.1): paints from the event cache at once,
+ * then originals newest first via an `until` cursor, one event per proposal
+ * regardless of version count; the latest update per proposal on the page
+ * (limit 1 each), claims for every new uuid, rolled up per proposal (§5).
  */
 export function useProposalFeed(tick = 0, batch = BATCH) {
   const [items, setItems] = useState<ProposalSummary[]>([])
+  /** True only while nothing is on screen yet (cold cache). */
   const [loading, setLoading] = useState(true)
+  /** True while the first relay fetch runs behind a cache-seeded list. */
+  const [refreshing, setRefreshing] = useState(false)
   const [loadingMore, setLoadingMore] = useState(false)
   const [reachedEnd, setReachedEnd] = useState(false)
   const releases = useRef(new Map<string, Release>())
   const claims = useRef(new Map<string, Claim[]>())
+  /** Release ids seeded from cache and not yet confirmed by a relay. */
+  const seeded = useRef(new Set<string>())
   const oldest = useRef<number | undefined>(undefined)
   const inFlight = useRef(false)
 
@@ -36,10 +42,13 @@ export function useProposalFeed(tick = 0, batch = BATCH) {
     const newUuids = new Set<string>()
     const newOriginals: Release[] = []
     for (const r of originals) {
-      if (!releases.current.has(r.id)) {
+      // A cache-seeded release counts as fresh the first time a relay returns
+      // it, otherwise a fully cached first page would look like the end.
+      const unseen = !releases.current.has(r.id) || seeded.current.delete(r.id)
+      if (unseen) {
         fresh++
         newOriginals.push(r)
-        if (!claims.current.has(r.uuid)) newUuids.add(r.uuid)
+        newUuids.add(r.uuid)
       }
       releases.current.set(r.id, r)
       if (r.origin === 'original' && (oldest.current === undefined || r.createdAt < oldest.current)) oldest.current = r.createdAt
@@ -56,10 +65,22 @@ export function useProposalFeed(tick = 0, batch = BATCH) {
 
   useEffect(() => {
     let cancelled = false
-    releases.current = new Map(); claims.current = new Map(); oldest.current = undefined; inFlight.current = false
-    setItems([]); setReachedEnd(false); setLoading(true)
+    releases.current = new Map(); claims.current = new Map(); seeded.current = new Set(); oldest.current = undefined; inFlight.current = false
+    setItems([]); setReachedEnd(false); setLoading(true); setRefreshing(false)
     const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
     ;(async () => {
+      await whenEventCacheReady
+      if (cancelled) return
+      // Seed from cache: every cached release and claim, rolled up. No cursor;
+      // the relay batch sets it.
+      const cachedReleases = getCachedReleases()
+      if (cachedReleases.length) {
+        for (const r of cachedReleases) { releases.current.set(r.id, r); seeded.current.add(r.id) }
+        for (const [u, cs] of getCachedClaimsByUuid()) claims.current.set(u, cs)
+        setItems(summarizeProposals(cachedReleases, claims.current))
+        setLoading(false)
+        setRefreshing(true)
+      }
       try {
         const [originals, legacy] = await Promise.all([
           fetchReleases(relays, { [`#${PS_ORIGIN_TAG}`]: ['original'], limit: batch }),
@@ -74,7 +95,7 @@ export function useProposalFeed(tick = 0, batch = BATCH) {
       } catch {
         if (!cancelled) setReachedEnd(true)
       } finally {
-        if (!cancelled) setLoading(false)
+        if (!cancelled) { setLoading(false); setRefreshing(false) }
       }
     })()
     return () => { cancelled = true }
@@ -96,5 +117,5 @@ export function useProposalFeed(tick = 0, batch = BATCH) {
     }
   }, [reachedEnd, batch, ingest])
 
-  return { items, loading, loadingMore, reachedEnd, loadMore }
+  return { items, loading, refreshing, loadingMore, reachedEnd, loadMore }
 }

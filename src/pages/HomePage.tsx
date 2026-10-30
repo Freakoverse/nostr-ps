@@ -86,6 +86,7 @@ export function HomePage() {
             blurb="Released specs, ranked by who implements them."
             count={pf.main.length}
             more={!proposals.reachedEnd}
+            refreshing={proposals.refreshing}
             viewAll="/proposals"
             right={pf.lensActive ? <ScoreFilterMenu value={pf.filter} onChange={pf.setFilter} counts={pf.counts} /> : null}
           />
@@ -111,6 +112,7 @@ export function HomePage() {
             blurb="Work in progress, open for discussion."
             count={df.main.length}
             more={!drafts.reachedEnd}
+            refreshing={drafts.refreshing}
             viewAll="/drafts"
             right={
               <div className="flex items-center gap-2">
@@ -139,12 +141,14 @@ export function HomePage() {
   )
 }
 
-function SectionHeader({ icon: Icon, title, blurb, count, more, viewAll, right }: {
+function SectionHeader({ icon: Icon, title, blurb, count, more, refreshing, viewAll, right }: {
   icon: typeof BookOpen
   title: string
   blurb: string
   count: number
   more: boolean
+  /** Cache painted the list; relays are still answering. */
+  refreshing?: boolean
   viewAll: string
   right?: React.ReactNode
 }) {
@@ -154,6 +158,7 @@ function SectionHeader({ icon: Icon, title, blurb, count, more, viewAll, right }
         <Link to={viewAll} className="flex items-center gap-2 text-lg font-semibold text-neutral-100 hover:text-purple-300">
           <Icon className="h-4 w-4 text-purple-400" /> {title}
           <span className="text-sm font-normal tabular-nums text-neutral-500">{count}{more ? '+' : ''}</span>
+          {refreshing && <Loader2 className="h-3.5 w-3.5 animate-spin text-neutral-500" />}
         </Link>
         <p className="text-xs text-neutral-500">{blurb}</p>
       </div>

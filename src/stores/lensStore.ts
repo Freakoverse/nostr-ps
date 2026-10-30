@@ -217,7 +217,9 @@ export const useLensStore = create<LensState>()(
     {
       name: 'nip-ps:lens',
       version: 1,
-      partialize: (s) => ({ sources: s.sources, enabled: s.enabled, threshold: s.threshold, graphDepth: s.graphDepth }),
+      // Scores persist too, so a cache-painted list is scored at once; anything
+      // past SCORE_TTL is re-fetched on demand and a source change clears them.
+      partialize: (s) => ({ sources: s.sources, enabled: s.enabled, threshold: s.threshold, graphDepth: s.graphDepth, scores: s.scores }),
       // v0 shipped with a default threshold of 50, far too strict for NIP-85
       // ranks. Anyone still on that exact value gets the new default; a value
       // they chose themselves is left alone.

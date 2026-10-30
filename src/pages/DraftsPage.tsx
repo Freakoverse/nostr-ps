@@ -18,7 +18,7 @@ export function DraftsPage() {
   useSeoMeta({ title: 'Drafts', description: 'Proposals in progress: read, discuss, implement experimentally.' })
   const [q, setQ] = useState('')
   const [tick, setTick] = useState(0)
-  const { drafts, released, loading, loadingMore, reachedEnd, loadMore } = useDraftFeed(tick)
+  const { drafts, released, loading, refreshing, loadingMore, reachedEnd, loadMore } = useDraftFeed(tick)
 
   const visible = useMemo(() => {
     const s = q.trim().toLowerCase()
@@ -67,7 +67,10 @@ export function DraftsPage() {
           ) : (
             <div className="space-y-3">
               <div className="flex flex-wrap items-center justify-between gap-2">
-                <span className="text-xs text-neutral-500">{main.length}{reachedEnd ? '' : '+'} drafts · page {page} of {totalPages}{reachedEnd ? '' : '+'}</span>
+                <span className="flex items-center gap-1.5 text-xs text-neutral-500">
+                  {main.length}{reachedEnd ? '' : '+'} drafts · page {page} of {totalPages}{reachedEnd ? '' : '+'}
+                  {refreshing && <span className="flex items-center gap-1 animate-pulse"><Loader2 className="h-3 w-3 animate-spin" /> refreshing</span>}
+                </span>
                 {lensActive && <ScoreFilterMenu value={filter} onChange={setFilter} counts={counts} />}
               </div>
               {paged.length === 0 ? <EmptyFiltered filter={filter} /> : paged.map((d) => <DraftCard key={d.coord} draft={d} released={released.has(d.coord)} />)}
