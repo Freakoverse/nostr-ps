@@ -38,13 +38,16 @@ export function LensSettings() {
 
   const [npub, setNpub] = useState('')
   const [label, setLabel] = useState('')
+  const [relay, setRelay] = useState('')
   const [type, setType] = useState<LensSourceType>('nip85')
 
   const add = () => {
     const pk = decodePubkey(npub)
     if (!pk) { toast.error('Enter an npub, nprofile, or hex pubkey'); return }
-    addSource({ type, pubkey: pk, label: label.trim() })
-    setNpub(''); setLabel('')
+    const r = relay.trim()
+    if (type === 'nip85' && r && !/^wss?:\/\/\S+$/.test(r)) { toast.error('Relay must be a wss:// URL'); return }
+    addSource({ type, pubkey: pk, label: label.trim(), relays: type === 'nip85' && r ? [r] : undefined })
+    setNpub(''); setLabel(''); setRelay('')
     toast.success('Source added')
   }
 
@@ -120,6 +123,9 @@ export function LensSettings() {
           </div>
           <div className="flex gap-2">
             <Input value={label} onChange={(e) => setLabel(e.target.value)} placeholder="Label (optional)" className="border-edge bg-panel" onKeyDown={(e) => { if (e.key === 'Enter') add() }} />
+            {type === 'nip85' && (
+              <Input value={relay} onChange={(e) => setRelay(e.target.value)} placeholder="Relay the provider publishes to (optional), e.g. wss://nip85.brainstorm.world" className="border-edge bg-panel font-mono text-xs" onKeyDown={(e) => { if (e.key === 'Enter') add() }} />
+            )}
             <Button type="button" variant="outline" onClick={add} className="gap-1.5 border-edge"><Plus className="h-4 w-4" /> Add</Button>
           </div>
           <p className="text-[11px] text-neutral-500">

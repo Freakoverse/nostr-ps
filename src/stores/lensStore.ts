@@ -38,6 +38,8 @@ export interface LensSource {
   enabled: boolean
   /** Built-in rows the user can toggle but not remove. */
   builtin?: boolean
+  /** NIP-85 providers usually serve assertions from their own relay (e.g. a Brainstorm instance); queried in addition to the read relays. */
+  relays?: string[]
 }
 
 export type Bucket = 'above' | 'below' | 'unknown' | 'off'
@@ -202,7 +204,7 @@ export const useLensStore = create<LensState>()(
           const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
           const perSource = await Promise.all(sources.map((src) =>
             src.type === 'nip85'
-              ? scoreViaNip85(relays, src.pubkey, need)
+              ? scoreViaNip85([...new Set([...relays, ...(src.relays ?? [])])], src.pubkey, need)
               : scoreViaGraph(relays, src.pubkey, need, get, set),
           ))
           const next: Record<string, PubkeyScore> = { ...get().scores }
