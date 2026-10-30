@@ -155,6 +155,14 @@ Rules:
   unreachable release cannot leave a stale claim behind on the draft.
 - A draft MAY continue to be edited after a release, as the working copy
   for the next version.
+- **Deleting a draft.** Because a draft is addressable, the author retracts
+  it by republishing the address with empty content and a
+  `["deleted", "true"]` tag, and SHOULD also send a NIP-09 deletion
+  request. The replacement reaches relays that ignore NIP-09, which is
+  why both are sent. Clients MUST NOT render a draft whose current event
+  carries the `deleted` tag, in listings or on its own page. The same
+  convention applies to every addressable NIP-PS event; a release is a
+  regular event and cannot be retracted this way (§4.2, §7).
 - `fork` is an advisory hint that this draft was forked from a release. It
   carries no identity; the release form reads it to set the `fork` marker on
   the first release (§4.2). Clients MUST NOT treat it as ancestry on its own.
