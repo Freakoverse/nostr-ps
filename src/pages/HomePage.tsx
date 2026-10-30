@@ -129,7 +129,7 @@ export function HomePage() {
             <EmptyFiltered filter={df.filter} />
           ) : (
             <div className="space-y-3">
-              {df.main.slice(0, PREVIEW).map((d) => <DraftCard key={d.coord} draft={d} released={drafts.released.has(d.coord) || !!d.releaseId} />)}
+              {df.main.slice(0, PREVIEW).map((d) => <DraftCard key={d.coord} draft={d} released={drafts.released.has(d.coord)} />)}
               {df.main.length > PREVIEW && <ViewAll to="/drafts" label={`View all ${df.main.length}${drafts.reachedEnd ? '' : '+'} drafts`} />}
             </div>
           )}

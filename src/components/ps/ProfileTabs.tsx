@@ -4,7 +4,7 @@ import { nip19 } from 'nostr-tools'
 import { Loader2 } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import {
-  fetchDrafts, fetchReleases, fetchClaimsBy, fetchReviewsBy, groupReleases, releaseNevent,
+  fetchDrafts, fetchReleases, fetchClaimsBy, fetchReviewsBy, groupReleases, releaseNevent, PS_ORIGIN_TAG,
   type Draft, type Release, type Claim, type Review,
 } from '@/lib/nostr/nipps'
 import { KINDS } from '@/lib/constants'
@@ -37,13 +37,13 @@ export function DraftsTab({ pubkey }: { pubkey: string }) {
   const { data, loading } = useLoad<{ drafts: Draft[]; releasedUuids: Set<string> }>(async (relays) => {
     const [drafts, releases] = await Promise.all([
       fetchDrafts(relays, { authors: [pubkey], limit: 200 }),
-      fetchReleases(relays, { authors: [pubkey], limit: 500 }).catch(() => [] as Release[]),
+      fetchReleases(relays, { authors: [pubkey], [`#${PS_ORIGIN_TAG}`]: ['original'], limit: 500 }).catch(() => [] as Release[]),
     ])
     return { drafts, releasedUuids: new Set(releases.map((r) => r.uuid)) }
   }, [pubkey])
   if (loading) return <Loading />
   if (!data?.drafts.length) return <Empty text="No drafts." />
-  return <div className="space-y-3">{data.drafts.map((d) => <DraftCard key={d.coord} draft={d} released={data.releasedUuids.has(d.uuid) || !!d.releaseId} />)}</div>
+  return <div className="space-y-3">{data.drafts.map((d) => <DraftCard key={d.coord} draft={d} released={data.releasedUuids.has(d.uuid)} />)}</div>
 }
 
 export function ReleasesTab({ pubkey }: { pubkey: string }) {

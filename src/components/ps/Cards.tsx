@@ -80,7 +80,7 @@ export function DraftCard({ draft, released }: { draft: Draft; released?: boolea
           {draft.summary && <Markdown content={draft.summary} className="mt-1 line-clamp-2 text-neutral-400 [&_a]:pointer-events-none" />}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          {(released ?? !!draft.releaseId) && <Chip className="border-emerald-500/30 text-emerald-400">released</Chip>}
+          {released && <Chip className="border-emerald-500/30 text-emerald-400">released</Chip>}
           <FileText className="h-4 w-4 text-neutral-600" />
         </div>
       </div>

@@ -34,15 +34,22 @@ export function useDraftFeed(tick = 0, batch = BATCH) {
       // `#o original` bounds this to one event per draft (§6.1), so a
       // version-heavy proposal cannot crowd out the others' chips.
       fetchReleases(relays, { '#a': coords, [`#${PS_ORIGIN_TAG}`]: ['original'], limit: coords.length })
-        .then((rs) => {
-          if (rs.length === 0) return
-          setReleased((prev) => {
-            const next = new Set(prev)
-            for (const r of rs) if (r.draftCoord) next.add(r.draftCoord)
-            return next
-          })
+        .then(async (rs) => {
+          const found = new Set<string>()
+          for (const r of rs) if (r.draftCoord) found.add(r.draftCoord)
+          // Drafts whose advisory `release` pointer (§4.1) was not confirmed above:
+          // check the pointed-at event still exists, in one `ids` query. A stale
+          // pointer (release deleted, or never on these relays) earns no chip.
+          const byId = new Map<string, string>()
+          for (const d of incoming) if (d.releaseId && !found.has(d.coord)) byId.set(d.releaseId, d.coord)
+          if (byId.size) {
+            const verified = await fetchReleases(relays, { ids: [...byId.keys()], limit: byId.size }).catch(() => [])
+            for (const r of verified) { const c = byId.get(r.id); if (c) found.add(c) }
+          }
+          if (found.size === 0) return
+          setReleased((prev) => new Set([...prev, ...found]))
         })
-        .catch(() => { /* chip falls back to the advisory tag */ })
+        .catch(() => { /* no chip without evidence */ })
     }
     return fresh
   }, [])

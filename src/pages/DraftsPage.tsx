@@ -70,7 +70,7 @@ export function DraftsPage() {
                 <span className="text-xs text-neutral-500">{main.length}{reachedEnd ? '' : '+'} drafts · page {page} of {totalPages}{reachedEnd ? '' : '+'}</span>
                 {lensActive && <ScoreFilterMenu value={filter} onChange={setFilter} counts={counts} />}
               </div>
-              {paged.length === 0 ? <EmptyFiltered filter={filter} /> : paged.map((d) => <DraftCard key={d.coord} draft={d} released={released.has(d.coord) || !!d.releaseId} />)}
+              {paged.length === 0 ? <EmptyFiltered filter={filter} /> : paged.map((d) => <DraftCard key={d.coord} draft={d} released={released.has(d.coord)} />)}
               <Pagination page={page} totalPages={totalPages} onPage={setPage} reachedEnd={reachedEnd} loadingMore={loadingMore} />
             </div>
           )}
