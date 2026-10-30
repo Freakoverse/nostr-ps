@@ -33,6 +33,9 @@ import { ReviewDialog } from '@/components/ps/ReviewDialog'
 import { VersionList } from '@/components/ps/VersionDiff'
 import { ClaimDetailDialog } from '@/components/ps/ClaimDetailDialog'
 import { ItemMenu } from '@/components/ps/ItemMenu'
+import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
+
+const tabTrigger = 'py-1.5 data-[state=active]:bg-edge data-[state=active]:text-purple-400'
 import type { ForkPrefill } from './DraftEditPage'
 
 export function ReleasePage() {
@@ -300,8 +303,16 @@ export function ReleasePage() {
         </aside>
       </div>
 
+      {/* Adoption · Reviews · Discussion, as tabs: three lists in a row scroll badly. */}
+      <Tabs defaultValue="adoption" className="space-y-4">
+        <TabsList className="grid h-auto w-full grid-cols-3 items-stretch border border-edge bg-panel">
+          <TabsTrigger value="adoption" className={tabTrigger}>Adoption <span className="ml-1.5 tabular-nums text-neutral-500">{liveClaims.length}</span></TabsTrigger>
+          <TabsTrigger value="reviews" className={tabTrigger}>Reviews <span className="ml-1.5 tabular-nums text-neutral-500">{reviews.length}</span></TabsTrigger>
+          <TabsTrigger value="discussion" className={tabTrigger}>Discussion</TabsTrigger>
+        </TabsList>
+
       {/* Claims */}
-      <section className="space-y-3">
+      <TabsContent value="adoption" className="space-y-3">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold">Adoption claims</h2>
           <span className="text-xs text-neutral-500">{liveClaims.length} live · {claims.length - liveClaims.length} withdrawn</span>
@@ -325,10 +336,10 @@ export function ReleasePage() {
           }}
           empty={<p className="rounded-lg border border-dashed border-edge py-10 text-center text-sm text-neutral-500">No one has claimed adoption yet. Implemented it? Say so.</p>}
         />
-      </section>
+      </TabsContent>
 
       {/* Reviews */}
-      <section className="space-y-3">
+      <TabsContent value="reviews" className="space-y-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
           <h2 className="text-lg font-semibold">Reviews</h2>
           <div className="flex items-center gap-1.5">
@@ -348,14 +359,15 @@ export function ReleasePage() {
           )}
           empty={<p className="rounded-lg border border-dashed border-edge py-10 text-center text-sm text-neutral-500">No reviews yet.</p>}
         />
-      </section>
+      </TabsContent>
 
       {/* Discussion */}
-      <section className="space-y-3">
+      <TabsContent value="discussion" className="space-y-3">
         <h2 className="text-lg font-semibold">Discussion</h2>
         <p className="text-xs text-neutral-500">The release is frozen. Discussion that should change the text belongs on the draft, where the next version is written.</p>
         <CommentSection root={{ id: release.id, pubkey: release.pubkey, kind: KINDS.PS_RELEASE }} />
-      </section>
+      </TabsContent>
+      </Tabs>
 
       <ClaimDialog open={claimOpen} onOpenChange={setClaimOpen} release={release} versions={versions} existing={myClaim} onPublished={reload} />
       <ReviewDialog open={reviewOpen} onOpenChange={setReviewOpen} target={{ kind: 'release', release }} existing={myReview} onPublished={reload} />
