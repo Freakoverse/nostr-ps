@@ -54,7 +54,10 @@ export function CollapsibleBody({ children, maxHeight = 560, className }: { chil
       )}
 
       {overflows && expanded && (
-        <div className="sticky bottom-4 z-10 mt-5 flex justify-center border-t border-edge-2 pt-5">
+        <>
+        {/* The divider stays put under the text; only the button is sticky. */}
+        <div className="mt-5 border-t border-edge-2" />
+        <div className="sticky bottom-4 z-10 mt-5 flex justify-center">
           <button
             type="button"
             onClick={collapse}
@@ -63,6 +66,7 @@ export function CollapsibleBody({ children, maxHeight = 560, className }: { chil
             View less
           </button>
         </div>
+        </>
       )}
     </div>
   )
