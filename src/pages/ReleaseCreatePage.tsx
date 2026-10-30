@@ -38,7 +38,6 @@ export function ReleaseCreatePage() {
   const [title, setTitle] = useState('')
   const [summary, setSummary] = useState('')
   const [content, setContent] = useState('')
-  const [forkOfId, setForkOfId] = useState('')
   const [status, setStatus] = useState<PublishStatus | null>(null)
   useSeoMeta({ title: 'Publish release' })
 
@@ -60,7 +59,6 @@ export function ReleaseCreatePage() {
       setDraft(d)
       if (d) {
         setTitle(d.title); setSummary(d.summary ?? ''); setContent(d.content)
-        setForkOfId(d.event.tags.find((t) => t[0] === 'fork')?.[1] ?? '')
         const rs = await fetchReleasesForDraft(relays, d).catch(() => [])
         if (cancelled) return
         setReleases(rs)
@@ -78,6 +76,10 @@ export function ReleaseCreatePage() {
   if (draft.pubkey !== pubkey) return <Missing text="Only the author can release this draft." />
 
   const prev = releases[0] ?? null
+  // Fork parent, from the draft's advisory tag (§4.1). Only the first release carries the marker.
+  const forkTagRaw = draft.event.tags.find((t) => t[0] === 'fork')
+  const forkTag = forkTagRaw?.[1]?.trim().toLowerCase()
+  const forkOf = forkTag && /^[0-9a-f]{64}$/.test(forkTag) ? forkTag : undefined
   const taken = releases.some((r) => r.version === version)
   const versionOk = isValidVersion(version) && !taken
   const busy = status !== null && status !== 'done' && status !== 'error'
@@ -99,7 +101,7 @@ export function ReleaseCreatePage() {
       draftRelay: writeRelay,
       prevId: prev?.id,
       prevRelay: prev ? writeRelay : undefined,
-      forkOf: forkOfId.trim() && /^[0-9a-f]{64}$/i.test(forkOfId.trim()) ? { id: forkOfId.trim().toLowerCase() } : undefined,
+      forkOf: !prev && forkOf ? { id: forkOf, relay: forkTagRaw?.[2] || undefined } : undefined,
     })
     setStatus('mining')
     const res = await signAndPublish(event, setStatus)
@@ -216,18 +218,10 @@ export function ReleaseCreatePage() {
         </div>
         <RefRow label="Spec id" hint="v tag" value={specId(draft.uuid, versionOk ? version : '?')} />
         <RefRow label="Draft" hint="a tag" value={draft.coord} href={`/draft/${draftNaddr(draft.pubkey, draft.uuid)}`} />
+        {!prev && forkOf && <RefRow label="Forked from" hint="e tag, fork" value={forkOf} href={`/release/${nip19.neventEncode({ id: forkOf })}`} />}
         {prev && <RefRow label="Previous version" hint="e tag, prev" value={prev.id} href={`/release/${releaseNevent(prev.id, prev.pubkey)}`} />}
         <p className="text-[11px] text-neutral-600">The spec id is what implementers point at. Kinds and topics are copied from the draft as well.</p>
       </div>
-
-      <details className="rounded-lg border border-edge bg-panel p-3 text-sm">
-        <summary className="cursor-pointer text-neutral-300">Fork ancestry</summary>
-        <div className="mt-3 space-y-1.5">
-          <label className="text-xs font-medium text-neutral-300">Parent release event id <span className="text-neutral-600">(hex, optional)</span></label>
-          <Input value={forkOfId} onChange={(e) => setForkOfId(e.target.value)} placeholder="64 hex characters" className="border-edge bg-panel font-mono text-xs" />
-          <p className="text-[11px] text-neutral-600">Only for the first release of a fork. Later versions chain to the previous one automatically.</p>
-        </div>
-      </details>
 
       <div className="flex items-center justify-between gap-3 rounded-lg border border-purple-500/30 bg-purple-500/5 px-4 py-3">
         <p className="flex items-center gap-2 text-xs text-neutral-400"><Lock className="h-3.5 w-3.5 text-purple-400" /> The draft stays editable after this. The next version starts from it again.</p>
