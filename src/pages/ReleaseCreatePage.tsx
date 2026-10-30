@@ -1,14 +1,14 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
-import { Loader2, Rocket, Lock } from 'lucide-react'
+import { Loader2, Rocket, Lock, Check, Copy, Link2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
 import { KINDS } from '@/lib/constants'
 import { signAndPublish, type PublishStatus } from '@/lib/nostr/publish'
 import {
-  fetchDraft, fetchReleasesForDraft, buildReleaseEvent, buildDraftEvent, releaseNevent,
+  fetchDraft, fetchReleasesForDraft, buildReleaseEvent, buildDraftEvent, releaseNevent, draftNaddr, specId,
   isValidVersion, nextMajor, nextMinor, type Draft, type Release,
 } from '@/lib/nostr/nipps'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
@@ -34,6 +34,7 @@ export function ReleaseCreatePage() {
   const [releases, setReleases] = useState<Release[]>([])
   const [loading, setLoading] = useState(true)
   const [version, setVersion] = useState('1')
+  const [bump, setBump] = useState<'minor' | 'major' | 'custom'>('custom')
   const [title, setTitle] = useState('')
   const [summary, setSummary] = useState('')
   const [content, setContent] = useState('')
@@ -63,7 +64,8 @@ export function ReleaseCreatePage() {
         const rs = await fetchReleasesForDraft(relays, d).catch(() => [])
         if (cancelled) return
         setReleases(rs)
-        setVersion(nextMajor(rs[0]?.version ?? null))
+        setVersion(rs.length ? nextMinor(rs[0].version) : '1')
+        setBump(rs.length ? 'minor' : 'custom')
       }
       setLoading(false)
     })()
@@ -142,21 +144,58 @@ export function ReleaseCreatePage() {
         </div>
       )}
 
-      <div className="grid gap-4 sm:grid-cols-[auto_1fr]">
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-neutral-200">Version</label>
-          <div className="flex items-center gap-2">
-            <Input value={version} onChange={(e) => setVersion(e.target.value.trim())} className={cn('w-28 border-edge bg-panel font-mono', !versionOk && 'border-red-500/60')} />
-            <Button type="button" variant="ghost" size="sm" onClick={() => setVersion(nextMajor(prev?.version ?? null))} className="text-xs text-neutral-400">major</Button>
-            <Button type="button" variant="ghost" size="sm" onClick={() => setVersion(nextMinor(prev?.version ?? null))} className="text-xs text-neutral-400">minor</Button>
+      {prev ? (
+        <div className="space-y-2">
+          <label className="text-sm font-medium text-neutral-200">What kind of change is this?</label>
+          <div className="grid gap-2 sm:grid-cols-3">
+            <BumpOption
+              active={bump === 'minor'}
+              onClick={() => { setBump('minor'); setVersion(nextMinor(prev.version)) }}
+              title="Minor"
+              version={nextMinor(prev.version)}
+              blurb="Clarifications, typo fixes, wording. Nothing implementers must change."
+            />
+            <BumpOption
+              active={bump === 'major'}
+              onClick={() => { setBump('major'); setVersion(nextMajor(prev.version)) }}
+              title="Major"
+              version={nextMajor(prev.version)}
+              blurb="Normative change. Implementations of the previous version may no longer comply."
+            />
+            <div
+              role="button"
+              tabIndex={0}
+              onClick={() => setBump('custom')}
+              onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ' ') setBump('custom') }}
+              className={cn('flex cursor-pointer flex-col gap-1 rounded-lg border p-3 text-left transition-colors', bump === 'custom' ? 'border-purple-500/60 bg-purple-500/10' : 'border-edge bg-panel hover:border-neutral-600')}
+            >
+              <span className="text-sm font-medium text-neutral-200">Custom</span>
+              {bump === 'custom' ? (
+                <Input
+                  autoFocus
+                  value={version}
+                  onChange={(e) => setVersion(e.target.value.trim())}
+                  className={cn('h-8 border-edge bg-panel font-mono text-sm', !versionOk && 'border-red-500/60')}
+                />
+              ) : (
+                <span className="text-xs text-neutral-500">Type a version yourself.</span>
+              )}
+            </div>
           </div>
-          <p className="text-[11px] text-neutral-600">{taken ? 'Already released.' : 'Dotted integers. Minor for clarifications, major for normative changes.'}</p>
+          <p className="text-[11px] text-neutral-600">
+            {taken ? `v${version} already exists.` : !versionOk ? 'Dotted integers only, e.g. 1, 1.1, 2.' : `Previous: v${prev.version}. This release will be v${version}.`}
+          </p>
         </div>
-        <div className="space-y-1.5">
-          <label className="text-sm font-medium text-neutral-200">Title</label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} className="border-edge bg-panel" maxLength={LIMITS.title} />
-          <CharCounter value={title} max={LIMITS.title} />
-        </div>
+      ) : (
+        <p className="rounded-lg border border-edge bg-panel px-3 py-2 text-sm text-neutral-400">
+          First release. It will be <span className="font-mono text-neutral-200">v1</span>. Later releases choose minor or major from here.
+        </p>
+      )}
+
+      <div className="space-y-1.5">
+        <label className="text-sm font-medium text-neutral-200">Title</label>
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} className="border-edge bg-panel" maxLength={LIMITS.title} />
+        <CharCounter value={title} max={LIMITS.title} />
       </div>
 
       <div className="space-y-1.5">
@@ -170,6 +209,17 @@ export function ReleaseCreatePage() {
         <MarkdownEditor value={content} onChange={setContent} maxLength={LIMITS.body} />
       </div>
 
+      <div className="space-y-2 rounded-lg border border-edge bg-panel p-3 text-sm">
+        <div className="flex items-center justify-between">
+          <p className="font-medium text-neutral-200">Reference <span className="font-normal text-neutral-500">(set automatically)</span></p>
+          <Lock className="h-3.5 w-3.5 text-neutral-500" />
+        </div>
+        <RefRow label="Spec id" hint="v tag" value={specId(draft.uuid, versionOk ? version : '?')} />
+        <RefRow label="Draft" hint="a tag" value={draft.coord} href={`/draft/${draftNaddr(draft.pubkey, draft.uuid)}`} />
+        {prev && <RefRow label="Previous version" hint="e tag, prev" value={prev.id} href={`/release/${releaseNevent(prev.id, prev.pubkey)}`} />}
+        <p className="text-[11px] text-neutral-600">The spec id is what implementers point at. Kinds and topics are copied from the draft as well.</p>
+      </div>
+
       <details className="rounded-lg border border-edge bg-panel p-3 text-sm">
         <summary className="cursor-pointer text-neutral-300">Fork ancestry</summary>
         <div className="mt-3 space-y-1.5">
@@ -180,7 +230,7 @@ export function ReleaseCreatePage() {
       </details>
 
       <div className="flex items-center justify-between gap-3 rounded-lg border border-purple-500/30 bg-purple-500/5 px-4 py-3">
-        <p className="flex items-center gap-2 text-xs text-neutral-400"><Lock className="h-3.5 w-3.5 text-purple-400" /> Kinds and topics are copied from the draft. The draft stays editable for the next version.</p>
+        <p className="flex items-center gap-2 text-xs text-neutral-400"><Lock className="h-3.5 w-3.5 text-purple-400" /> The draft stays editable after this. The next version starts from it again.</p>
         <div className="flex items-center gap-3">
           {status && status !== 'done' && status !== 'error' && <span className="text-xs text-neutral-500">{status === 'mining' ? 'Proof of work…' : status === 'signing' ? 'Signing…' : 'Publishing…'}</span>}
           <Button onClick={publish} disabled={busy || !versionOk} className="gap-2 bg-purple-600 text-white hover:bg-purple-700">
@@ -189,6 +239,43 @@ export function ReleaseCreatePage() {
           </Button>
         </div>
       </div>
+    </div>
+  )
+}
+
+function BumpOption({ active, onClick, title, version, blurb }: { active: boolean; onClick: () => void; title: string; version: string; blurb: string }) {
+  return (
+    <button
+      type="button"
+      onClick={onClick}
+      className={cn('flex flex-col gap-1 rounded-lg border p-3 text-left transition-colors', active ? 'border-purple-500/60 bg-purple-500/10' : 'border-edge bg-panel hover:border-neutral-600')}
+    >
+      <span className="flex items-center justify-between text-sm font-medium text-neutral-200">
+        {title}
+        <span className="font-mono text-xs text-purple-300">v{version}</span>
+      </span>
+      <span className="text-xs text-neutral-500">{blurb}</span>
+    </button>
+  )
+}
+
+function RefRow({ label, hint, value, href }: { label: string; hint: string; value: string; href?: string }) {
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    void navigator.clipboard.writeText(value)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1200)
+  }
+  return (
+    <div className="grid items-center gap-x-3 gap-y-0.5 sm:grid-cols-[9rem_1fr_auto]">
+      <span className="text-xs text-neutral-400">{label} <span className="text-neutral-600">({hint})</span></span>
+      <code className="min-w-0 truncate rounded bg-sunken px-2 py-1 font-mono text-xs text-neutral-300" title={value}>{value}</code>
+      <span className="flex items-center gap-1">
+        <button type="button" onClick={copy} className="rounded p-1 text-neutral-500 hover:text-neutral-200" title="Copy">
+          {copied ? <Check className="h-3.5 w-3.5 text-green-400" /> : <Copy className="h-3.5 w-3.5" />}
+        </button>
+        {href && <Link to={href} className="rounded p-1 text-neutral-500 hover:text-neutral-200" title="Open"><Link2 className="h-3.5 w-3.5" /></Link>}
+      </span>
     </div>
   )
 }
