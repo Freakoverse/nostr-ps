@@ -62,7 +62,9 @@ interface RequestDeleteDialogProps {
  * two-phase process (tombstone the event, then broadcast the kind-5 request),
  * each reporting its proof-of-work / signing / publishing phase.
  */
-export function RequestDeleteDialog({ open, onOpenChange, event, title, noun, requestOnly, onDeleted }: RequestDeleteDialogProps) {
+export function RequestDeleteDialog({ open, onOpenChange, event, title, noun, requestOnly: requestOnlyProp, onDeleted }: RequestDeleteDialogProps) {
+  // Only addressable events can be tombstoned; everything else is request-only.
+  const requestOnly = requestOnlyProp || !(event.kind >= 30000 && event.kind < 40000)
   const [running, setRunning] = useState(false)
   const [edit, setEdit] = useState<Phase>('pending')
   const [request, setRequest] = useState<Phase>('pending')

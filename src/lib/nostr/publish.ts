@@ -186,7 +186,10 @@ export async function requestDelete(
   //
   // Skipped for regular (non-addressable) events like comments and notes: there
   // is nothing to replace, so the kind-5 request is the only lever.
-  const deletedResult = opts.requestOnly
+  // Regular events have no replaceable coordinate, so a "tombstone" would be
+  // a brand new event of that kind. Never do that, whatever the caller asked.
+  const addressable = originalEvent.kind >= 30000 && originalEvent.kind < 40000
+  const deletedResult = opts.requestOnly || !addressable
     ? { success: true, error: undefined as string | undefined }
     : await signAndPublish(buildDeletedEvent(originalEvent), (s) => onProgress?.('edit', s), 10000, everywhere)
   if (!deletedResult.success) onProgress?.('edit', 'error')

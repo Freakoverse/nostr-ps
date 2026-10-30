@@ -13,9 +13,11 @@ import { KINDS } from '@/lib/constants'
 import { signAndPublish } from '@/lib/nostr/publish'
 import {
   fetchRelease, fetchReleasesOf, fetchClaimsFor, fetchReleaseReviews, fetchClaimReviews, fetchBackups,
-  buildBackupEvent, draftNaddr, releaseNevent, releaseLabel,
+  buildBackupEvent, draftNaddr, releaseNevent, releaseLabel, parseRelease,
   type Release, type Claim, type Review, type Backup,
 } from '@/lib/nostr/nipps'
+import { fetchEvents } from '@/lib/nostr/relay-pool'
+import { buildDeletionRequest } from '@/lib/nostr/events'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
 import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/shared/Markdown'
@@ -168,6 +170,19 @@ export function ReleasePage() {
     reload()
   }
 
+  // TEMPORARY: kind-5 every kind 8201 event of mine that is not a valid release
+  // (the stray tombstones an earlier delete produced). Remove with the delete item.
+  const cleanupStrays = async () => {
+    if (!myPubkey) return
+    const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
+    const evs = await fetchEvents(relays, { kinds: [KINDS.PS_RELEASE], authors: [myPubkey], limit: 200 }).catch(() => [])
+    const strays = evs.filter((e) => !parseRelease(e))
+    if (strays.length === 0) { toast.info('No stray release events found'); return }
+    let ok = 0
+    for (const s of strays) { const r = await signAndPublish(buildDeletionRequest(s)); if (r.success) ok++ }
+    toast.success(`Deletion requested for ${ok} of ${strays.length} stray event${strays.length === 1 ? '' : 's'}`)
+  }
+
   const fork = () => {
     if (!myPubkey) { useLoginModalStore.getState().open(); return }
     const prefill: ForkPrefill = {
@@ -205,6 +220,11 @@ export function ReleasePage() {
             {myPubkey === release.pubkey && (
               <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="cursor-pointer text-red-400 focus:text-red-300">
                 <Trash2 className="h-4 w-4 mr-2" /> Request deletion
+              </DropdownMenuItem>
+            )}
+            {myPubkey === release.pubkey && (
+              <DropdownMenuItem onClick={() => void cleanupStrays()} className="cursor-pointer text-red-400 focus:text-red-300">
+                <Trash2 className="h-4 w-4 mr-2" /> Clean up stray events
               </DropdownMenuItem>
             )}
           </PostMenu>
