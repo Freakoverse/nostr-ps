@@ -1,7 +1,7 @@
 import { useState, forwardRef } from 'react'
 import { Link } from 'react-router-dom'
 import { FileText, GitFork, Users, ShieldCheck, ShieldX, Ban } from 'lucide-react'
-import { cn } from '@/lib/utils'
+import { cn, markdownToText } from '@/lib/utils'
 import { Tip } from '@/components/shared/Tip'
 import { PowBadge } from '@/components/shared/PowBadge'
 import { draftNaddr, releaseNevent, shortId, type Draft, type Release, type ProposalSummary, type Claim, type Review } from '@/lib/nostr/nipps'
@@ -84,7 +84,7 @@ export function DraftCard({ draft, released }: { draft: Draft; released?: boolea
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <h3 className="truncate text-base font-semibold text-neutral-100">{draft.title}</h3>
-          {draft.summary && <Markdown content={draft.summary} className="mt-1 line-clamp-2 text-neutral-400 [&_a]:pointer-events-none" />}
+          {draft.summary && <p className="mt-1 line-clamp-2 text-sm text-neutral-400">{markdownToText(draft.summary)}</p>}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {released && <Chip className="border-emerald-500/30 text-emerald-400">released</Chip>}
@@ -111,7 +111,7 @@ export function ProposalCard({ p, verified }: { p: ProposalSummary; verified?: n
           <h3 className="truncate text-base font-semibold text-neutral-100">
             {r.title} <span className="font-normal text-neutral-500">v{r.version}</span>
           </h3>
-          {r.summary && <Markdown content={r.summary} className="mt-1 line-clamp-2 text-neutral-400 [&_a]:pointer-events-none" />}
+          {r.summary && <p className="mt-1 line-clamp-2 text-sm text-neutral-400">{markdownToText(r.summary)}</p>}
         </div>
         <div className="flex shrink-0 flex-col items-end gap-1">
           <span className="inline-flex items-center gap-1.5 text-sm text-neutral-200">

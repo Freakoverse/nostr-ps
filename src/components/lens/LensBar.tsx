@@ -1,10 +1,11 @@
 import { Link } from 'react-router-dom'
-import { Eye, EyeOff, SlidersHorizontal, RotateCcw } from 'lucide-react'
+import { Eye, EyeOff, SlidersHorizontal, RotateCcw, ChevronDown } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tip } from '@/components/shared/Tip'
 import { useLensStore, DEFAULT_THRESHOLD } from '@/stores/lensStore'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu'
 
 /**
  * The always-visible viewpoint indicator (spec §6.2: the active viewpoint
@@ -17,15 +18,55 @@ export function LensBar({ className }: { className?: string }) {
   const threshold = useLensStore((s) => s.threshold)
   const setThreshold = useLensStore((s) => s.setThreshold)
   const sources = useLensStore((s) => s.sources)
+  const toggleSource = useLensStore((s) => s.toggleSource)
   const active = sources.filter((s) => s.enabled)
 
   return (
     <div className={cn('flex flex-wrap items-center gap-x-4 gap-y-2 rounded-lg border border-edge bg-panel px-3 py-2 text-xs', className)}>
-      <div className="flex items-center gap-2">
-        {enabled ? <Eye className="h-3.5 w-3.5 text-purple-400" /> : <EyeOff className="h-3.5 w-3.5 text-neutral-500" />}
-        <span className="font-medium text-neutral-200">Lens</span>
-        <Switch checked={enabled} onCheckedChange={setEnabled} aria-label="Toggle lens" />
-      </div>
+      {/* Lens menu: one switch for the whole lens, one per source, and a way to the full settings. */}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button type="button" className="flex items-center gap-2 rounded-md px-1.5 py-1 transition-colors hover:bg-panel-2" aria-label="Lens options">
+            {enabled ? <Eye className="h-3.5 w-3.5 text-purple-400" /> : <EyeOff className="h-3.5 w-3.5 text-neutral-500" />}
+            <span className="font-medium text-neutral-200">Lens</span>
+            <span className={cn('rounded-full px-1.5 py-0.5 text-[10px] font-medium', enabled ? 'bg-purple-500/15 text-purple-300' : 'bg-panel-2 text-neutral-500')}>
+              {enabled ? `${active.length} on` : 'off'}
+            </span>
+            <ChevronDown className="h-3.5 w-3.5 text-neutral-500" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="start" className="w-72 border-edge bg-panel">
+          <DropdownMenuItem onSelect={(e) => e.preventDefault()} onClick={() => setEnabled(!enabled)} className="cursor-pointer justify-between">
+            <span className="flex items-center gap-2">
+              {enabled ? <Eye className="h-4 w-4 text-purple-400" /> : <EyeOff className="h-4 w-4 text-neutral-500" />}
+              <span className="font-medium">Lens</span>
+              <span className="text-xs text-neutral-500">{enabled ? 'on' : 'off, raw view'}</span>
+            </span>
+            <Switch checked={enabled} onCheckedChange={setEnabled} onClick={(e) => e.stopPropagation()} aria-label="Toggle the whole lens" />
+          </DropdownMenuItem>
+          <DropdownMenuSeparator className="bg-edge" />
+          <DropdownMenuLabel className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">Sources</DropdownMenuLabel>
+          {sources.length === 0 && <p className="px-2 py-1.5 text-xs text-neutral-500">No sources yet.</p>}
+          {sources.map((s) => (
+            <DropdownMenuItem
+              key={s.id}
+              onSelect={(e) => e.preventDefault()}
+              onClick={() => toggleSource(s.id)}
+              className={cn('cursor-pointer justify-between gap-3', !enabled && 'opacity-60')}
+            >
+              <span className="min-w-0">
+                <span className="block truncate text-sm">{s.label}</span>
+                <span className="block text-[11px] text-neutral-500">{s.type === 'nip85' ? 'NIP-85 provider' : 'follow graph'}</span>
+              </span>
+              <Switch checked={s.enabled} onCheckedChange={(v) => toggleSource(s.id, v)} onClick={(e) => e.stopPropagation()} aria-label={`Toggle ${s.label}`} />
+            </DropdownMenuItem>
+          ))}
+          <DropdownMenuSeparator className="bg-edge" />
+          <DropdownMenuItem asChild className="cursor-pointer">
+            <Link to="/settings?tab=lens"><SlidersHorizontal className="mr-2 h-4 w-4" /> Manage sources and threshold</Link>
+          </DropdownMenuItem>
+        </DropdownMenuContent>
+      </DropdownMenu>
 
       <div className="min-w-0 flex-1 truncate text-neutral-400">
         {enabled

@@ -63,3 +63,23 @@ export function formatRelativeTime(timestamp: number): string {
   if (diff < 604800) return `${Math.floor(diff / 86400)}d ago`
   return new Date(timestamp * 1000).toLocaleDateString([], { month: 'short', day: 'numeric', year: 'numeric' })
 }
+
+/**
+ * Markdown to plain text for one- or two-line previews: code and emphasis
+ * markers dropped, links reduced to their text, images removed, whitespace
+ * collapsed. Not a parser; good enough for a summary line on a card.
+ */
+export function markdownToText(md: string): string {
+  return md
+    .replace(/```[\s\S]*?```/g, ' ')
+    .replace(/!\[[^\]]*\]\([^)]*\)/g, '')
+    .replace(/\[([^\]]+)\]\([^)]*\)/g, '$1')
+    .replace(/`([^`]*)`/g, '$1')
+    .replace(/(\*\*|__)(.*?)\1/g, '$2')
+    .replace(/(\*|_)(.*?)\1/g, '$2')
+    .replace(/^#{1,6}\s+/gm, '')
+    .replace(/^\s*[-*+]\s+/gm, '')
+    .replace(/^\s*>\s?/gm, '')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
