@@ -32,10 +32,18 @@ function useLoad<T>(load: (relays: string[]) => Promise<T>, deps: unknown[]): { 
 }
 
 export function DraftsTab({ pubkey }: { pubkey: string }) {
-  const { data, loading } = useLoad<Draft[]>((relays) => fetchDrafts(relays, { authors: [pubkey], limit: 200 }), [pubkey])
+  // Drafts plus the author's releases, so the "released" chip reflects reality
+  // rather than the advisory tag (spec §6.1).
+  const { data, loading } = useLoad<{ drafts: Draft[]; releasedUuids: Set<string> }>(async (relays) => {
+    const [drafts, releases] = await Promise.all([
+      fetchDrafts(relays, { authors: [pubkey], limit: 200 }),
+      fetchReleases(relays, { authors: [pubkey], limit: 500 }).catch(() => [] as Release[]),
+    ])
+    return { drafts, releasedUuids: new Set(releases.map((r) => r.uuid)) }
+  }, [pubkey])
   if (loading) return <Loading />
-  if (!data?.length) return <Empty text="No drafts." />
-  return <div className="space-y-3">{data.map((d) => <DraftCard key={d.coord} draft={d} />)}</div>
+  if (!data?.drafts.length) return <Empty text="No drafts." />
+  return <div className="space-y-3">{data.drafts.map((d) => <DraftCard key={d.coord} draft={d} released={data.releasedUuids.has(d.uuid) || !!d.releaseId} />)}</div>
 }
 
 export function ReleasesTab({ pubkey }: { pubkey: string }) {

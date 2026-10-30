@@ -2,7 +2,7 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
 import { Link } from 'react-router-dom'
 import { Loader2, Plus, RefreshCw, Search } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
-import { fetchDrafts, type Draft } from '@/lib/nostr/nipps'
+import { fetchDrafts, fetchReleases, type Draft } from '@/lib/nostr/nipps'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
 import { usePaged } from '@/hooks/usePaged'
 import { Input } from '@/components/ui/input'
@@ -22,6 +22,7 @@ function useDraftFeed(tick: number) {
   const [loading, setLoading] = useState(true)
   const [loadingMore, setLoadingMore] = useState(false)
   const [reachedEnd, setReachedEnd] = useState(false)
+  const [released, setReleased] = useState<Set<string>>(new Set())
   const byCoord = useRef(new Map<string, Draft>())
   const oldest = useRef<number | undefined>(undefined)
   const inFlight = useRef(false)
@@ -35,13 +36,29 @@ function useDraftFeed(tick: number) {
       if (oldest.current === undefined || d.createdAt < oldest.current) oldest.current = d.createdAt
     }
     setDrafts([...byCoord.current.values()].sort((a, b) => b.createdAt - a.createdAt))
+    // Release detection (spec §6.1): ask for releases that point at these
+    // drafts, so the chip does not depend on the author stamping the draft.
+    const coords = batch.map((d) => d.coord)
+    if (coords.length) {
+      const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
+      fetchReleases(relays, { '#a': coords, limit: 500 })
+        .then((rs) => {
+          if (rs.length === 0) return
+          setReleased((prev) => {
+            const next = new Set(prev)
+            for (const r of rs) if (r.draftCoord) next.add(r.draftCoord)
+            return next
+          })
+        })
+        .catch(() => { /* chip falls back to the advisory tag */ })
+    }
     return fresh
   }, [])
 
   useEffect(() => {
     let cancelled = false
     byCoord.current = new Map(); oldest.current = undefined; inFlight.current = false
-    setDrafts([]); setReachedEnd(false); setLoading(true)
+    setDrafts([]); setReleased(new Set()); setReachedEnd(false); setLoading(true)
     const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
     fetchDrafts(relays, { limit: BATCH })
       .then((d) => { if (!cancelled) { const n = ingest(d); if (n === 0) setReachedEnd(true) } })
@@ -66,14 +83,14 @@ function useDraftFeed(tick: number) {
     }
   }, [reachedEnd, ingest])
 
-  return { drafts, loading, loadingMore, reachedEnd, loadMore }
+  return { drafts, released, loading, loadingMore, reachedEnd, loadMore }
 }
 
 export function DraftsPage() {
   useSeoMeta({ title: 'Drafts', description: 'Proposals in progress: read, discuss, implement experimentally.' })
   const [q, setQ] = useState('')
   const [tick, setTick] = useState(0)
-  const { drafts, loading, loadingMore, reachedEnd, loadMore } = useDraftFeed(tick)
+  const { drafts, released, loading, loadingMore, reachedEnd, loadMore } = useDraftFeed(tick)
 
   const visible = useMemo(() => {
     const s = q.trim().toLowerCase()
@@ -125,7 +142,7 @@ export function DraftsPage() {
                 <span className="text-xs text-neutral-500">{main.length}{reachedEnd ? '' : '+'} drafts · page {page} of {totalPages}{reachedEnd ? '' : '+'}</span>
                 {lensActive && <ScoreFilterMenu value={filter} onChange={setFilter} counts={counts} />}
               </div>
-              {paged.length === 0 ? <EmptyFiltered filter={filter} /> : paged.map((d) => <DraftCard key={d.coord} draft={d} />)}
+              {paged.length === 0 ? <EmptyFiltered filter={filter} /> : paged.map((d) => <DraftCard key={d.coord} draft={d} released={released.has(d.coord) || !!d.releaseId} />)}
               <Pagination page={page} totalPages={totalPages} onPage={setPage} reachedEnd={reachedEnd} loadingMore={loadingMore} />
             </div>
           )}

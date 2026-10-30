@@ -71,7 +71,7 @@ export function TopicChips({ topics, max = 10, expandable = false }: { topics: s
 
 // ─── Draft ──────────────────────────────────────────────────────────
 
-export function DraftCard({ draft }: { draft: Draft }) {
+export function DraftCard({ draft, released }: { draft: Draft; released?: boolean }) {
   return (
     <Link to={`/draft/${draftNaddr(draft.pubkey, draft.uuid)}`} className="block rounded-lg border border-edge bg-panel p-4 transition-colors hover:border-purple-500/40">
       <div className="flex items-start justify-between gap-3">
@@ -80,7 +80,7 @@ export function DraftCard({ draft }: { draft: Draft }) {
           {draft.summary && <p className="mt-1 line-clamp-2 text-sm text-neutral-400">{draft.summary}</p>}
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          {draft.releaseId && <Chip className="border-emerald-500/30 text-emerald-400">released</Chip>}
+          {(released ?? !!draft.releaseId) && <Chip className="border-emerald-500/30 text-emerald-400">released</Chip>}
           {draft.status === 'review' && <Chip className="border-yellow-500/30 text-yellow-400">in review</Chip>}
           <FileText className="h-4 w-4 text-neutral-600" />
         </div>
