@@ -160,14 +160,17 @@ function Pill({ onClick, className, children }: { onClick?: () => void; classNam
   )
 }
 
-export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine }: {
+export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine, menu }: {
   claim: Claim
   legit?: number
   fake?: number
   onReview?: () => void
   /** Opens the full claim with its verdicts; the verdict pills become buttons. */
   onOpen?: () => void
+  /** Viewer already left a verdict on this claim. */
   mine?: boolean
+  /** Three-dot menu slot (ItemMenu). */
+  menu?: React.ReactNode
 }) {
   return (
     <div className={cn('rounded-lg border border-edge bg-panel p-4', claim.withdrawn && 'opacity-60')}>
@@ -192,6 +195,7 @@ export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine }
             <Pill onClick={onOpen} className="border-red-500/30 text-red-400"><ShieldX className="h-3 w-3" /> {fake} fake</Pill>
           )}
           {claim.withdrawn && <Ban className="h-4 w-4 text-neutral-600" />}
+          {menu}
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
@@ -202,11 +206,17 @@ export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine }
         {claim.relay && <Chip>{claim.relay}</Chip>}
       </div>
       {claim.content && <p className="mt-2 text-sm text-neutral-400">{claim.content}</p>}
-      {onReview && (
+      {(onReview || (mine && onOpen)) && (
         <div className="mt-3 flex justify-end">
-          <button type="button" onClick={onReview} className="text-xs text-neutral-400 hover:text-purple-400">
-            {mine ? 'Edit your verdict' : 'Is this implementation real?'}
-          </button>
+          {mine && onOpen ? (
+            <button type="button" onClick={onOpen} className="flex items-center gap-1 text-xs text-neutral-400 hover:text-purple-400">
+              <ShieldCheck className="h-3 w-3" /> You&apos;ve given your verdict
+            </button>
+          ) : (
+            <button type="button" onClick={onReview} className="text-xs text-neutral-400 hover:text-purple-400">
+              Is this implementation real?
+            </button>
+          )}
         </div>
       )}
     </div>
@@ -227,7 +237,7 @@ export function VerdictChip({ verdict }: { verdict: string }) {
   return <Chip className={VERDICT_STYLE[verdict] ?? ''}>{verdict.replace('-', ' ')}</Chip>
 }
 
-export function ReviewCard({ review, targetLabel }: { review: Review; targetLabel?: React.ReactNode }) {
+export function ReviewCard({ review, targetLabel, menu }: { review: Review; targetLabel?: React.ReactNode; menu?: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-edge bg-panel p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
@@ -235,6 +245,7 @@ export function ReviewCard({ review, targetLabel }: { review: Review; targetLabe
         <div className="flex items-center gap-2">
           {targetLabel}
           <VerdictChip verdict={review.verdict} />
+          {menu}
         </div>
       </div>
       {review.content && <div className="mt-2"><Markdown content={review.content} /></div>}

@@ -59,13 +59,13 @@ export function SocialPostMenu({ event, onDeleted }: { event: NostrEvent; onDele
             <Copy className="h-4 w-4 mr-2" /> Copy event address
           </DropdownMenuItem>
           <DropdownMenuItem onClick={() => setRawOpen(true)} className="cursor-pointer">
-            <FileJson className="h-4 w-4 mr-2" /> View raw event
+            <FileJson className="h-4 w-4 mr-2" /> Raw event
           </DropdownMenuItem>
           {isOwner && (
             <>
               <DropdownMenuSeparator className="bg-edge" />
               <DropdownMenuItem onClick={() => setDeleteOpen(true)} className="cursor-pointer text-red-400 focus:text-red-400">
-                <Trash2 className="h-4 w-4 mr-2" /> Request delete
+                <Trash2 className="h-4 w-4 mr-2" /> Request deletion
               </DropdownMenuItem>
             </>
           )}

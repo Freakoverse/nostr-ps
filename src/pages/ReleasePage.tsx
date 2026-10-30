@@ -32,6 +32,7 @@ import { ClaimDialog } from '@/components/ps/ClaimDialog'
 import { ReviewDialog } from '@/components/ps/ReviewDialog'
 import { VersionList } from '@/components/ps/VersionDiff'
 import { ClaimDetailDialog } from '@/components/ps/ClaimDetailDialog'
+import { ItemMenu } from '@/components/ps/ItemMenu'
 import type { ForkPrefill } from './DraftEditPage'
 
 export function ReleasePage() {
@@ -310,7 +311,17 @@ export function ReleasePage() {
           keyOf={(c) => c.coord}
           render={(c) => {
             const st = claimStats.get(c.coord)
-            return <ClaimCard claim={c} legit={st?.legit} fake={st?.fake} mine={!!myPubkey && (claimReviews.get(c.coord) ?? []).some((r) => r.pubkey === myPubkey)} onReview={() => (myPubkey ? setClaimReviewTarget(c) : useLoginModalStore.getState().open())} onOpen={() => setClaimDetail(c)} />
+            return (
+              <ClaimCard
+                claim={c}
+                legit={st?.legit}
+                fake={st?.fake}
+                mine={!!myPubkey && (claimReviews.get(c.coord) ?? []).some((r) => r.pubkey === myPubkey)}
+                onReview={() => (myPubkey ? setClaimReviewTarget(c) : useLoginModalStore.getState().open())}
+                onOpen={() => setClaimDetail(c)}
+                menu={<ItemMenu event={c.event} mine={c.pubkey === myPubkey} onEdit={() => setClaimOpen(true)} noun="claim" title={`your claim for ${c.name}`} onDeleted={reload} />}
+              />
+            )
           }}
           empty={<p className="rounded-lg border border-dashed border-edge py-10 text-center text-sm text-neutral-500">No one has claimed adoption yet. Implemented it? Say so.</p>}
         />
@@ -329,7 +340,12 @@ export function ReleasePage() {
         <TieredList
           items={reviews}
           keyOf={(r) => r.event.id}
-          render={(r) => <ReviewCard review={r} />}
+          render={(r) => (
+            <ReviewCard
+              review={r}
+              menu={<ItemMenu event={r.event} mine={r.pubkey === myPubkey} onEdit={() => setReviewOpen(true)} noun="review" title={`your review of ${release.title}`} onDeleted={reload} />}
+            />
+          )}
           empty={<p className="rounded-lg border border-dashed border-edge py-10 text-center text-sm text-neutral-500">No reviews yet.</p>}
         />
       </section>
@@ -356,6 +372,17 @@ export function ReleasePage() {
             setClaimDetail(null)
             setClaimReviewTarget(c)
           }}
+          claimMenu={<ItemMenu event={claimDetail.event} mine={claimDetail.pubkey === myPubkey} onEdit={() => { setClaimDetail(null); setClaimOpen(true) }} noun="claim" title={`your claim for ${claimDetail.name}`} onDeleted={() => { setClaimDetail(null); reload() }} />}
+          menuFor={(r) => (
+            <ItemMenu
+              event={r.event}
+              mine={r.pubkey === myPubkey}
+              onEdit={() => { const c = claimDetail; setClaimDetail(null); setClaimReviewTarget(c) }}
+              noun="verdict"
+              title={`your verdict on ${claimDetail.name}`}
+              onDeleted={reload}
+            />
+          )}
         />
       )}
       {claimReviewTarget && (
