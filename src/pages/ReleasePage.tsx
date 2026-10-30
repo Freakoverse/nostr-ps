@@ -206,8 +206,8 @@ export function ReleasePage() {
         {release.summary && <p className="text-neutral-400">{release.summary}</p>}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <AuthorLine pubkey={release.pubkey} at={release.createdAt} />
-          <KindChips kinds={release.kinds} />
-          <TopicChips topics={release.topics} />
+          <KindChips kinds={release.kinds} max={20} expandable />
+          <TopicChips topics={release.topics} max={20} expandable />
         </div>
         <p className="font-mono text-[11px] text-neutral-600">{releaseLabel(release)}</p>
       </div>

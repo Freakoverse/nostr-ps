@@ -70,7 +70,7 @@ export function LensSettings() {
             </div>
           </div>
           <Slider min={0} max={100} step={5} value={[threshold]} onValueChange={([v]) => setThreshold(v)} />
-          <p className="mt-1.5 text-xs text-muted-foreground">Scores run 0 to 100 and never go negative. Graph sources give a direct follow 100, a follow of a follow 50, and a muted pubkey 0, so the default of {DEFAULT_THRESHOLD} lets your graph and one hop out through. Authors below it are folded; authors with no score are a separate filter.</p>
+          <p className="mt-1.5 text-xs text-muted-foreground">Scores run 0 to 100 and never go negative. NIP-85 ranks are compressed toward zero: one strong vouch from inside the graph is about rank 2, and a trusted mute drives anyone to 0. The default of {DEFAULT_THRESHOLD} therefore means &quot;vouched for at all&quot;. Graph sources give a direct follow 100, a follow of a follow 50, and a muted pubkey 0. The score filter on each list lets you view scored, low-scored, or unscored authors.</p>
         </div>
         <div>
           <div className="mb-2 flex items-center justify-between">

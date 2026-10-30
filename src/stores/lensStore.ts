@@ -53,11 +53,14 @@ export const OWN_SOURCE_ID = 'own'
 /** The operator's graph: the anonymous default viewpoint. */
 export const OPERATOR_SOURCE_ID = 'operator'
 /**
- * Default threshold. Graph sources score a direct follow 100, a follow of a
- * follow 50 and a muted pubkey 0, so 50 means "my graph and one hop out pass,
- * muted fails". NIP-85 providers publish 0-100 as well; nothing goes negative.
+ * Default threshold. NIP-85 ranks are compressed toward zero (GrapeRank's own
+ * "valid user" cutoff is rank 2: one strong vouch or a few ordinary ones from
+ * inside the observer's graph). Sybils sit at 0 or unknown; bad actors with a
+ * few follows are driven to 0 by trusted mutes, so the threshold is a "how much
+ * vouching" dial, not the anti-malice tool. Graph sources score a direct follow
+ * 100, a follow of a follow 50, a muted pubkey 0, so 2 behaves the same there.
  */
-export const DEFAULT_THRESHOLD = 50
+export const DEFAULT_THRESHOLD = 2
 
 const SCORE_TTL = 10 * 60 * 1000
 const GRAPH_TTL = 30 * 60 * 1000
@@ -239,7 +242,13 @@ async function scoreViaNip85(relays: string[], serviceKey: string, pubkeys: stri
     }
     for (const [d, ev] of newest) {
       const rank = Number(ev.tags.find((t) => t[0] === 'rank')?.[1])
-      if (Number.isFinite(rank)) out.set(d, Math.max(0, Math.min(100, Math.round(rank))))
+      if (!Number.isFinite(rank)) continue
+      // A rank of 0 with no `hops` tag means the subject was unreachable from the
+      // observer's graph: that is "unknown", not "scored zero". With a hops tag,
+      // zero means the graph reached them and did not vouch (or muted them).
+      const hops = ev.tags.find((t) => t[0] === 'hops')?.[1]
+      if (rank <= 0 && hops === undefined) continue
+      out.set(d, Math.max(0, Math.min(100, Math.round(rank))))
     }
   }
   return out

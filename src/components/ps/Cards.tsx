@@ -1,3 +1,4 @@
+import { useState } from 'react'
 import { Link } from 'react-router-dom'
 import { FileText, GitFork, Users, ShieldCheck, ShieldX, Ban } from 'lucide-react'
 import { cn } from '@/lib/utils'
@@ -9,18 +10,63 @@ export function Chip({ children, className }: { children: React.ReactNode; class
   return <span className={cn('inline-flex items-center gap-1 rounded-md border border-edge bg-panel-2 px-1.5 py-0.5 text-[11px] text-neutral-400', className)}>{children}</span>
 }
 
-export function KindChips({ kinds }: { kinds: { kind: number; name?: string }[] }) {
-  if (kinds.length === 0) return null
+/** Chip label text cap; the full value goes in a title tooltip. */
+const CHIP_TEXT_MAX = 20
+
+function clip(s: string): string {
+  return s.length > CHIP_TEXT_MAX ? s.slice(0, CHIP_TEXT_MAX - 1).trimEnd() + '…' : s
+}
+
+/**
+ * Capped chip row. `max` chips are shown; the rest collapse into a "+N" chip
+ * (static on cards) or a "+N more" button that expands when `expandable`.
+ */
+function ChipRow<T>({ items, max, expandable, keyOf, render }: {
+  items: T[]
+  max: number
+  expandable?: boolean
+  keyOf: (item: T) => string
+  render: (item: T) => React.ReactNode
+}) {
+  const [open, setOpen] = useState(false)
+  if (items.length === 0) return null
+  const shown = open ? items : items.slice(0, max)
+  const rest = items.length - shown.length
   return (
-    <div className="flex flex-wrap gap-1">
-      {kinds.map((k) => <Chip key={k.kind}><span className="font-mono text-purple-300">{k.kind}</span>{k.name && <span>{k.name}</span>}</Chip>)}
+    <div className="flex flex-wrap items-center gap-1">
+      {shown.map((it) => <Chip key={keyOf(it)}>{render(it)}</Chip>)}
+      {rest > 0 && (expandable
+        ? <button type="button" onClick={() => setOpen(true)} className="rounded-md border border-dashed border-edge-2 px-1.5 py-0.5 text-[11px] text-neutral-400 hover:border-purple-500/40 hover:text-purple-300">+{rest} more</button>
+        : <Chip className="border-dashed text-neutral-500">+{rest}</Chip>)}
+      {open && expandable && items.length > max && (
+        <button type="button" onClick={() => setOpen(false)} className="px-1 text-[11px] text-neutral-500 hover:text-neutral-300">show less</button>
+      )}
     </div>
   )
 }
 
-export function TopicChips({ topics }: { topics: string[] }) {
-  if (topics.length === 0) return null
-  return <div className="flex flex-wrap gap-1">{topics.map((t) => <Chip key={t}>#{t}</Chip>)}</div>
+export function KindChips({ kinds, max = 10, expandable = false }: { kinds: { kind: number; name?: string }[]; max?: number; expandable?: boolean }) {
+  return (
+    <ChipRow
+      items={kinds}
+      max={max}
+      expandable={expandable}
+      keyOf={(k) => String(k.kind)}
+      render={(k) => <span title={k.name ? ` ` : String(k.kind)} className="inline-flex items-center gap-1"><span className="font-mono text-purple-300">{k.kind}</span>{k.name && <span>{clip(k.name)}</span>}</span>}
+    />
+  )
+}
+
+export function TopicChips({ topics, max = 10, expandable = false }: { topics: string[]; max?: number; expandable?: boolean }) {
+  return (
+    <ChipRow
+      items={topics}
+      max={max}
+      expandable={expandable}
+      keyOf={(t) => t}
+      render={(t) => <span title={`#`}>#{clip(t)}</span>}
+    />
+  )
 }
 
 // ─── Draft ──────────────────────────────────────────────────────────

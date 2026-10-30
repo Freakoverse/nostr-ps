@@ -83,8 +83,8 @@ export function DraftPage() {
         {draft.summary && <p className="text-neutral-400">{draft.summary}</p>}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <AuthorLine pubkey={draft.pubkey} at={draft.createdAt} />
-          <KindChips kinds={draft.kinds} />
-          <TopicChips topics={draft.topics} />
+          <KindChips kinds={draft.kinds} max={20} expandable />
+          <TopicChips topics={draft.topics} max={20} expandable />
         </div>
       </div>
 
