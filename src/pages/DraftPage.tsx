@@ -79,7 +79,7 @@ export function DraftPage() {
           </PostMenu>
         </div>
         <h1 className="text-3xl font-bold tracking-tight">{draft.title}</h1>
-        {draft.summary && <p className="text-neutral-400">{draft.summary}</p>}
+        {draft.summary && <Markdown content={draft.summary} className="rounded-lg border border-edge bg-well px-4 py-3 text-[15px] text-neutral-300" />}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <AuthorLine pubkey={draft.pubkey} at={draft.createdAt} />
           <KindChips kinds={draft.kinds} max={20} expandable />

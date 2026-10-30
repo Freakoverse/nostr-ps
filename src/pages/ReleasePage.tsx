@@ -203,7 +203,7 @@ export function ReleasePage() {
           </PostMenu>
         </div>
         <h1 className="text-3xl font-bold tracking-tight">{release.title}</h1>
-        {release.summary && <p className="text-neutral-400">{release.summary}</p>}
+        {release.summary && <Markdown content={release.summary} className="rounded-lg border border-edge bg-well px-4 py-3 text-[15px] text-neutral-300" />}
         <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
           <AuthorLine pubkey={release.pubkey} at={release.createdAt} />
           <KindChips kinds={release.kinds} max={20} expandable />
