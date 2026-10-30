@@ -5,13 +5,12 @@ import { nip19 } from 'nostr-tools'
 import { Loader2 } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import {
-  fetchDrafts, fetchReleases, fetchClaimsBy, fetchReviewsBy, groupReleases, releaseNevent, shortId, PS_ORIGIN_TAG,
-  getCachedDrafts, getCachedReleases, getCachedClaimsBy, getCachedReviewsBy, whenEventCacheReady,
-  type Draft, type Release, type Claim, type Review,
+  fetchDrafts, fetchReleases, fetchClaimsBy, fetchReviewsBy, fetchLatestUpdates, fetchClaimsForMany, summarizeProposals, releaseNevent, shortId, PS_ORIGIN_TAG,
+  getCachedDrafts, getCachedReleases, getCachedClaimsBy, getCachedClaimsByUuid, getCachedReviewsBy, whenEventCacheReady,
+  type Draft, type Release, type Claim, type Review, type ProposalSummary,
 } from '@/lib/nostr/nipps'
 import { KINDS } from '@/lib/constants'
-import { DraftCard, ClaimCard, ReviewCard, Chip } from './Cards'
-import { VersionList } from './VersionDiff'
+import { DraftCard, ProposalCard, ClaimCard, ReviewCard } from './Cards'
 import { VerdictRow } from './ClaimDetailDialog'
 
 function Loading() {
@@ -89,30 +88,35 @@ export function DraftsTab({ pubkey }: { pubkey: string }) {
   )
 }
 
+/**
+ * The author's proposals as cards, the same rollup the proposals list uses:
+ * one `#o original` query (bounded, one event per proposal), the latest
+ * update per proposal, claims per uuid, summarised. Shows summary, version,
+ * implementer count and version count, not the version list.
+ */
 export function ReleasesTab({ pubkey }: { pubkey: string }) {
-  const { data, loading, refreshing } = useLoad<Release[]>(
-    () => nonEmpty(getCachedReleases().filter((r) => r.pubkey === pubkey)),
-    (relays) => fetchReleases(relays, { authors: [pubkey], limit: 500 }),
+  const { data, loading, refreshing } = useLoad<ProposalSummary[]>(
+    () => {
+      const mine = getCachedReleases().filter((r) => r.pubkey === pubkey)
+      if (!mine.length) return null
+      return summarizeProposals(mine, getCachedClaimsByUuid()).sort((a, b) => b.latest.createdAt - a.latest.createdAt)
+    },
+    async (relays) => {
+      const originals = await fetchReleases(relays, { authors: [pubkey], [`#${PS_ORIGIN_TAG}`]: ['original'], limit: 500 })
+      const [updates, claims] = await Promise.all([
+        fetchLatestUpdates(relays, originals).catch(() => [] as Release[]),
+        fetchClaimsForMany(relays, [...new Set(originals.map((r) => r.uuid))]).catch(() => new Map<string, Claim[]>()),
+      ])
+      return summarizeProposals([...originals, ...updates], claims).sort((a, b) => b.latest.createdAt - a.latest.createdAt)
+    },
     [pubkey],
   )
   if (loading) return <Loading />
   if (!data?.length) return <Empty text="No releases." />
-  const groups = [...groupReleases(data).values()].sort((a, b) => b[0].createdAt - a[0].createdAt)
   return (
     <div className="space-y-3">
       {refreshing && <Refreshing />}
-      {groups.map((list) => {
-        const latest = list[0]
-        return (
-          <div key={`${latest.pubkey}:${latest.uuid}`} className="rounded-lg border border-edge bg-panel p-3">
-            <div className="flex items-center justify-between gap-2 px-1 pb-2">
-              <Link to={`/release/${releaseNevent(latest.id, latest.pubkey)}`} className="truncate text-sm font-semibold text-neutral-100 hover:text-purple-300">{latest.title}</Link>
-              <Chip>{list.length} {list.length === 1 ? 'version' : 'versions'}</Chip>
-            </div>
-            <VersionList versions={list} />
-          </div>
-        )
-      })}
+      {data.map((p) => <ProposalCard key={p.key} p={p} />)}
     </div>
   )
 }
