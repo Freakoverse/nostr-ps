@@ -2,6 +2,7 @@ import { useState } from 'react'
 import { Check, Copy } from 'lucide-react'
 import { AuthorLine } from '@/components/social/AuthorLine'
 import { Tip } from '@/components/shared/Tip'
+import { PowBadge } from '@/components/shared/PowBadge'
 import { KindChips, TopicChips } from './Cards'
 import type { KindRef } from '@/lib/nostr/nipps'
 
@@ -18,10 +19,10 @@ function Card({ title, children, right }: { title: string; children: React.React
 }
 
 /** Who published it, and when. */
-export function AuthorCard({ pubkey, at, title = 'Author' }: { pubkey: string; at?: number; title?: string }) {
+export function AuthorCard({ pubkey, at, eventId, title = 'Author' }: { pubkey: string; at?: number; eventId?: string; title?: string }) {
   return (
     <Card title={title}>
-      <AuthorLine pubkey={pubkey} at={at} size="md" />
+      <AuthorLine pubkey={pubkey} at={at} size="md" suffix={eventId ? <PowBadge id={eventId} /> : undefined} />
     </Card>
   )
 }

@@ -4,7 +4,8 @@ import { toast } from 'sonner'
 import { useAuthStore } from '@/stores/authStore'
 import { useLoginModalStore } from '@/stores/loginModalStore'
 import { buildCommentEvent } from '@/lib/nostr/events'
-import { signAndPublish } from '@/lib/nostr/publish'
+import { signAndPublish, type PublishStatus } from '@/lib/nostr/publish'
+import { PublishPhase } from '@/components/shared/PublishPhase'
 import type { NostrTarget } from '@/lib/nostr/social'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
@@ -27,6 +28,7 @@ export function CommentForm({ root, replyTo, onPublished, onCancel, autoFocus, p
   const { pubkey } = useAuthStore()
   const [content, setContent] = useState('')
   const [sending, setSending] = useState(false)
+  const [phase, setPhase] = useState<PublishStatus | null>(null)
 
   if (!pubkey) {
     return (
@@ -53,7 +55,7 @@ export function CommentForm({ root, replyTo, onPublished, onCancel, autoFocus, p
     setSending(true)
     try {
       const event = buildCommentEvent({ content: text, rootEvent: root, replyTo })
-      const res = await signAndPublish(event)
+      const res = await signAndPublish(event, setPhase)
       if (!res.success) throw new Error(res.error)
       setContent('')
       toast.success(replyTo ? 'Reply posted' : 'Comment posted')
@@ -61,7 +63,7 @@ export function CommentForm({ root, replyTo, onPublished, onCancel, autoFocus, p
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to post')
     } finally {
-      setSending(false)
+      setSending(false); setPhase(null)
     }
   }
 
@@ -87,6 +89,7 @@ export function CommentForm({ root, replyTo, onPublished, onCancel, autoFocus, p
               Cancel
             </Button>
           )}
+          <PublishPhase status={phase} className="mr-auto" />
           <Button
             size="sm"
             onClick={submit}

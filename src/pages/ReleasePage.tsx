@@ -264,7 +264,7 @@ export function ReleasePage() {
 
         {/* Versions */}
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <AuthorCard pubkey={release.pubkey} at={release.createdAt} />
+          <AuthorCard pubkey={release.pubkey} at={release.createdAt} eventId={release.id} />
           <div className={cn('rounded-lg border bg-panel p-2 transition-colors', checked ? 'border-edge' : 'animate-pulse border-purple-500/30')}>
             <p className="flex items-center justify-between px-3 pb-1 pt-1 text-xs font-medium uppercase tracking-wider text-neutral-500">
               Versions

@@ -9,13 +9,11 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { LIMITS } from '@/lib/limits'
 import { CharCounter } from '@/components/shared/CharCounter'
+import { PublishPhase } from '@/components/shared/PublishPhase'
 import { MarkdownEditor } from './MarkdownEditor'
 import { KindsEditor } from './KindsEditor'
 import { TopicsEditor } from './TopicsEditor'
 
-const STATUS_TEXT: Record<PublishStatus, string> = {
-  mining: 'Proof of work…', signing: 'Signing…', publishing: 'Publishing…', done: 'Done', error: 'Failed',
-}
 
 /**
  * Create or edit a draft (kind 30817). The uuid is minted once on first save
@@ -104,7 +102,7 @@ export function DraftEditor({ initial, prefill }: { initial?: Draft; prefill?: P
 
       <div className="flex items-center justify-end gap-3">
         {status && status !== 'done' ? (
-          <span className="text-xs text-neutral-500">{STATUS_TEXT[status]}</span>
+          <PublishPhase status={status} />
         ) : initial && !dirty ? (
           <span className="text-xs text-neutral-500">No changes since the published version.</span>
         ) : null}

@@ -1,7 +1,8 @@
 import { useState } from 'react'
 import { Archive, Loader2, ShieldCheck, ShieldX } from 'lucide-react'
 import { toast } from 'sonner'
-import { signAndPublish } from '@/lib/nostr/publish'
+import { signAndPublish, type PublishStatus } from '@/lib/nostr/publish'
+import { PublishPhase } from '@/components/shared/PublishPhase'
 import { buildBackupEvent, type Release, type Backup } from '@/lib/nostr/nipps'
 import { formatRelativeTime } from '@/lib/utils'
 import { ItemMenu } from './ItemMenu'
@@ -24,6 +25,7 @@ export function BackupDialog({ open, onOpenChange, release, existing, onPublishe
   onDeleted?: () => void
 }) {
   const [busy, setBusy] = useState(false)
+  const [phase, setPhase] = useState<PublishStatus | null>(null)
 
   if (existing) {
     const backupSize = new Blob([JSON.stringify(existing.event)]).size
@@ -73,8 +75,8 @@ export function BackupDialog({ open, onOpenChange, release, existing, onPublishe
   const publish = async () => {
     setBusy(true)
     const relay = useSettingsStore.getState().getAllEnabledRelayUrls('write')[0]
-    const res = await signAndPublish(buildBackupEvent(release.event, relay))
-    setBusy(false)
+    const res = await signAndPublish(buildBackupEvent(release.event, relay), setPhase)
+    setBusy(false); setPhase(null)
     if (!res.success) { toast.error(res.error || 'Backup failed'); return }
     toast.success('Backup published')
     onOpenChange(false)
@@ -108,6 +110,7 @@ export function BackupDialog({ open, onOpenChange, release, existing, onPublishe
 
         <DialogFooter>
           <Button variant="outline" onClick={() => onOpenChange(false)} disabled={busy} className="border-edge">Cancel</Button>
+          <PublishPhase status={phase} className="mr-auto" />
           <Button onClick={publish} disabled={busy} className="gap-2 bg-purple-600 text-white hover:bg-purple-700">
             {busy ? <Loader2 className="h-4 w-4 animate-spin" /> : <Archive className="h-4 w-4" />}
             Publish backup

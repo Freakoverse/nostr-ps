@@ -3,6 +3,7 @@ import { Link } from 'react-router-dom'
 import { FileText, GitFork, Users, ShieldCheck, ShieldX, Ban } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tip } from '@/components/shared/Tip'
+import { PowBadge } from '@/components/shared/PowBadge'
 import { draftNaddr, releaseNevent, shortId, type Draft, type Release, type ProposalSummary, type Claim, type Review } from '@/lib/nostr/nipps'
 import { AuthorLine } from '@/components/social/AuthorLine'
 import { Markdown } from '@/components/shared/Markdown'
@@ -200,7 +201,7 @@ export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine, 
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <AuthorLine pubkey={claim.pubkey} at={claim.createdAt} size="xs" />
+        <AuthorLine pubkey={claim.pubkey} at={claim.createdAt} size="xs" suffix={<PowBadge id={claim.event.id} />} />
         {claim.urls.map((u) => (
           <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="truncate text-xs text-purple-400 hover:underline">{u.replace(/^https?:\/\//, '')}</a>
         ))}
@@ -242,7 +243,7 @@ export function ReviewCard({ review, targetLabel, menu }: { review: Review; targ
   return (
     <div className="rounded-lg border border-edge bg-panel p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <AuthorLine pubkey={review.pubkey} at={review.createdAt} size="xs" />
+        <AuthorLine pubkey={review.pubkey} at={review.createdAt} size="xs" suffix={<PowBadge id={review.event.id} />} />
         <div className="flex items-center gap-2">
           {targetLabel}
           <VerdictChip verdict={review.verdict} />

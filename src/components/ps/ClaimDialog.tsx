@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { signAndPublish } from '@/lib/nostr/publish'
+import { signAndPublish, type PublishStatus } from '@/lib/nostr/publish'
+import { PublishPhase } from '@/components/shared/PublishPhase'
 import { buildClaimEvent, CLAIM_ROLES, type Claim, type ClaimRole, type Release } from '@/lib/nostr/nipps'
 import { useAuthStore } from '@/stores/authStore'
 import { useLoginModalStore } from '@/stores/loginModalStore'
@@ -42,6 +43,7 @@ export function ClaimDialog({
   const [partial, setPartial] = useState(false)
   const [notes, setNotes] = useState('')
   const [busy, setBusy] = useState<'save' | 'withdraw' | null>(null)
+  const [phase, setPhase] = useState<PublishStatus | null>(null)
   // Which version the claim will point at. Defaults to the page's release;
   // any version of the proposal can be chosen, since the claim is one per
   // proposal and moving it is a republish (spec §4.4).
@@ -85,8 +87,8 @@ export function ClaimDialog({
       content: notes,
       withdrawn,
     })
-    const res = await signAndPublish(event)
-    setBusy(null)
+    const res = await signAndPublish(event, setPhase)
+    setBusy(null); setPhase(null)
     if (!res.success) { toast.error(res.error || 'Failed to publish claim'); return }
     toast.success(withdrawn ? 'Claim withdrawn' : existing ? 'Claim updated' : 'Adoption claimed')
     onOpenChange(false)
@@ -198,6 +200,7 @@ export function ClaimDialog({
               {busy === 'withdraw' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}Withdraw claim
             </Button>
           ) : <span />}
+          <PublishPhase status={phase} />
           <Button onClick={() => publish(false)} disabled={!!busy} className="bg-purple-600 text-white hover:bg-purple-700">
             {busy === 'save' ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {existing ? 'Save' : 'Publish claim'}

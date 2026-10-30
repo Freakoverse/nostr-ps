@@ -151,7 +151,7 @@ export function DraftPage() {
           </CollapsibleBody>
         </article>
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <AuthorCard pubkey={draft.pubkey} at={draft.createdAt} />
+          <AuthorCard pubkey={draft.pubkey} at={draft.createdAt} eventId={draft.event.id} />
           <MetaCard kinds={draft.kinds} topics={draft.topics} />
         </aside>
       </div>

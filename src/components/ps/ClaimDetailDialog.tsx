@@ -8,6 +8,7 @@ import { AuthorLine } from '@/components/social/AuthorLine'
 import { Markdown } from '@/components/shared/Markdown'
 import { ClaimCard } from './Cards'
 import { cn } from '@/lib/utils'
+import { PowBadge } from '@/components/shared/PowBadge'
 
 /**
  * The whole adoption claim plus every verdict on it (legit / fake), opened
@@ -100,7 +101,7 @@ export function VerdictRow({ review, menu, label }: { review: Review; menu?: Rea
   return (
     <div className="rounded-lg border border-edge bg-panel p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
-        <AuthorLine pubkey={review.pubkey} at={review.createdAt} size="xs" />
+        <AuthorLine pubkey={review.pubkey} at={review.createdAt} size="xs" suffix={<PowBadge id={review.event.id} />} />
         <div className="flex items-center gap-1.5">
           {label}
           <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium', legit ? 'border-emerald-500/30 text-emerald-400' : 'border-red-500/30 text-red-400')}>

@@ -1,7 +1,8 @@
 import { useEffect, useState } from 'react'
 import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
-import { signAndPublish } from '@/lib/nostr/publish'
+import { signAndPublish, type PublishStatus } from '@/lib/nostr/publish'
+import { PublishPhase } from '@/components/shared/PublishPhase'
 import {
   buildReleaseReviewEvent, buildClaimReviewEvent,
   type Claim, type Release, type Review, type ReleaseVerdict, type ClaimVerdict,
@@ -45,6 +46,7 @@ export function ReviewDialog({
   const [verdict, setVerdict] = useState<string>('')
   const [content, setContent] = useState('')
   const [busy, setBusy] = useState(false)
+  const [phase, setPhase] = useState<PublishStatus | null>(null)
 
   useEffect(() => {
     if (!open) return
@@ -67,8 +69,8 @@ export function ReviewDialog({
     const event = target.kind === 'release'
       ? buildReleaseReviewEvent(target.release, verdict as ReleaseVerdict, content)
       : buildClaimReviewEvent(target.claim, verdict as ClaimVerdict, content)
-    const res = await signAndPublish(event)
-    setBusy(false)
+    const res = await signAndPublish(event, setPhase)
+    setBusy(false); setPhase(null)
     if (!res.success) { toast.error(res.error || 'Failed to publish review'); return }
     toast.success(existing ? 'Review updated' : 'Review published')
     onOpenChange(false)
@@ -116,6 +118,7 @@ export function ReviewDialog({
         </div>
 
         <DialogFooter>
+          <PublishPhase status={phase} className="mr-auto" />
           <Button onClick={publish} disabled={busy} className="bg-purple-600 text-white hover:bg-purple-700">
             {busy ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : null}
             {existing ? 'Update review' : 'Publish review'}
