@@ -150,6 +150,8 @@ reference releases only.
     ["k", "<kind number>", "<name>"],      // OPTIONAL, repeatable: kinds the spec defines or uses
     ["t", "<topic>"],                      // OPTIONAL, repeatable
     ["status", "review"],                  // RECOMMENDED, always "review": a draft is a draft
+    ["published_at", "<unix seconds>"],    // REQUIRED, original publication time, carried forward on edits
+    ["updated_at", "<unix seconds>"],      // RECOMMENDED on edits, wall-clock time of this edit
     ["fork", "<parent release id>", "<relay>"],   // OPTIONAL, advisory: this draft forks that release
     ["nonce", "<n>", "<difficulty>"]       // RECOMMENDED, NIP-13
   ]
@@ -170,6 +172,19 @@ Rules:
   unreachable release cannot leave a stale claim behind on the draft.
 - A draft MAY continue to be edited after a release, as the working copy
   for the next version.
+- **Timestamps on edits.** A draft is replaced in place, so its three
+  timestamps mean different things. `published_at` is set to `created_at`
+  on first publish and carried forward unchanged on every edit; it is the
+  time the proposal appeared, and clients MUST order draft listings by it.
+  `created_at` is a logical counter after the first publish: an edit sets
+  it to the replaced revision's `created_at` plus one, never to wall-clock
+  time, so the replacement is always newer than what it replaces even on a
+  device whose clock is behind, and repeated edits accumulate. `updated_at`
+  is the real wall-clock time of the edit, for a "last edited" display
+  only; relays do not index it and clients MUST NOT select revisions by
+  it. A draft whose `created_at` exceeds its `published_at` has been
+  edited, and clients SHOULD say so. Releases carry none of this: a
+  release is immutable, so its `created_at` is simply when it was made.
 - **Deleting a draft.** Because a draft is addressable, the author retracts
   it by republishing the address with empty content and a
   `["deleted", "true"]` tag, and SHOULD also send a NIP-09 deletion

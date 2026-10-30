@@ -38,7 +38,8 @@ export function useDraftFeed(tick = 0, batch = BATCH) {
       if (!cur || d.createdAt > cur.createdAt) byCoord.current.set(d.coord, d)
       if (oldest.current === undefined || d.createdAt < oldest.current) oldest.current = d.createdAt
     }
-    setDrafts([...byCoord.current.values()].sort((a, b) => b.createdAt - a.createdAt))
+    // Listing order is original publication time; created_at is a version counter (§4.1).
+    setDrafts([...byCoord.current.values()].sort((a, b) => b.publishedAt - a.publishedAt))
     const coords = incoming.map((d) => d.coord)
     if (coords.length) {
       const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')

@@ -97,7 +97,12 @@ export function DraftPage() {
           <div className="flex flex-wrap items-center gap-2">
             <Chip>draft</Chip>
             <PowBadge id={draft.event.id} />
-            <Tip label={formatTimestamp(draft.createdAt)}><Chip className="text-neutral-400">published {formatRelativeTime(draft.createdAt)}</Chip></Tip>
+            <Tip label={formatTimestamp(draft.publishedAt)}><Chip className="text-neutral-400">published {formatRelativeTime(draft.publishedAt)}</Chip></Tip>
+            {draft.edited && (
+              <Tip label={draft.updatedAt ? formatTimestamp(draft.updatedAt) : 'Edit time not recorded'}>
+                <Chip className="text-neutral-400">edited{draft.updatedAt ? ` ${formatRelativeTime(draft.updatedAt)}` : ''}</Chip>
+              </Tip>
+            )}
           </div>
           <PostMenu event={draft.event}>
             {isAuthor && (

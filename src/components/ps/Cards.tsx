@@ -91,7 +91,7 @@ export function DraftCard({ draft, released }: { draft: Draft; released?: boolea
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <AuthorLine pubkey={draft.pubkey} at={draft.createdAt} size="xs" linked={false} />
+        <AuthorLine pubkey={draft.pubkey} at={draft.publishedAt} size="xs" linked={false} suffix={draft.edited ? <span className="text-[11px] text-neutral-600">edited</span> : undefined} />
         <KindChips kinds={draft.kinds} />
         <TopicChips topics={draft.topics} />
       </div>

@@ -119,7 +119,14 @@ export interface Draft {
   topics: string[]
   status?: string
   content: string
+  /** Logical version counter (NIP-01 replacement order), not wall-clock after the first edit. */
   createdAt: number
+  /** Original publication time, carried unchanged across edits (`published_at` tag). */
+  publishedAt: number
+  /** Wall-clock time of the last edit (`updated_at` tag), when the draft has been edited. */
+  updatedAt?: number
+  /** True once `created_at` has moved past `published_at`, i.e. the draft was edited. */
+  edited: boolean
   deleted: boolean
 }
 
@@ -229,6 +236,9 @@ export function parseDraft(ev: NostrEvent): Draft | null {
     status: tag(ev, 'status')?.trim() || undefined,
     content: ev.content,
     createdAt: ev.created_at,
+    publishedAt: parseInt(tag(ev, 'published_at') ?? '', 10) || ev.created_at,
+    updatedAt: parseInt(tag(ev, 'updated_at') ?? '', 10) || undefined,
+    edited: ev.created_at > (parseInt(tag(ev, 'published_at') ?? '', 10) || ev.created_at),
     deleted: isDeleted(ev),
   }
 }
@@ -356,9 +366,23 @@ export interface DraftInput {
   kinds?: KindRef[]
   topics?: string[]
   status?: string
+  /** Editing: the original publication time to carry forward. Absent on first publish. */
+  publishedAt?: number
+  /** Editing: `created_at` of the revision being replaced; the new one is that + 1. */
+  prevCreatedAt?: number
 }
 
+/**
+ * Draft timestamps (spec §4.1): `published_at` is set once and carried
+ * forward; `created_at` is a logical counter that steps +1 per edit so the
+ * replacement is always newer than the revision it replaces without jumping
+ * to wall-clock; `updated_at` is the real edit time, for display only.
+ */
 export function buildDraftEvent(input: DraftInput): UnsignedEvent {
+  const wall = now()
+  const editing = input.prevCreatedAt !== undefined
+  const createdAt = editing ? input.prevCreatedAt! + 1 : wall
+  const publishedAt = input.publishedAt ?? createdAt
   const tags: string[][] = [
     ['d', input.uuid],
     ['title', input.title.trim()],
@@ -367,8 +391,10 @@ export function buildDraftEvent(input: DraftInput): UnsignedEvent {
   for (const k of input.kinds ?? []) tags.push(k.name ? ['k', String(k.kind), k.name] : ['k', String(k.kind)])
   for (const t of input.topics ?? []) tags.push(['t', t.trim().toLowerCase()])
   if (input.status?.trim()) tags.push(['status', input.status.trim()])
+  tags.push(['published_at', String(publishedAt)])
+  if (editing) tags.push(['updated_at', String(wall)])
   tags.push(['client', CLIENT_NAME])
-  return { kind: KINDS.PS_DRAFT, content: input.content, tags, created_at: now(), pubkey: '' }
+  return { kind: KINDS.PS_DRAFT, content: input.content, tags, created_at: createdAt, pubkey: '' }
 }
 
 export interface ReleaseInput {
@@ -542,7 +568,7 @@ export function getCachedReleaseReviews(releaseId: string): Review[] {
 export function getCachedDrafts(): Draft[] {
   return latestByCoord(parseAll(getCachedEventsOfKind(KINDS.PS_DRAFT), parseDraft))
     .filter((d) => !d.deleted)
-    .sort((a, b) => b.createdAt - a.createdAt)
+    .sort((a, b) => b.publishedAt - a.publishedAt)
 }
 
 /** All cached releases (any proposal). */
