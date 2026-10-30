@@ -1,6 +1,5 @@
 import { Link, useLocation, useNavigate } from 'react-router-dom'
-import { FileText, Settings, User, Menu, X, Eye, Pencil, LogOut, Bell, PlusSquare, BookOpen, Sun, Moon } from 'lucide-react'
-import { CreateMenu } from '@/components/shared/CreateMenu'
+import { FileText, Settings, User, Menu, X, Eye, Pencil, LogOut, Bell, BookOpen, Sun, Moon } from 'lucide-react'
 import { Button } from '@/components/ui/button'
 import { useState, useEffect } from 'react'
 import { cn } from '@/lib/utils'
@@ -97,8 +96,6 @@ export function Header() {
     if (pubkey) useNotificationsStore.getState().refresh(pubkey)
   }, [pubkey])
 
-  const [createOpen, setCreateOpen] = useState(false)
-
   return (
     <header className="sticky top-0 z-40 border-b border-border/50 bg-background/80 backdrop-blur-xl">
       <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4 sm:px-6 lg:px-8">
@@ -138,15 +135,6 @@ export function Header() {
               </Button>
             </Link>
           )}
-          <Button
-            variant="ghost"
-            size="icon"
-            aria-label="Create"
-            onClick={() => setCreateOpen(true)}
-            className="text-muted-foreground hover:text-foreground hover:bg-transparent"
-          >
-            <PlusSquare size={18} />
-          </Button>
           <Button
             variant="ghost"
             size="icon"
@@ -207,8 +195,6 @@ export function Header() {
           ))}
         </nav>
       )}
-
-      <CreateMenu open={createOpen} onOpenChange={setCreateOpen} />
     </header>
   )
 }
