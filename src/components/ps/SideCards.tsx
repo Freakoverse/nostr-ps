@@ -3,8 +3,6 @@ import { Check, Copy } from 'lucide-react'
 import { ProfileCard } from '@/components/social/ProfileCard'
 import { TrustBadge } from '@/components/lens/TrustBadge'
 import { Tip } from '@/components/shared/Tip'
-import { PowBadge } from '@/components/shared/PowBadge'
-import { formatRelativeTime, formatTimestamp } from '@/lib/utils'
 import { KindChips, TopicChips } from './Cards'
 import type { KindRef } from '@/lib/nostr/nipps'
 
@@ -22,28 +20,11 @@ function Card({ title, children, right }: { title: string; children: React.React
 
 /**
  * Who published it: the same card as the profile page (banner, avatar,
- * identity, bio, follow, menu), plus one row of facts about this post:
- * proof of work, the author's trust score under your lens, and when it was
- * published.
+ * identity, bio, follow, menu), plus the author's trust score under your
+ * lens. Facts about the post itself live in PostFacts under the title.
  */
-export function AuthorCard({ pubkey, at, eventId }: { pubkey: string; at?: number; eventId?: string; title?: string }) {
-  return (
-    <ProfileCard
-      pubkey={pubkey}
-      compact
-      extra={
-        <>
-          {eventId && <PowBadge id={eventId} />}
-          <TrustBadge pubkey={pubkey} />
-          {at !== undefined && (
-            <Tip label={formatTimestamp(at)}>
-              <span className="text-xs text-neutral-500">published {formatRelativeTime(at)}</span>
-            </Tip>
-          )}
-        </>
-      }
-    />
-  )
+export function AuthorCard({ pubkey }: { pubkey: string }) {
+  return <ProfileCard pubkey={pubkey} compact extra={<TrustBadge pubkey={pubkey} />} />
 }
 
 /** Kinds and topics, each saying "none" rather than disappearing. */

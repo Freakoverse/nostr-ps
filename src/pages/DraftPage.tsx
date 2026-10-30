@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BackButton } from '@/components/shared/BackButton'
 import { AuthorCard, MetaCard } from '@/components/ps/SideCards'
+import { PostFacts } from '@/components/ps/PostFacts'
 import { CollapsibleBody } from '@/components/shared/CollapsibleBody'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
@@ -108,7 +109,7 @@ export function DraftPage() {
           </PostMenu>
         </div>
         <h1 className="text-3xl font-bold tracking-tight">{draft.title}</h1>
-        {draft.summary && <Markdown content={draft.summary} className="rounded-lg border border-edge bg-well px-4 py-3 text-[15px] text-neutral-300" />}
+        <PostFacts eventId={draft.event.id} at={draft.createdAt} summary={draft.summary} />
       </div>
 
       {checking && !latest ? (
@@ -151,7 +152,7 @@ export function DraftPage() {
           </CollapsibleBody>
         </article>
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <AuthorCard pubkey={draft.pubkey} at={draft.createdAt} eventId={draft.event.id} />
+          <AuthorCard pubkey={draft.pubkey} />
           <MetaCard kinds={draft.kinds} topics={draft.topics} />
         </aside>
       </div>

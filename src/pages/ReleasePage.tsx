@@ -32,6 +32,7 @@ import { VersionList } from '@/components/ps/VersionDiff'
 import { ClaimDetailDialog } from '@/components/ps/ClaimDetailDialog'
 import { ItemMenu } from '@/components/ps/ItemMenu'
 import { AuthorCard, MetaCard, ReferenceCard } from '@/components/ps/SideCards'
+import { PostFacts } from '@/components/ps/PostFacts'
 import { BackupDialog } from '@/components/ps/BackupDialog'
 import { ForkDialog } from '@/components/ps/ForkDialog'
 import { CollapsibleBody } from '@/components/shared/CollapsibleBody'
@@ -224,7 +225,7 @@ export function ReleasePage() {
           </PostMenu>
         </div>
         <h1 className="text-3xl font-bold tracking-tight">{release.title}</h1>
-        {release.summary && <Markdown content={release.summary} className="rounded-lg border border-edge bg-well px-4 py-3 text-[15px] text-neutral-300" />}
+        <PostFacts eventId={release.id} at={release.createdAt} summary={release.summary} />
       </div>
 
       <LensBar />
@@ -264,7 +265,7 @@ export function ReleasePage() {
 
         {/* Versions */}
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
-          <AuthorCard pubkey={release.pubkey} at={release.createdAt} eventId={release.id} />
+          <AuthorCard pubkey={release.pubkey} />
           <div className={cn('rounded-lg border bg-panel p-2 transition-colors', checked ? 'border-edge' : 'animate-pulse border-purple-500/30')}>
             <p className="flex items-center justify-between px-3 pb-1 pt-1 text-xs font-medium uppercase tracking-wider text-neutral-500">
               Versions
