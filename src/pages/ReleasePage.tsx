@@ -31,6 +31,7 @@ import { Chip, KindChips, TopicChips, ClaimCard, ReviewCard, VerdictChip } from 
 import { ClaimDialog } from '@/components/ps/ClaimDialog'
 import { ReviewDialog } from '@/components/ps/ReviewDialog'
 import { VersionList } from '@/components/ps/VersionDiff'
+import { ClaimDetailDialog } from '@/components/ps/ClaimDetailDialog'
 import type { ForkPrefill } from './DraftEditPage'
 
 export function ReleasePage() {
@@ -52,6 +53,7 @@ export function ReleasePage() {
   const [claimOpen, setClaimOpen] = useState(false)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [claimReviewTarget, setClaimReviewTarget] = useState<Claim | null>(null)
+  const [claimDetail, setClaimDetail] = useState<Claim | null>(null)
   const [backingUp, setBackingUp] = useState(false)
 
   const enabled = useLensStore((s) => s.enabled)
@@ -308,7 +310,7 @@ export function ReleasePage() {
           keyOf={(c) => c.coord}
           render={(c) => {
             const st = claimStats.get(c.coord)
-            return <ClaimCard claim={c} legit={st?.legit} fake={st?.fake} mine={!!myPubkey && (claimReviews.get(c.coord) ?? []).some((r) => r.pubkey === myPubkey)} onReview={() => (myPubkey ? setClaimReviewTarget(c) : useLoginModalStore.getState().open())} />
+            return <ClaimCard claim={c} legit={st?.legit} fake={st?.fake} mine={!!myPubkey && (claimReviews.get(c.coord) ?? []).some((r) => r.pubkey === myPubkey)} onReview={() => (myPubkey ? setClaimReviewTarget(c) : useLoginModalStore.getState().open())} onOpen={() => setClaimDetail(c)} />
           }}
           empty={<p className="rounded-lg border border-dashed border-edge py-10 text-center text-sm text-neutral-500">No one has claimed adoption yet. Implemented it? Say so.</p>}
         />
@@ -341,6 +343,21 @@ export function ReleasePage() {
 
       <ClaimDialog open={claimOpen} onOpenChange={setClaimOpen} release={release} existing={myClaim} onPublished={reload} />
       <ReviewDialog open={reviewOpen} onOpenChange={setReviewOpen} target={{ kind: 'release', release }} existing={myReview} onPublished={reload} />
+      {claimDetail && (
+        <ClaimDetailDialog
+          open
+          onOpenChange={(v) => { if (!v) setClaimDetail(null) }}
+          claim={claimDetail}
+          reviews={claimReviews.get(claimDetail.coord) ?? []}
+          mine={!!myPubkey && (claimReviews.get(claimDetail.coord) ?? []).some((r) => r.pubkey === myPubkey)}
+          onReview={() => {
+            if (!myPubkey) { useLoginModalStore.getState().open(); return }
+            const c = claimDetail
+            setClaimDetail(null)
+            setClaimReviewTarget(c)
+          }}
+        />
+      )}
       {claimReviewTarget && (
         <ReviewDialog open onOpenChange={(v) => { if (!v) setClaimReviewTarget(null) }} target={{ kind: 'claim', claim: claimReviewTarget }} existing={myClaimReview} onPublished={reload} />
       )}

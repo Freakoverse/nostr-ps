@@ -150,7 +150,25 @@ export function ReleaseRow({ r, current }: { r: Release; current?: boolean }) {
 
 // ─── Claim ──────────────────────────────────────────────────────────
 
-export function ClaimCard({ claim, legit = 0, fake = 0, onReview, mine }: { claim: Claim; legit?: number; fake?: number; onReview?: () => void; mine?: boolean }) {
+/** A Chip that is a button when given an onClick, otherwise plain. */
+function Pill({ onClick, className, children }: { onClick?: () => void; className?: string; children: React.ReactNode }) {
+  if (!onClick) return <Chip className={className}>{children}</Chip>
+  return (
+    <button type="button" onClick={onClick} className="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50">
+      <Chip className={cn('cursor-pointer', className)}>{children}</Chip>
+    </button>
+  )
+}
+
+export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine }: {
+  claim: Claim
+  legit?: number
+  fake?: number
+  onReview?: () => void
+  /** Opens the full claim with its verdicts; the verdict pills become buttons. */
+  onOpen?: () => void
+  mine?: boolean
+}) {
   return (
     <div className={cn('rounded-lg border border-edge bg-panel p-4', claim.withdrawn && 'opacity-60')}>
       <div className="flex items-start justify-between gap-3">
@@ -167,8 +185,12 @@ export function ClaimCard({ claim, legit = 0, fake = 0, onReview, mine }: { clai
           </p>
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
-          {legit > 0 && <Chip className="border-emerald-500/30 text-emerald-400"><ShieldCheck className="h-3 w-3" /> {legit} legit</Chip>}
-          {fake > 0 && <Chip className="border-red-500/30 text-red-400"><ShieldX className="h-3 w-3" /> {fake} fake</Chip>}
+          {legit > 0 && (
+            <Pill onClick={onOpen} className="border-emerald-500/30 text-emerald-400"><ShieldCheck className="h-3 w-3" /> {legit} legit</Pill>
+          )}
+          {fake > 0 && (
+            <Pill onClick={onOpen} className="border-red-500/30 text-red-400"><ShieldX className="h-3 w-3" /> {fake} fake</Pill>
+          )}
           {claim.withdrawn && <Ban className="h-4 w-4 text-neutral-600" />}
         </div>
       </div>
