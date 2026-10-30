@@ -8,7 +8,8 @@ import { usePaged } from '@/hooks/usePaged'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { LensBar } from '@/components/lens/LensBar'
-import { TieredList } from '@/components/lens/TieredList'
+import { ScoreFilterMenu, BelowFold, EmptyFiltered } from '@/components/lens/TieredList'
+import { useLensFilter } from '@/components/lens/useLensFilter'
 import { Pagination } from '@/components/shared/Pagination'
 import { ProposalCard } from '@/components/ps/Cards'
 import { cn } from '@/lib/utils'
@@ -139,7 +140,9 @@ export function ProposalsPage() {
     })
   }, [items, q, sort, verifiedCount])
 
-  const { page, setPage, totalPages, paged } = usePaged(visible, PER_PAGE, { loadMore, reachedEnd, loading: loading || loadingMore, resetKey: `${q}|${sort}` })
+  const withAuthor = useMemo(() => visible.map((p) => ({ ...p, pubkey: p.latest.pubkey })), [visible])
+  const { main, below, lensActive, unscored, filter, setFilter } = useLensFilter(withAuthor)
+  const { page, setPage, totalPages, paged } = usePaged(main, PER_PAGE, { loadMore, reachedEnd, loading: loading || loadingMore, resetKey: `${q}|${sort}|${filter}` })
 
   return (
     <div className="space-y-6 py-6">
@@ -169,14 +172,19 @@ export function ProposalsPage() {
         <div className="flex items-center justify-center gap-2 py-16 text-sm text-neutral-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading releases and claims…</div>
       ) : (
         <>
-          <TieredList
-            items={paged.map((p) => ({ ...p, pubkey: p.latest.pubkey }))}
-            keyOf={(p) => p.key}
-            render={(p) => <ProposalCard p={p} verified={enabled ? verifiedCount.get(p.key) : undefined} />}
-            empty={<p className="py-16 text-center text-sm text-neutral-500">{q ? 'No proposals match.' : 'No releases on your relays yet. Drafts become proposals once their author publishes a release.'}</p>}
-            toolbar={<span className="text-xs text-neutral-500">{visible.length}{reachedEnd ? '' : '+'} proposals · page {page} of {totalPages}{reachedEnd ? '' : '+'}</span>}
-          />
-          <Pagination page={page} totalPages={totalPages} onPage={setPage} reachedEnd={reachedEnd} loadingMore={loadingMore} />
+          {visible.length === 0 ? (
+            <p className="py-16 text-center text-sm text-neutral-500">{q ? 'No proposals match.' : 'No releases on your relays yet. Drafts become proposals once their author publishes a release.'}</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs text-neutral-500">{main.length}{reachedEnd ? '' : '+'} proposals · page {page} of {totalPages}{reachedEnd ? '' : '+'}</span>
+                {lensActive && <ScoreFilterMenu value={filter} onChange={setFilter} unscored={unscored} />}
+              </div>
+              {paged.length === 0 ? <EmptyFiltered filter={filter} /> : paged.map((p) => <ProposalCard key={p.key} p={p} verified={enabled ? verifiedCount.get(p.key) : undefined} />)}
+              <Pagination page={page} totalPages={totalPages} onPage={setPage} reachedEnd={reachedEnd} loadingMore={loadingMore} />
+              <BelowFold items={below} keyOf={(p) => p.key} render={(p) => <ProposalCard p={p} verified={enabled ? verifiedCount.get(p.key) : undefined} />} />
+            </div>
+          )}
         </>
       )}
     </div>

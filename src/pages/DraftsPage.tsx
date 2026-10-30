@@ -8,7 +8,8 @@ import { usePaged } from '@/hooks/usePaged'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { LensBar } from '@/components/lens/LensBar'
-import { TieredList } from '@/components/lens/TieredList'
+import { ScoreFilterMenu, BelowFold, EmptyFiltered } from '@/components/lens/TieredList'
+import { useLensFilter } from '@/components/lens/useLensFilter'
 import { Pagination } from '@/components/shared/Pagination'
 import { DraftCard } from '@/components/ps/Cards'
 
@@ -85,7 +86,8 @@ export function DraftsPage() {
     )
   }, [drafts, q])
 
-  const { page, setPage, totalPages, paged } = usePaged(visible, PER_PAGE, { loadMore, reachedEnd, loading: loading || loadingMore, resetKey: q })
+  const { main, below, lensActive, unscored, filter, setFilter } = useLensFilter(visible)
+  const { page, setPage, totalPages, paged } = usePaged(main, PER_PAGE, { loadMore, reachedEnd, loading: loading || loadingMore, resetKey: `${q}|${filter}` })
 
   return (
     <div className="space-y-6 py-6">
@@ -115,14 +117,19 @@ export function DraftsPage() {
         <div className="flex items-center justify-center gap-2 py-16 text-sm text-neutral-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading drafts…</div>
       ) : (
         <>
-          <TieredList
-            items={paged}
-            keyOf={(d) => d.coord}
-            render={(d) => <DraftCard draft={d} />}
-            empty={<p className="py-16 text-center text-sm text-neutral-500">{q ? 'No drafts match.' : 'No drafts on your relays yet. Start one.'}</p>}
-            toolbar={<span className="text-xs text-neutral-500">{visible.length}{reachedEnd ? '' : '+'} drafts · page {page} of {totalPages}{reachedEnd ? '' : '+'}</span>}
-          />
-          <Pagination page={page} totalPages={totalPages} onPage={setPage} reachedEnd={reachedEnd} loadingMore={loadingMore} />
+          {visible.length === 0 ? (
+            <p className="py-16 text-center text-sm text-neutral-500">{q ? 'No drafts match.' : 'No drafts on your relays yet. Start one.'}</p>
+          ) : (
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <span className="text-xs text-neutral-500">{main.length}{reachedEnd ? '' : '+'} drafts · page {page} of {totalPages}{reachedEnd ? '' : '+'}</span>
+                {lensActive && <ScoreFilterMenu value={filter} onChange={setFilter} unscored={unscored} />}
+              </div>
+              {paged.length === 0 ? <EmptyFiltered filter={filter} /> : paged.map((d) => <DraftCard key={d.coord} draft={d} />)}
+              <Pagination page={page} totalPages={totalPages} onPage={setPage} reachedEnd={reachedEnd} loadingMore={loadingMore} />
+              <BelowFold items={below} keyOf={(d) => d.coord} render={(d) => <DraftCard draft={d} />} />
+            </div>
+          )}
         </>
       )}
     </div>
