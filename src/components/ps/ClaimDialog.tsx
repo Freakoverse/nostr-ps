@@ -12,6 +12,7 @@ import { Button } from '@/components/ui/button'
 import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import { LIMITS } from '@/lib/limits'
+import { CharCounter, LimitCounter } from '@/components/shared/CharCounter'
 
 /**
  * Publish or update an adoption claim (kind 30851). One live claim per
@@ -106,16 +107,20 @@ export function ClaimDialog({
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-neutral-300">Software name</label>
               <Input value={name} onChange={(e) => setName(e.target.value)} placeholder="e.g. Amethyst" className="border-edge bg-panel" maxLength={LIMITS.claimName} />
+              <CharCounter value={name} max={LIMITS.claimName} />
             </div>
             <div className="space-y-1.5">
               <label className="text-xs font-medium text-neutral-300">Software version <span className="text-neutral-600">(optional)</span></label>
               <Input value={implVersion} onChange={(e) => setImplVersion(e.target.value)} placeholder="1.4.0 or a commit" className="border-edge bg-panel" maxLength={LIMITS.claimVersion} />
+              <CharCounter value={implVersion} max={LIMITS.claimVersion} />
             </div>
           </div>
 
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-neutral-300">Links to source, commit, or release <span className="text-neutral-600">(one per line)</span></label>
             <Textarea value={urls} onChange={(e) => setUrls(e.target.value)} rows={2} placeholder="https://…" className="border-edge bg-panel" maxLength={LIMITS.claimUrls * (LIMITS.claimUrlLength + 1)} />
+            <LimitCounter current={urls.split('
+').filter((u) => u.trim()).length} max={LIMITS.claimUrls} />
           </div>
 
           {role === 'client' && (
@@ -150,6 +155,7 @@ export function ClaimDialog({
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-neutral-300">Notes <span className="text-neutral-600">(optional)</span></label>
             <Textarea value={notes} onChange={(e) => setNotes(e.target.value)} rows={2} placeholder="Scope, caveats, what is not supported yet." className="border-edge bg-panel" maxLength={LIMITS.claimNotes} />
+            <CharCounter value={notes} max={LIMITS.claimNotes} />
           </div>
         </div>
 

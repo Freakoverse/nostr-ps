@@ -13,6 +13,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
 import { LIMITS } from '@/lib/limits'
+import { CharCounter } from '@/components/shared/CharCounter'
 
 type Target = { kind: 'release'; release: Release } | { kind: 'claim'; claim: Claim }
 
@@ -110,6 +111,7 @@ export function ReviewDialog({
               {target.kind === 'release' ? 'Reasoning' : 'What did you check?'} <span className="text-neutral-600">(markdown)</span>
             </label>
             <Textarea value={content} onChange={(e) => setContent(e.target.value)} rows={5} placeholder={target.kind === 'release' ? 'What works, what does not, what you would change.' : 'Installed it, confirmed it speaks the spec; or: no code, no users, nothing behind the npub.'} className="border-edge bg-panel" maxLength={LIMITS.review} />
+            <CharCounter value={content} max={LIMITS.review} />
           </div>
         </div>
 

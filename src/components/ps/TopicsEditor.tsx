@@ -3,6 +3,7 @@ import { Plus, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
 import { LIMITS } from '@/lib/limits'
+import { CharCounter, LimitCounter } from '@/components/shared/CharCounter'
 
 const MAX_TOPICS = LIMITS.topics
 const MAX_LEN = LIMITS.topicLength
@@ -43,10 +44,14 @@ export function TopicsEditor({ value, onChange }: { value: string[]; onChange: (
           onChange={(e) => setDraft(e.target.value)}
           placeholder="e.g. chat, groups, moderation"
           className="flex-1 border-edge bg-panel"
-          maxLength={MAX_LEN + 1}
+          maxLength={MAX_LEN}
           onKeyDown={(e) => { if (e.key === 'Enter' || e.key === ',') { e.preventDefault(); add() } }}
         />
         <Button type="button" variant="outline" size="icon" onClick={add} className="border-edge" aria-label="Add topic"><Plus className="h-4 w-4" /></Button>
+      </div>
+      <div className="flex items-center justify-between gap-2">
+        <CharCounter value={draft} max={MAX_LEN} className="text-left" />
+        <LimitCounter current={value.length} max={MAX_TOPICS} always className="ml-auto" />
       </div>
       <p className="text-[11px] text-neutral-600">One per add. Lowercased, no spaces, up to {MAX_TOPICS}.</p>
     </div>

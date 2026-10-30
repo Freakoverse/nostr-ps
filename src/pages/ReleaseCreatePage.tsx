@@ -17,6 +17,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { MarkdownEditor } from '@/components/ps/MarkdownEditor'
 import { LIMITS } from '@/lib/limits'
+import { CharCounter } from '@/components/shared/CharCounter'
 import { ReleaseRow } from '@/components/ps/Cards'
 import { cn } from '@/lib/utils'
 
@@ -154,12 +155,14 @@ export function ReleaseCreatePage() {
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-neutral-200">Title</label>
           <Input value={title} onChange={(e) => setTitle(e.target.value)} className="border-edge bg-panel" maxLength={LIMITS.title} />
+          <CharCounter value={title} max={LIMITS.title} />
         </div>
       </div>
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-neutral-200">Summary <span className="text-neutral-500">(optional)</span></label>
         <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} className="border-edge bg-panel" maxLength={LIMITS.summary} />
+        <CharCounter value={summary} max={LIMITS.summary} />
       </div>
 
       <div className="space-y-1.5">

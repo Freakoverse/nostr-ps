@@ -8,6 +8,7 @@ import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { LIMITS } from '@/lib/limits'
+import { CharCounter } from '@/components/shared/CharCounter'
 import { MarkdownEditor } from './MarkdownEditor'
 import { KindsEditor } from './KindsEditor'
 import { TopicsEditor } from './TopicsEditor'
@@ -70,11 +71,13 @@ export function DraftEditor({ initial, prefill }: { initial?: Draft; prefill?: P
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-neutral-200">Title</label>
         <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Threaded chat rooms" className="border-edge bg-panel" maxLength={LIMITS.title} />
+        <CharCounter value={title} max={LIMITS.title} />
       </div>
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-neutral-200">Summary <span className="text-neutral-500">(optional)</span></label>
         <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="One paragraph: what this spec does and why." rows={2} className="border-edge bg-panel" maxLength={LIMITS.summary} />
+        <CharCounter value={summary} max={LIMITS.summary} />
       </div>
 
       <div className="space-y-1.5">
