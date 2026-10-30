@@ -1,12 +1,24 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSettingsStore } from '@/stores/settingsStore'
-import { fetchReleases, fetchClaimsForMany, summarizeProposals, type ProposalSummary, type Release, type Claim } from '@/lib/nostr/nipps'
+import {
+  fetchReleases, fetchLatestUpdates, fetchClaimsForMany, summarizeProposals, PS_ORIGIN_TAG,
+  type ProposalSummary, type Release, type Claim,
+} from '@/lib/nostr/nipps'
 
 const BATCH = 100
 
 /**
- * Progressive proposal feed: releases newest first via an `until` cursor,
- * claims fetched for every new uuid, rolled up per proposal (spec §5).
+ * Transitional: releases published before the `o` tag existed are invisible to
+ * the `#o original` listing. While true, the first page also runs one unfiltered
+ * query and keeps whatever lacks the tag. Flip off once nothing old matters.
+ */
+const INCLUDE_UNTAGGED_LEGACY = true
+
+/**
+ * Progressive proposal feed (spec §6.1): originals newest first via an `until`
+ * cursor, one event per proposal regardless of version count; then the latest
+ * update per proposal on the page (limit 1 each), claims for every new uuid,
+ * rolled up per proposal (§5).
  */
 export function useProposalFeed(tick = 0, batch = BATCH) {
   const [items, setItems] = useState<ProposalSummary[]>([])
@@ -18,18 +30,26 @@ export function useProposalFeed(tick = 0, batch = BATCH) {
   const oldest = useRef<number | undefined>(undefined)
   const inFlight = useRef(false)
 
-  const ingest = useCallback(async (relays: string[], incoming: Release[]): Promise<number> => {
+  /** Ingest originals, resolve their latest versions, fetch claims for new uuids. Returns fresh proposal count. */
+  const ingest = useCallback(async (relays: string[], originals: Release[]): Promise<number> => {
     let fresh = 0
     const newUuids = new Set<string>()
-    for (const r of incoming) {
-      if (!releases.current.has(r.id)) { fresh++; if (!claims.current.has(r.uuid)) newUuids.add(r.uuid) }
+    const newOriginals: Release[] = []
+    for (const r of originals) {
+      if (!releases.current.has(r.id)) {
+        fresh++
+        newOriginals.push(r)
+        if (!claims.current.has(r.uuid)) newUuids.add(r.uuid)
+      }
       releases.current.set(r.id, r)
-      if (oldest.current === undefined || r.createdAt < oldest.current) oldest.current = r.createdAt
+      if (r.origin === 'original' && (oldest.current === undefined || r.createdAt < oldest.current)) oldest.current = r.createdAt
     }
-    if (newUuids.size) {
-      const got = await fetchClaimsForMany(relays, [...newUuids]).catch(() => new Map<string, Claim[]>())
-      for (const u of newUuids) claims.current.set(u, got.get(u) ?? [])
-    }
+    const [updates, got] = await Promise.all([
+      newOriginals.length ? fetchLatestUpdates(relays, newOriginals).catch(() => [] as Release[]) : Promise.resolve([] as Release[]),
+      newUuids.size ? fetchClaimsForMany(relays, [...newUuids]).catch(() => new Map<string, Claim[]>()) : Promise.resolve(new Map<string, Claim[]>()),
+    ])
+    for (const r of updates) releases.current.set(r.id, r)
+    for (const u of newUuids) claims.current.set(u, got.get(u) ?? [])
     setItems(summarizeProposals([...releases.current.values()], claims.current))
     return fresh
   }, [])
@@ -41,10 +61,16 @@ export function useProposalFeed(tick = 0, batch = BATCH) {
     const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
     ;(async () => {
       try {
-        const rs = await fetchReleases(relays, { limit: batch })
+        const [originals, legacy] = await Promise.all([
+          fetchReleases(relays, { [`#${PS_ORIGIN_TAG}`]: ['original'], limit: batch }),
+          INCLUDE_UNTAGGED_LEGACY ? fetchReleases(relays, { limit: batch }).catch(() => [] as Release[]) : Promise.resolve([] as Release[]),
+        ])
         if (cancelled) return
-        const n = await ingest(relays, rs)
-        if (!cancelled && n === 0) setReachedEnd(true)
+        // Untagged releases: every version arrives, so the rollup sees them all.
+        const untagged = legacy.filter((r) => !r.origin)
+        const n = await ingest(relays, [...originals, ...untagged])
+        // Paging walks originals only; none means there is nothing further back.
+        if (!cancelled && (n === 0 || originals.length === 0)) setReachedEnd(true)
       } catch {
         if (!cancelled) setReachedEnd(true)
       } finally {
@@ -60,7 +86,7 @@ export function useProposalFeed(tick = 0, batch = BATCH) {
     setLoadingMore(true)
     const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
     try {
-      const rs = await fetchReleases(relays, { until: oldest.current - 1, limit: batch })
+      const rs = await fetchReleases(relays, { [`#${PS_ORIGIN_TAG}`]: ['original'], until: oldest.current - 1, limit: batch })
       if ((await ingest(relays, rs)) === 0) setReachedEnd(true)
     } catch {
       setReachedEnd(true)

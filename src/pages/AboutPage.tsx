@@ -26,8 +26,9 @@ export function AboutPage() {
       <Section title="Releases">
         A release is a frozen snapshot of a draft. It is immutable and identified by its event
         id, so an implementer can always say exactly what they implemented. Any change is a new
-        version. Anyone can publish a backup of a release so it survives relay loss and deletion
-        requests.
+        version. Only the first release of a proposal is marked as the original, so listings ask
+        relays for one event per proposal and a long version history costs nobody else anything.
+        Anyone can publish a backup of a release so it survives relay loss and deletion requests.
       </Section>
 
       <Section title="Adoption claims">

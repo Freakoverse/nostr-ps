@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSettingsStore } from '@/stores/settingsStore'
-import { fetchDrafts, fetchReleases, type Draft } from '@/lib/nostr/nipps'
+import { fetchDrafts, fetchReleases, PS_ORIGIN_TAG, type Draft } from '@/lib/nostr/nipps'
 
 const BATCH = 60
 
@@ -31,7 +31,9 @@ export function useDraftFeed(tick = 0, batch = BATCH) {
     const coords = incoming.map((d) => d.coord)
     if (coords.length) {
       const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
-      fetchReleases(relays, { '#a': coords, limit: 500 })
+      // `#o original` bounds this to one event per draft (§6.1), so a
+      // version-heavy proposal cannot crowd out the others' chips.
+      fetchReleases(relays, { '#a': coords, [`#${PS_ORIGIN_TAG}`]: ['original'], limit: coords.length })
         .then((rs) => {
           if (rs.length === 0) return
           setReleased((prev) => {

@@ -134,9 +134,14 @@ export interface Release {
   draftCoord?: string
   prevId?: string
   forkOf?: { id: string; relay?: string; author?: string }
+  /** `o` tag (§4.2): "original" on the first release of a uuid, "updated" on later versions. Undefined on releases predating the tag. */
+  origin?: ReleaseOrigin
   content: string
   createdAt: number
 }
+
+export type ReleaseOrigin = 'original' | 'updated'
+export const PS_ORIGIN_TAG = 'o'
 
 export type ClaimRole = 'client' | 'relay' | 'library' | 'service'
 export const CLAIM_ROLES: ClaimRole[] = ['client', 'relay', 'library', 'service']
@@ -247,9 +252,14 @@ export function parseRelease(ev: NostrEvent): Release | null {
     draftCoord: tag(ev, 'a') || undefined,
     prevId: prev?.[1] || undefined,
     forkOf: fork ? { id: fork[1], relay: fork[2] || undefined, author: forkAuthor } : undefined,
+    origin: parseOrigin(tag(ev, PS_ORIGIN_TAG)),
     content: ev.content,
     createdAt: ev.created_at,
   }
+}
+
+function parseOrigin(v: string | undefined): ReleaseOrigin | undefined {
+  return v === 'original' || v === 'updated' ? v : undefined
 }
 
 export function parseClaim(ev: NostrEvent): Claim | null {
@@ -373,6 +383,8 @@ export function buildReleaseEvent(input: ReleaseInput): UnsignedEvent {
   if (input.summary?.trim()) tags.push(['summary', input.summary.trim()])
   for (const k of input.kinds ?? []) tags.push(k.name ? ['k', String(k.kind), k.name] : ['k', String(k.kind)])
   for (const t of input.topics ?? []) tags.push(['t', t.trim().toLowerCase()])
+  // Lineage marker (§4.2): lets relays answer "one event per proposal".
+  tags.push([PS_ORIGIN_TAG, input.prevId ? 'updated' : 'original'])
   if (input.prevId) tags.push(['e', input.prevId, input.prevRelay ?? '', 'prev'])
   if (input.forkOf) {
     tags.push(['e', input.forkOf.id, input.forkOf.relay ?? '', 'fork'])
@@ -490,6 +502,19 @@ export async function fetchDraft(relays: string[], pubkey: string, uuid: string)
 export async function fetchReleases(relays: string[], filter: Partial<Filter> = {}, timeoutMs = 8000): Promise<Release[]> {
   const evs = await fetchEvents(relays, { kinds: [KINDS.PS_RELEASE], limit: 200, ...filter }, timeoutMs)
   return dedupeById(parseAll(evs, parseRelease)).sort((a, b) => b.createdAt - a.createdAt)
+}
+
+/**
+ * Latest version of each proposal in `originals` (§6.1): one `#a` + `#o updated`
+ * query per proposal with limit 1, so a page costs page-size bodies. Returns
+ * only proposals that have an update; the rest are current at their original.
+ */
+export async function fetchLatestUpdates(relays: string[], originals: Release[]): Promise<Release[]> {
+  const coords = [...new Set(originals.map((r) => r.draftCoord).filter((c): c is string => !!c))]
+  const got = await Promise.all(coords.map((c) =>
+    fetchReleases(relays, { '#a': [c], [`#${PS_ORIGIN_TAG}`]: ['updated'], limit: 1 }).catch(() => [] as Release[]),
+  ))
+  return got.flat()
 }
 
 export async function fetchRelease(relays: string[], id: string): Promise<Release | null> {

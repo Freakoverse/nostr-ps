@@ -221,6 +221,7 @@ export function ReleaseCreatePage() {
           <Lock className="h-3.5 w-3.5 text-neutral-500" />
         </div>
         <RefRow label="Spec id" hint="v tag" value={specId(draft.uuid, versionOk ? version : '?')} />
+        <RefRow label="Lineage" hint="o tag" value={prev ? 'updated' : 'original'} note={prev ? 'A later version of an existing proposal.' : 'The first release of this proposal. Listings query this.'} />
         <RefRow label="Draft" hint="a tag" value={draft.coord} href={`/draft/${draftNaddr(draft.pubkey, draft.uuid)}`} />
         {!prev && forkOf && <RefRow label="Forked from" hint="e tag, fork" value={forkOf} href={`/release/${nip19.neventEncode({ id: forkOf, author: parent?.pubkey })}`} note={parent ? `${parent.title} v${parent.version}` : undefined} />}
         {!prev && forkOf && parent && <RefRow label="Parent author" hint="p tag" value={parent.pubkey} note={nip19.npubEncode(parent.pubkey).slice(0, 16) + '…'} />}

@@ -114,7 +114,8 @@ is reused deliberately (§10).
 | `30851` | addressable | Adoption claim                         | provisional |
 | `30852` | addressable | Review (of a release or of a claim)    | provisional |
 
-The spec-id tag is `v`. Its value is `<uuid>:<version>`.
+The spec-id tag is `v`. Its value is `<uuid>:<version>`. The lineage tag
+on releases is `o`, with the value `original` or `updated`.
 
 ### 4.1 Draft (`kind:30817`)
 
@@ -173,6 +174,7 @@ against and what claims reference.
     ["summary", "<one paragraph>"],                   // RECOMMENDED
     ["k", "<kind number>", "<name>"],                 // OPTIONAL, repeatable
     ["t", "<topic>"],                                 // OPTIONAL, repeatable
+    ["o", "original"],                                // REQUIRED, "original" or "updated"
 
     ["e", "<previous release id>", "<relay>", "prev"],   // OPTIONAL, previous version
     ["e", "<parent release id>", "<relay>", "fork"],     // OPTIONAL, forked from
@@ -193,6 +195,17 @@ Rules:
   "oldest wins" rule: `created_at` is set by the signer and is not evidence.
 - `prev` links versions into a chain. The chain is informational; each
   release stands alone.
+- `o` marks where a release sits in its lineage: `original` on the first
+  release of a uuid (the one with no `prev`), `updated` on every later
+  version. Exactly one release per uuid is `original`; a fork's first
+  release is `original` for its own uuid. The tag exists so that relays
+  can answer "one event per proposal": a `#o` filter for `original`
+  returns one release per uuid regardless of how many versions exist,
+  which keeps listing and detection queries bounded (see §6.1). The
+  `prev` chain remains the ground truth; a client that finds the two in
+  conflict trusts the chain. Mislabeling buys nothing: an `original` on
+  every version is deduplicated by uuid, and a missing tag only removes
+  that proposal from filtered listings.
 - `fork`: a fork is a **new proposal** with a **new uuid**, published by
   anyone, whose `e` tag with the `fork` marker points at the exact release
   it was derived from. A fork MUST NOT reuse the parent's uuid. Two
@@ -349,6 +362,10 @@ Rules:
   Each release is a frozen snapshot with its own event id.
 - **A new version is a new release event.** Claims against v2 stay against
   v2. Adoption is tracked per release AND rolled up per proposal.
+- **Versions do not crowd out proposals.** Because only the first release
+  of a uuid carries `["o", "original"]`, a listing query can ask for one
+  event per proposal and a prolific author's version history costs other
+  proposals nothing.
 - **A fork is a new proposal.** New uuid, any author, `fork` marker on an
   `e` tag pointing at the exact parent release. Nothing about the parent
   changes.
@@ -403,6 +420,16 @@ For a draft at `30817:<author>:<uuid>`, clients detect releases by querying
 or whose `v` tag begins with `<uuid>:`. If any exist, the draft view MUST
 show that a release exists and link to the latest version, regardless of
 whether the draft carries a `release` tag.
+
+Clients SHOULD bound these queries with the `o` tag. Detecting releases
+for a list of drafts is one query: `kind:8201`, `#a` set to the draft
+addresses, `#o` set to `original`, which yields at most one event per
+draft. Listing proposals is `kind:8201` with `#o` set to `original`,
+which yields one event per proposal; the latest version of each is then
+fetched per proposal with a limit of 1, so a page costs page-size bodies
+rather than all-versions bodies. Releases published without the `o` tag
+are only reachable by unfiltered queries; clients MAY keep that path as
+a fallback.
 
 ### 6.2 Viewpoint
 
