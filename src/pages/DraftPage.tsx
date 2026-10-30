@@ -1,7 +1,9 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BackButton } from '@/components/shared/BackButton'
 import { AuthorCard, MetaCard } from '@/components/ps/SideCards'
-import { PostFacts } from '@/components/ps/PostFacts'
+import { PowBadge } from '@/components/shared/PowBadge'
+import { Tip } from '@/components/shared/Tip'
+import { formatRelativeTime, formatTimestamp } from '@/lib/utils'
 import { CollapsibleBody } from '@/components/shared/CollapsibleBody'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
@@ -94,6 +96,8 @@ export function DraftPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <Chip>draft</Chip>
+            <PowBadge id={draft.event.id} />
+            <Tip label={formatTimestamp(draft.createdAt)}><Chip className="text-neutral-400">published {formatRelativeTime(draft.createdAt)}</Chip></Tip>
           </div>
           <PostMenu event={draft.event}>
             {isAuthor && (
@@ -109,7 +113,7 @@ export function DraftPage() {
           </PostMenu>
         </div>
         <h1 className="text-3xl font-bold tracking-tight">{draft.title}</h1>
-        <PostFacts eventId={draft.event.id} at={draft.createdAt} summary={draft.summary} />
+        {draft.summary && <Markdown content={draft.summary} className="rounded-lg border border-edge bg-well px-4 py-3 text-[15px] text-neutral-300" />}
       </div>
 
       {checking && !latest ? (

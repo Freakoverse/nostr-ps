@@ -32,7 +32,9 @@ import { VersionList } from '@/components/ps/VersionDiff'
 import { ClaimDetailDialog } from '@/components/ps/ClaimDetailDialog'
 import { ItemMenu } from '@/components/ps/ItemMenu'
 import { AuthorCard, MetaCard, ReferenceCard } from '@/components/ps/SideCards'
-import { PostFacts } from '@/components/ps/PostFacts'
+import { PowBadge } from '@/components/shared/PowBadge'
+import { Tip } from '@/components/shared/Tip'
+import { formatRelativeTime, formatTimestamp } from '@/lib/utils'
 import { BackupDialog } from '@/components/ps/BackupDialog'
 import { ForkDialog } from '@/components/ps/ForkDialog'
 import { CollapsibleBody } from '@/components/shared/CollapsibleBody'
@@ -205,6 +207,8 @@ export function ReleasePage() {
           <div className="flex flex-wrap items-center gap-2">
           <Chip className="border-emerald-500/30 text-emerald-400">release</Chip>
           <Chip className="font-mono">v{release.version}</Chip>
+          <PowBadge id={release.id} />
+          <Tip label={formatTimestamp(release.createdAt)}><Chip className="text-neutral-400">published {formatRelativeTime(release.createdAt)}</Chip></Tip>
           {!checked ? (
             <Chip className="animate-pulse text-neutral-400"><Loader2 className="h-3 w-3 animate-spin" /> checking versions…</Chip>
           ) : !isLatest ? (
@@ -225,7 +229,7 @@ export function ReleasePage() {
           </PostMenu>
         </div>
         <h1 className="text-3xl font-bold tracking-tight">{release.title}</h1>
-        <PostFacts eventId={release.id} at={release.createdAt} summary={release.summary} />
+        {release.summary && <Markdown content={release.summary} className="rounded-lg border border-edge bg-well px-4 py-3 text-[15px] text-neutral-300" />}
       </div>
 
       <LensBar />
