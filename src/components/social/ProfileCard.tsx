@@ -29,13 +29,15 @@ interface ProfileCardProps {
   pubkey: string
   /** A row of extra facts under the identity line, e.g. proof of work, trust score, published date. */
   extra?: React.ReactNode
+  /** Shorter banner, for the side column of a release or draft page. */
+  compact?: boolean
 }
 
 const iconBtn =
   'flex flex-1 items-center justify-center rounded-lg border border-edge p-2 text-neutral-400 transition-colors hover:border-edge-2 hover:text-foreground'
 
 /** Author card: banner, avatar, identity, follow, block/report menu. */
-export function ProfileCard({ pubkey, extra }: ProfileCardProps) {
+export function ProfileCard({ pubkey, extra, compact = false }: ProfileCardProps) {
   const myPubkey = useAuthStore(s => s.pubkey)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [bioOpen, setBioOpen] = useState(false)
@@ -119,7 +121,7 @@ export function ProfileCard({ pubkey, extra }: ProfileCardProps) {
     <div className="overflow-hidden rounded-lg bg-panel shadow-md shadow-black/20">
       {/* Banner */}
       <Link to={profileHref} className="block">
-        <div className="relative h-35 w-full bg-gradient-to-br from-purple-900/40 to-panel-2">
+        <div className={compact ? "relative h-20 w-full bg-gradient-to-br from-purple-900/40 to-panel-2" : "relative h-35 w-full bg-gradient-to-br from-purple-900/40 to-panel-2"}>
           {profile?.banner && (
             <SafeImage src={profile.banner as string} alt="" className="h-full w-full object-cover" />
           )}

@@ -30,6 +30,7 @@ export function AuthorCard({ pubkey, at, eventId }: { pubkey: string; at?: numbe
   return (
     <ProfileCard
       pubkey={pubkey}
+      compact
       extra={
         <>
           {eventId && <PowBadge id={eventId} />}
