@@ -994,6 +994,39 @@ function PreferencesSettings() {
             Hash rate: <span className="font-bold text-purple-400">{Math.round(hashRate).toLocaleString()}</span> hashes/sec
           </p>
         )}
+        {hashRate !== null && hashRate > 0 && (() => {
+          // Expected attempts for d bits is 2^d, so d = log2(rate × seconds).
+          // Aim at ~1.5 s, and show the neighbours so the trade-off is visible.
+          const recommended = Math.max(0, Math.min(32, Math.round(Math.log2(hashRate * 1.5))))
+          const rows = [recommended - 1, recommended, recommended + 1].filter((d) => d >= 0 && d <= 32)
+          const fmt = (s: number) => (s < 1 ? `${(s * 1000).toFixed(0)} ms` : `${s.toFixed(1)} s`)
+          return (
+            <div className="space-y-2 rounded-lg border border-edge bg-panel p-3 text-sm">
+              <p className="text-neutral-300">
+                For about 1–2 seconds per publish on this device, use difficulty{' '}
+                <span className="font-bold text-purple-400">{recommended}</span>.
+                {powDifficulty === recommended ? <span className="text-neutral-500"> That is your current setting.</span> : null}
+              </p>
+              <table className="w-full text-xs text-neutral-400">
+                <tbody>
+                  {rows.map((d) => (
+                    <tr key={d} className={d === recommended ? 'text-neutral-200' : ''}>
+                      <td className="py-0.5 font-mono">{d} bits</td>
+                      <td className="py-0.5 text-right tabular-nums">~{fmt(estimateSolveTime(d, hashRate))} expected</td>
+                      <td className="py-0.5 pl-3 text-right text-neutral-600">{d === powDifficulty ? 'current' : ''}</td>
+                    </tr>
+                  ))}
+                </tbody>
+              </table>
+              <p className="text-[11px] text-neutral-600">Expected, not guaranteed: proof of work is a lottery, so a single publish can take a fraction or a multiple of this.</p>
+              {powDifficulty !== recommended && (
+                <Button size="sm" variant="outline" onClick={() => setPowDifficulty(recommended)} className="border-edge">
+                  Set publishing difficulty to {recommended}
+                </Button>
+              )}
+            </div>
+          )
+        })()}
         <Button variant="outline" onClick={runBenchmark} disabled={benchmarking} className="border-edge w-fit">
           {benchmarking ? <Loader2 size={16} className="animate-spin mr-2" /> : <Cpu size={16} className="mr-2" />}
           {benchmarking ? 'Running Benchmark...' : 'Run Benchmark'}
