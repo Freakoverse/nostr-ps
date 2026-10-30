@@ -7,6 +7,7 @@ import { buildDraftEvent, generateUuid, draftNaddr, type Draft, type KindRef } f
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
+import { LIMITS } from '@/lib/limits'
 import { MarkdownEditor } from './MarkdownEditor'
 import { KindsEditor } from './KindsEditor'
 import { TopicsEditor } from './TopicsEditor'
@@ -33,6 +34,7 @@ export function DraftEditor({ initial, prefill }: { initial?: Draft; prefill?: P
   const save = async () => {
     if (!title.trim()) { toast.error('Give the draft a title'); return }
     if (!content.trim()) { toast.error('The draft body is empty'); return }
+    if (content.length > LIMITS.body) { toast.error(`The body is too long (max ${LIMITS.body.toLocaleString()} characters)`); return }
     const uuid = initial?.uuid ?? generateUuid()
     const event = buildDraftEvent({
       uuid,
@@ -67,17 +69,17 @@ export function DraftEditor({ initial, prefill }: { initial?: Draft; prefill?: P
     <div className="space-y-5">
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-neutral-200">Title</label>
-        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Threaded chat rooms" className="border-edge bg-panel" maxLength={120} />
+        <Input value={title} onChange={(e) => setTitle(e.target.value)} placeholder="e.g. Threaded chat rooms" className="border-edge bg-panel" maxLength={LIMITS.title} />
       </div>
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-neutral-200">Summary <span className="text-neutral-500">(optional)</span></label>
-        <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="One paragraph: what this spec does and why." rows={2} className="border-edge bg-panel" maxLength={500} />
+        <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} placeholder="One paragraph: what this spec does and why." rows={2} className="border-edge bg-panel" maxLength={LIMITS.summary} />
       </div>
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-neutral-200">Spec</label>
-        <MarkdownEditor value={content} onChange={setContent} placeholder={'# Motivation\n\n…\n\n# Events\n\n…\n\n# Client behavior\n\n…'} />
+        <MarkdownEditor value={content} onChange={setContent} maxLength={LIMITS.body} placeholder={'# Motivation\n\n…\n\n# Events\n\n…\n\n# Client behavior\n\n…'} />
       </div>
 
       <div className="grid gap-5 sm:grid-cols-2">

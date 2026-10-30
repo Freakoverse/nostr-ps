@@ -9,9 +9,9 @@ import type { NostrTarget } from '@/lib/nostr/social'
 import { Button } from '@/components/ui/button'
 import { Textarea } from '@/components/ui/textarea'
 import { CharCounter } from '@/components/shared/CharCounter'
+import { LIMITS } from '@/lib/limits'
 
-/** Comment length cap. */
-const COMMENT_MAX = 7500
+const COMMENT_MAX = LIMITS.comment
 
 interface CommentFormProps {
   root: NostrTarget

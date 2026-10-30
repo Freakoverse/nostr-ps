@@ -2,9 +2,10 @@ import { useState } from 'react'
 import { Plus, X } from 'lucide-react'
 import { Input } from '@/components/ui/input'
 import { Button } from '@/components/ui/button'
+import { LIMITS } from '@/lib/limits'
 
-const MAX_TOPICS = 20
-const MAX_LEN = 40
+const MAX_TOPICS = LIMITS.topics
+const MAX_LEN = LIMITS.topicLength
 
 /** Normalize one hashtag: lowercase, no leading '#', no spaces. */
 function normalize(raw: string): string {

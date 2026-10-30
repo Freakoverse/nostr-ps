@@ -16,6 +16,7 @@ import { Button } from '@/components/ui/button'
 import { Input } from '@/components/ui/input'
 import { Textarea } from '@/components/ui/textarea'
 import { MarkdownEditor } from '@/components/ps/MarkdownEditor'
+import { LIMITS } from '@/lib/limits'
 import { ReleaseRow } from '@/components/ps/Cards'
 import { cn } from '@/lib/utils'
 
@@ -81,6 +82,7 @@ export function ReleaseCreatePage() {
   const publish = async () => {
     if (!versionOk) { toast.error(taken ? `v${version} already exists` : 'Version must be dotted integers, e.g. 1, 1.1, 2'); return }
     if (!title.trim() || !content.trim()) { toast.error('Title and body are required'); return }
+    if (content.length > LIMITS.body) { toast.error(`The body is too long (max ${LIMITS.body.toLocaleString()} characters)`); return }
     const writeRelay = useSettingsStore.getState().getAllEnabledRelayUrls('write')[0]
     const event = buildReleaseEvent({
       uuid: draft.uuid,
@@ -151,18 +153,18 @@ export function ReleaseCreatePage() {
         </div>
         <div className="space-y-1.5">
           <label className="text-sm font-medium text-neutral-200">Title</label>
-          <Input value={title} onChange={(e) => setTitle(e.target.value)} className="border-edge bg-panel" maxLength={120} />
+          <Input value={title} onChange={(e) => setTitle(e.target.value)} className="border-edge bg-panel" maxLength={LIMITS.title} />
         </div>
       </div>
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-neutral-200">Summary <span className="text-neutral-500">(optional)</span></label>
-        <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} className="border-edge bg-panel" maxLength={500} />
+        <Textarea value={summary} onChange={(e) => setSummary(e.target.value)} rows={2} className="border-edge bg-panel" maxLength={LIMITS.summary} />
       </div>
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-neutral-200">Spec text <span className="text-neutral-500">(frozen on publish)</span></label>
-        <MarkdownEditor value={content} onChange={setContent} />
+        <MarkdownEditor value={content} onChange={setContent} maxLength={LIMITS.body} />
       </div>
 
       <details className="rounded-lg border border-edge bg-panel p-3 text-sm">

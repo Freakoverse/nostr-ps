@@ -6,18 +6,21 @@ import { Textarea } from '@/components/ui/textarea'
 import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/shared/Markdown'
 import { MarkdownToolbar } from '@/components/shared/MarkdownToolbar'
+import { CharCounter } from '@/components/shared/CharCounter'
 import { BlossomUploadField } from '@/components/upload/BlossomUploadField'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 
 /** Markdown textarea with toolbar, preview toggle and Blossom image insert. */
 export function MarkdownEditor({
-  value, onChange, placeholder, minRows = 16, className,
+  value, onChange, placeholder, minRows = 16, className, maxLength,
 }: {
   value: string
   onChange: (v: string) => void
   placeholder?: string
   minRows?: number
   className?: string
+  /** Hard cap on the body; a counter appears as the text approaches it. */
+  maxLength?: number
 }) {
   const ref = useRef<HTMLTextAreaElement>(null)
   const [preview, setPreview] = useState(false)
@@ -62,9 +65,11 @@ export function MarkdownEditor({
           onChange={(e) => onChange(e.target.value)}
           placeholder={placeholder}
           rows={minRows}
+          maxLength={maxLength}
           className="min-h-[300px] resize-y rounded-t-none border-0 bg-transparent font-mono text-[13px] leading-relaxed text-neutral-200"
         />
       )}
+      {maxLength && !preview && <div className="px-3 pb-2"><CharCounter value={value} max={maxLength} /></div>}
 
       <Dialog open={imageOpen} onOpenChange={setImageOpen}>
         <DialogContent className="border-edge bg-dialog sm:max-w-md">
