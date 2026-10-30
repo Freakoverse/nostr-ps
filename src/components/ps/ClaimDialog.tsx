@@ -119,8 +119,7 @@ export function ClaimDialog({
           <div className="space-y-1.5">
             <label className="text-xs font-medium text-neutral-300">Links to source, commit, or release <span className="text-neutral-600">(one per line)</span></label>
             <Textarea value={urls} onChange={(e) => setUrls(e.target.value)} rows={2} placeholder="https://…" className="border-edge bg-panel" maxLength={LIMITS.claimUrls * (LIMITS.claimUrlLength + 1)} />
-            <LimitCounter current={urls.split('
-').filter((u) => u.trim()).length} max={LIMITS.claimUrls} />
+            <LimitCounter current={urls.split('\n').filter((u) => u.trim()).length} max={LIMITS.claimUrls} />
           </div>
 
           {role === 'client' && (
