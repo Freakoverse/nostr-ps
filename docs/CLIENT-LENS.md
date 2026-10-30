@@ -124,3 +124,16 @@ verdict from a reviewer above threshold makes a claim unverified.
 Defaults: the operator graph (`ADMIN_PUBKEY` in `src/lib/constants.ts`) is the
 only built-in source. No NIP-85 provider ships enabled; the user pastes a
 provider key (for example a Brainstorm instance's service key) in Settings.
+
+## Default provider
+
+The client ships one NIP-85 source enabled by default: nosfabrica's
+Brainstorm Assistant (`npub10rkssdlt5zazgsuyr9wwg8f2y9t4ga4gax0y8updd6tjnpsw98nqm9l467`),
+read from `wss://nip85.brainstorm.world`. Brainstorm has no single key: every
+account gets an assistant that publishes `kind:30382` from that account's
+vantage point, so this is one viewpoint among possible many, chosen because
+it exists and publishes today. It is a built-in row: anyone can switch it off
+in the lens menu, and more instances are added to `BUILTIN_PROVIDERS` in
+`src/stores/lensStore.ts` as they appear. The point of leaning on a provider
+rather than a local graph walk is that the trust computation runs on the
+provider's side, not in every visitor's browser.

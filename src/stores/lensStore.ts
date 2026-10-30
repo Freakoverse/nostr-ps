@@ -109,11 +109,30 @@ function labelFor(pubkey: string): string {
   try { return shortNpub(nip19.npubEncode(pubkey)) } catch { return `${pubkey.slice(0, 8)}…${pubkey.slice(-4)}` }
 }
 
-// Only when the deployment names an operator (constants.ts); otherwise no
-// source ships and anonymous visitors see the raw view until they add one.
-const DEFAULT_SOURCES: LensSource[] = HAS_OPERATOR
-  ? [{ id: OPERATOR_SOURCE_ID, type: 'graph', pubkey: ADMIN_PUBKEY, label: 'Operator graph', enabled: true, builtin: true }]
-  : []
+/**
+ * Built-in NIP-85 providers. Brainstorm has no single key: every account gets
+ * a "Brainstorm Assistant" that publishes kind 30382 from that account's
+ * vantage point, so each entry here is somebody's Brainstorm. More can be
+ * added as more instances appear; the lens combines them by maximum.
+ */
+export const BUILTIN_PROVIDERS: LensSource[] = [
+  {
+    id: 'brainstorm-nosfabrica',
+    type: 'nip85',
+    // npub10rkssdlt5zazgsuyr9wwg8f2y9t4ga4gax0y8updd6tjnpsw98nqm9l467, "nosfabrica's Brainstorm Assistant"
+    pubkey: '78ed0837eba0ba244384195ce41d2a21575476a8e99e43f02d6e9729860e29e6',
+    label: 'Brainstorm (nosfabrica)',
+    relays: ['wss://nip85.brainstorm.world'],
+    enabled: true,
+    builtin: true,
+  },
+]
+
+// The operator graph only when the deployment names an operator (constants.ts).
+const DEFAULT_SOURCES: LensSource[] = [
+  ...(HAS_OPERATOR ? [{ id: OPERATOR_SOURCE_ID, type: 'graph' as const, pubkey: ADMIN_PUBKEY, label: 'Operator graph', enabled: true, builtin: true }] : []),
+  ...BUILTIN_PROVIDERS,
+]
 
 function enabledSources(s: LensState): LensSource[] {
   return s.sources.filter((x) => x.enabled)
@@ -221,7 +240,7 @@ export const useLensStore = create<LensState>()(
     }),
     {
       name: 'nip-ps:lens',
-      version: 2,
+      version: 3,
       // Scores persist too, so a cache-painted list is scored at once; anything
       // past SCORE_TTL is re-fetched on demand and a source change clears them.
       partialize: (s) => ({ sources: s.sources, enabled: s.enabled, threshold: s.threshold, graphDepth: s.graphDepth, scores: s.scores }),
@@ -237,6 +256,11 @@ export const useLensStore = create<LensState>()(
         if (version < 2 && Array.isArray(s.sources)) {
           s.sources = s.sources.filter((x) => x.id !== OPERATOR_SOURCE_ID || (HAS_OPERATOR && x.pubkey === ADMIN_PUBKEY))
           if (HAS_OPERATOR && !s.sources.some((x) => x.id === OPERATOR_SOURCE_ID)) s.sources = [...s.sources, ...DEFAULT_SOURCES]
+          s.scores = {}
+        }
+        // v3: built-in providers (Brainstorm) join existing stores without disturbing user rows.
+        if (version < 3 && Array.isArray(s.sources)) {
+          for (const p of BUILTIN_PROVIDERS) if (!s.sources.some((x) => x.id === p.id)) s.sources = [...s.sources, p]
           s.scores = {}
         }
         return s as LensState
