@@ -98,14 +98,13 @@ had a global number. This is also how an implementer states what they
 implement, in a README, a changelog, or a NIP-89 handler description: by
 that rendering, never by a number. For a release titled `NIP-EXAMPLE`,
 version `1.2`, by `npub1qgm4k3t2z9rfdvxh6yl0cw5ep8ucn7a2s3jd4fvt8xg9mkl5r2hsq6wz7c`,
-with release event id `0000a1b2c3d4…`, defining kind `70001`, the
-statement reads:
+with release event id `0000a1b2c3d4…`, the statement reads:
 
 > We implement NIP-EXAMPLE v1.2 by npub1qgm4k…sq6wz7c (0000a1b2).
 
 The values in that example are made up: the npub is not a real key and
-kind `70001` is above the range NIP-01 allows, so nothing in it can be
-mistaken for a real proposal. The npub and the event id MAY be shortened
+the id is not a real event, so nothing in it can be mistaken for a real
+proposal. The npub and the event id MAY be shortened
 for display, but the full event id is what a `kind:30851` claim carries
 (§4.4), and the full `v` spec id is what links the claim to a lineage.
 

@@ -41,14 +41,13 @@ export function AboutPage() {
           There are no NIP numbers here, so saying which standard you implement, in a README, a
           changelog, or a handler description, uses the rendering the specification below defines:
           title, version, author, and the release event id. For a made-up release titled
-          NIP-EXAMPLE, version 1.2, defining kind 70001, it reads:
+          NIP-EXAMPLE, version 1.2, it reads:
         </p>
         <pre className="overflow-x-auto rounded-lg border border-edge bg-well px-4 py-3 font-mono text-xs text-neutral-300">We implement NIP-EXAMPLE v1.2 by npub1qgm4k…sq6wz7c (0000a1b2)</pre>
         <p className="text-xs text-neutral-500">
           Those values are deliberately fake. The npub,
-          npub1qgm4k3t2z9rfdvxh6yl0cw5ep8ucn7a2s3jd4fvt8xg9mkl5r2hsq6wz7c, is not a real key, and
-          kind 70001 is above the range NIP-01 allows, so nothing in the example can be confused
-          with a real proposal. The claim event itself carries the full release id and spec id.
+          npub1qgm4k3t2z9rfdvxh6yl0cw5ep8ucn7a2s3jd4fvt8xg9mkl5r2hsq6wz7c, is not a real key and the id is not a real event, so nothing in the example can be
+          confused with a real proposal. The claim event itself carries the full release id and spec id.
         </p>
       </Section>
 
