@@ -81,7 +81,6 @@ export function DraftCard({ draft, released }: { draft: Draft; released?: boolea
         </div>
         <div className="flex shrink-0 items-center gap-1.5">
           {(released ?? !!draft.releaseId) && <Chip className="border-emerald-500/30 text-emerald-400">released</Chip>}
-          {draft.status === 'review' && <Chip className="border-yellow-500/30 text-yellow-400">in review</Chip>}
           <FileText className="h-4 w-4 text-neutral-600" />
         </div>
       </div>

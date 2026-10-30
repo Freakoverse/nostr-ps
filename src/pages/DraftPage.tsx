@@ -68,7 +68,6 @@ export function DraftPage() {
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
             <Chip>draft</Chip>
-            {draft.status === 'review' && <Chip className="border-yellow-500/30 text-yellow-400">in review</Chip>}
             {draft.deleted && <Chip className="border-red-500/30 text-red-400">deleted</Chip>}
           </div>
           <PostMenu event={draft.event}>
