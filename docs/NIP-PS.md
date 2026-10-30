@@ -31,8 +31,9 @@ Three layers:
 
 1. **Adoption is the primary signal.** Who implemented it, at which version,
    and how much traffic those implementations produce.
-2. **Trust is the filter.** Reviews only matter from pubkeys inside the
-   viewer's own graph, or a graph the viewer chose to look through.
+2. **Trust is the filter.** Reviews only matter from pubkeys that score
+   under the viewer's lens: a web-of-trust view computed from the viewer's
+   own vantage point, or one the viewer chose to look through.
 3. **Verification is human.** The system surfaces evidence. The viewer
    decides what is real and adjusts their graph accordingly.
 
@@ -474,59 +475,74 @@ rather than all-versions bodies. Releases published without the `o` tag
 are only reachable by unfiltered queries; clients MAY keep that path as
 a fallback.
 
-### 6.2 Viewpoint
+### 6.2 Viewpoint and providers
 
-A **viewpoint** is a pubkey whose graph is used as the lens for trust
-computation. It is a setting, not a role.
+A **viewpoint** is the vantage point from which trust is computed: some
+pubkey's follows and mutes, walked by a web-of-trust algorithm such as
+GrapeRank, yielding a rank for every other pubkey. It is a setting, not a
+role.
 
-What is read from the viewpoint pubkey `V`:
+Clients SHOULD NOT compute the viewpoint themselves. Walking follow lists
+puts the cost of trust on every visitor's browser and on every relay they
+read from. Instead a **provider** does the computation once and publishes
+the result as NIP-85 trusted assertions: `kind:30382` events signed by the
+provider's key, `d` = subject pubkey, `rank` = 0-100. One provider key
+carries one observer's view; a Brainstorm instance, for example, gives
+each account its own assistant key for exactly this. The client reads
+assertions; it never walks graphs.
 
-- `V`'s follow list (`kind:3`) as the distance-1 trusted set, optionally
-  extended to distance 2
-- `V`'s mute list (`kind:10000`) as exclusions
-- `V`'s own `kind:30852` reviews as strong votes
+A viewer's lens is therefore a list of provider keys, each with the relay
+it publishes to. How a client fills it:
+
+- **Logged in.** Read the user's `kind:10040` (NIP-85): the event the user
+  signs to say "my ranks come from this provider, at this relay", as
+  `["30382:rank", "<provider pubkey>", "<relay>"]`. Add that provider as
+  the user's own. A client MUST NOT publish a 10040 on the user's behalf;
+  choosing who computes your trust is the user's own act. When the user
+  has none, say so and point at where to get one.
+- **Anonymous.** A client-side default list of providers, shown on every
+  listing and swappable without login.
+- **Anyone.** Any provider key can be added or switched off.
 
 Every client MUST:
 
-- display the active viewpoint at all times, e.g. "Viewing as: `<npub>`"
-- let the user change it to any pubkey, with or without holding its keys,
-  whether or not they are logged in
-- let the user turn it off entirely
+- display the active providers at all times, e.g. "Viewing as: Brainstorm
+  (nosfabrica)"
+- let the user change them, whether or not they are logged in
+- let the user turn the lens off entirely
 
-Modes:
+A rank from several providers is combined by maximum, so one provider
+vouching is enough to surface something. A pubkey with no assertion from
+any enabled provider is **unknown**, not zero: providers only reach what
+their observer's graph reaches, and newcomers have no rank yet.
 
-| Mode             | Trusted set                                      |
-|------------------|--------------------------------------------------|
-| Off              | none; raw view (§6.5)                            |
-| Viewpoint only   | the chosen pubkey's graph                        |
-| Own only         | the logged-in user's graph                       |
-| Both             | union of the two                                 |
-
-For anonymous users the default viewpoint is the app operator's pubkey.
-This default is structurally a default authority. Visibility and one-click
-replacement are what keep it a setting instead of a gate.
+The anonymous default is structurally a default authority. Visibility and
+one-click replacement are what keep it a setting instead of a gate.
 
 ### 6.3 Trust computation
 
-Given the trusted set derived from the active mode:
+Given the ranks from the active lens (§6.2):
 
-1. **Distance.** Distance 1 is a direct follow. Distance 2 is a follow of a
-   follow. Deeper is client policy.
-2. **Mutes.** Muted pubkeys and their reviews are ignored entirely.
+1. **Threshold.** A client-configurable rank, 0-100, below which a pubkey
+   is "low" and without which it is "unknown". Recommended default: 2,
+   meaning "vouched for at all": muted or reported keys sit at 0 and
+   unreached keys have no rank, so 2 is the anti-spam floor rather than a
+   quality bar.
+2. **Weight.** A reviewer's weight is `rank / 100`. Unknown reviewers weigh
+   0 but are still shown, folded, so newcomers are visible.
 3. **Legitimacy of a claim `C`.** Collect `kind:30852` reviews targeting
-   `C` from pubkeys within distance. Recommended weights:
-   - `legit` from distance 1: 1.0
-   - `legit` from distance 2: 0.5
-   - the implementer is followed at distance 1, no explicit review: 0.5
-     (weak auto-vouch; a follow is social, not an audit)
-   - any `fake` from distance 1: `C` is unverified, full stop
-4. **Independence.** Sum weights over DISTINCT reviewers. Fifty reviews
-   from one pubkey count once. `C` is "verified" when the sum reaches a
-   client-configurable threshold (recommended default: 1.0).
-5. **Recommendation of a release `R`.** Count distinct `recommend`,
-   `not-recommend`, and `unsure` reviewers within distance, weighted by
-   distance. Displayed as its own column. Never mixed into the adoption
+   `C`. Sum the weights of DISTINCT reviewers at or above threshold who said
+   `legit`. Fifty reviews from one pubkey count once. `C` is "verified"
+   when the sum reaches a client-configurable threshold (recommended
+   default: 1.0). Any `fake` from a reviewer at or above threshold makes
+   `C` unverified, full stop.
+4. **Recommendation of a release `R`.** Count distinct `recommend`,
+   `not-recommend`, and `unsure` reviewers at or above threshold, weighted
+   by rank. Displayed as its own column. Never mixed into the adoption
    count.
+5. **Folding, never hiding.** Below-threshold and unknown authors are
+   folded behind a count, with a control to show them. A client MUST NOT
+   remove them from the view.
 
 ### 6.4 Usage observation
 
@@ -552,8 +568,8 @@ and the client SHOULD say so in one line.
 Clients SHOULD require a minimum NIP-13 difficulty on events counted in the
 raw view. PoW raises the cost of volume spam linearly; it does not stop a
 motivated attacker. It is a floor for the unfiltered tier, not a defense.
-Recommended default: 16 bits in raw view, 0 when a viewpoint is active,
-since the graph does the work there.
+Recommended default: 16 bits in raw view, 0 when a lens is active,
+since the providers do the work there.
 
 All NIP-PS events SHOULD carry PoW. Addressable events re-mine on every
 update, which is acceptable at modest difficulty.
@@ -617,15 +633,19 @@ that needs more belongs split into a profile of another spec (§12).
   indicator. A rational attacker's payoff is limited to viewers with the
   viewpoint off, which is by design a small population.
 - **Infiltration.** With volume attacks unprofitable, the cheapest remaining
-  attack is getting real people inside a popular viewpoint's graph to vouch
-  for sybils. This is slow and rate-limited by human attention. The spec
-  does not prevent it; it makes it visible (§6.7) and cheap to undo (one
-  unfollow). Operators of default viewpoints SHOULD use tight distance and
-  explicit reviews rather than deep follow-of-follow.
-- **Default viewpoint capture.** The app operator's graph is the high-value
-  target. Mitigations: the viewpoint is displayed, swappable without login,
-  and the operator is responsible for their own follows like any other
-  graph owner.
+  attack is getting real people inside a popular provider's observer graph
+  to vouch for sybils. This is slow and rate-limited by human attention.
+  The spec does not prevent it; it makes it visible (§6.7) and cheap to
+  undo (one unfollow or mute by the observer, which the provider picks up
+  on its next run).
+- **Default provider capture.** The provider a client ships as its
+  anonymous default is the high-value target, both its observer's graph
+  and the provider's own key and relay. Mitigations: the provider is named
+  and displayed, swappable without login, combinable with others by
+  maximum so no single provider is the only voice, and the observer behind
+  it is responsible for their own follows like any other graph owner. A
+  compromised provider key is handled like any key compromise: the client
+  drops the row.
 - **Vocabulary leakage.** If release verdicts and claim verdicts shared
   words, clients would eventually blur "I dislike this spec" into "this
   implementer is a scammer." The vocabularies are disjoint for this reason
@@ -684,13 +704,12 @@ An empty market ranks nothing. A NIP-PS deployment SHOULD start with:
   traffic for clients.
 - **NIP-11** `pubkey` is the join key for relay claims.
 - **NIP-34** repository announcements are the join key for libraries.
-- **NIP-51** follow sets MAY be used instead of `kind:3` for a viewpoint's
-  distance-1 set, e.g. a "protocol people" set narrower than social
-  follows.
-- **NIP-85** trusted-assertion providers MAY be used as viewpoint sources: a
-  provider's `rank` for a pubkey MAY stand in for graph distance in §6.3.
-  A provider key is one observer's perspective; adopting it is a choice the
-  client MUST show, like any other viewpoint.
+- **NIP-85** trusted assertions are how the lens works (§6.2): a provider
+  key publishes `kind:30382` ranks, and a user's `kind:10040` names their
+  own provider. A provider key is one observer's perspective; adopting it
+  is a choice the client MUST show. Which follow sets an observer uses
+  (`kind:3`, or a narrower NIP-51 set) is the provider's business, not the
+  client's.
 - **NIP-22** comments are the discussion mechanism for drafts and MAY also
   be used on releases and claims.
 

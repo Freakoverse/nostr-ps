@@ -2,7 +2,6 @@ import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
 import { MessagesSquare, Loader2, RefreshCw, Settings, ListFilter } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
-import { useWotStore } from '@/stores/wotStore'
 import { useBlockStore } from '@/stores/blockStore'
 import { useFollowedSet } from '@/hooks/useFollowedSet'
 import type { Event as NostrEvent } from 'nostr-tools'
@@ -83,23 +82,16 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
   const powTree = showBelowPow ? unfilteredTree : filteredTree
   const belowPow = useMemo(() => countComments(unfilteredTree) - countComments(filteredTree), [unfilteredTree, filteredTree])
 
-  // Hide comments/replies from low-trust (Web of Trust) or blocked users.
-  const wotApply = useWotStore((s) => s.settings.applyComments)
-  const wotThreshold = useWotStore((s) => s.settings.scoreThreshold)
-  const wotDepth = useWotStore((s) => s.settings.followDepth)
-  const wotUpdated = useWotStore((s) => s.lastUpdated)
+  // Drop comments/replies from blocked users. Trust is the lens's job and the
+  // lens folds rather than hides, so nothing else is pruned here.
   const blocked = useBlockStore((s) => s.blockedPubkeys)
   const tree = useMemo(() => {
-    const shouldHide = useWotStore.getState().shouldHide
-    const hide = (pubkey: string) =>
-      blocked.has(pubkey) || (wotApply && shouldHide(pubkey, 'comments'))
     const prune = (nodes: CommentNode[]): CommentNode[] =>
       nodes
-        .filter((n) => !hide(n.event.pubkey))
+        .filter((n) => !blocked.has(n.event.pubkey))
         .map((n) => ({ ...n, replies: prune(n.replies) }))
     return prune(powTree)
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [powTree, blocked, wotApply, wotThreshold, wotDepth, wotUpdated])
+  }, [powTree, blocked])
 
   // Apply view filters. "Author only" shows just the post author's top-level
   // comments, without their reply threads.

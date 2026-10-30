@@ -1,9 +1,9 @@
 # Client notes: the trust lens
 
 Client-side design for spam, scam, and sybil handling in a NIP-PS client.
-This is not part of the NIP-PS protocol. It describes how a client builds
-the "viewpoint" from §6.2 of the spec using external score providers in
-addition to locally computed graph distance.
+This is not part of the NIP-PS protocol. It describes how this client
+implements the "viewpoint" from §6.2 of the spec: entirely through external
+score providers, never by walking follow graphs in the browser.
 
 ## Background: Brainstorm and GrapeRank
 
@@ -14,55 +14,62 @@ addition to locally computed graph distance.
   one score per pubkey, 0 to 100, from that observer's perspective.
 - Brainstorm is a service that runs it and publishes results as NIP-85
   `kind:30382` trusted assertions: addressable, `d` = subject pubkey,
-  `rank` = 0-100, signed by a service key. One service key per perspective.
-- Clients discover which service key to read through the user's
-  `kind:10040` list, entries of the form
-  `["30382:rank", "<service pubkey>", "<relay>"]`.
-- The NosFabrica hosted instance exposes an HTTP API to request a
-  calculation for a pubkey, with presets (default, permissive,
-  restrictive). It is AGPL and self-hostable.
+  `rank` = 0-100, signed by a service key. It is AGPL and self-hostable.
+- Brainstorm has no single key. Each account that signs up gets a
+  "Brainstorm Assistant" key of its own, created and held by the instance,
+  which publishes assertions computed from that account's follows and
+  mutes. The account's own key signs nothing but the pointer below.
+- The pointer is the user's `kind:10040` list, entries of the form
+  `["30382:rank", "<assistant pubkey>", "<relay>"]`. A client reads it to
+  learn which provider key, on which relay, carries that user's view.
 
 Key fact: a 30382 assertion signed by key K is the view from one specific
 observer. Adding "the Brainstorm npub" to the lens means adopting that
 observer's perspective. Scores are per pubkey, never per event.
 
+## Why providers only
+
+The point of a provider is that the expensive part, fetching thousands of
+follow lists and running the algorithm, happens once on the provider's side
+and is published. A client that walks follow lists itself puts that cost on
+every visitor's browser and every relay they read from, which is the load
+this client is built to avoid. So the lens has exactly one source type: a
+provider key plus the relay it publishes to. There is no local graph walk,
+not for an operator, not for the logged-in user.
+
 ## The lens
 
-The lens is an ordered list of **sources**. Each source yields a score in
-0-100 for a given pubkey, or "unknown".
-
-| Source type            | How the score is produced                                  |
-|------------------------|------------------------------------------------------------|
-| NIP-85 provider        | Fetch `kind:30382` with `d` = pubkey from the service key   |
-| Graph viewpoint        | Local computation from an npub's `kind:3` and `kind:10000` per spec §6.3, mapped to 0-100 |
-| Own graph              | Same as graph viewpoint, using the logged-in user's npub    |
+The lens is a list of **providers**. Each yields a score in 0-100 for a
+given pubkey, or "unknown" when it has no assertion for that pubkey.
 
 Rules:
 
-- Every source is individually toggleable. The whole lens can be turned
+- Every provider is individually toggleable. The whole lens can be turned
   off, which yields the spec's raw view.
-- Custom sources are added by pasting any npub. The client detects whether
-  that npub publishes 30382 assertions (provider) or should be treated as a
-  graph viewpoint, and lets the user override.
-- For a logged-in user, the client SHOULD: read their 10040 list and
-  pre-populate providers from it; offer to request a fresh calculation
-  from a known provider for their pubkey; add "own graph" as a source.
-- For an anonymous user, the default lens contains the operator's chosen
-  provider key and/or the operator's npub as a graph viewpoint, exactly as
-  the spec's anonymous default viewpoint. It is displayed and swappable
-  without login.
+- Custom providers are added by pasting the provider key and, usually, the
+  relay it publishes to, since Brainstorm instances serve assertions from
+  their own relay rather than general-purpose ones. A person's own npub is
+  not a provider; nothing is published under it.
+- For a logged-in user, the client reads their `kind:10040` and, when it
+  names a provider, adds that as "Your provider" at the top of the list.
+  When it names none, the lens settings say so, "trust graph and provider
+  not found", and explain how to get one. The client never writes a 10040
+  for anyone: choosing who computes your trust stays the user's own act.
+- For an anonymous user, the default lens is the built-in provider list,
+  `BUILTIN_PROVIDERS` in `src/stores/lensStore.ts`. It is displayed on every
+  listing and swappable without login.
 
-## Combining sources
+## Combining providers
 
-Each source's score is shown as its own badge on the author of every
-claim, review, release, and draft. For filtering, the client computes one
-combined score per pubkey. Policy is configurable; recommended default is
-**maximum across enabled sources**, so one source vouching is enough to
-surface something. Alternatives: average, or "own graph wins when
-present".
+Each provider's score is shown on hover on the author of every claim,
+review, release, and draft. For filtering, the client computes one
+combined score per pubkey: **maximum across enabled providers**, so one
+provider vouching is enough to surface something.
 
-Sources with "unknown" for a pubkey do not participate in the combination.
-If every enabled source is unknown, the pubkey is "unknown", not zero.
+Providers with "unknown" for a pubkey do not participate. If every enabled
+provider is unknown, the pubkey is "unknown", not zero. A rank of 0 with a
+`hops` tag means the provider's graph reached the key and did not vouch; a
+rank of 0 with no `hops` tag is treated as unknown.
 
 ## Threshold filter
 
@@ -70,30 +77,30 @@ One slider, 0-100, applied to the combined score of the author. Three
 buckets:
 
 - **Above threshold:** shown normally.
-- **Below threshold:** collapsed under "N low-trust items, show".
-- **Unknown:** collapsed separately under "N unscored items, show".
+- **Below threshold:** folded under "low scored".
+- **Unknown:** folded separately under "unscored".
 
 Unknown is kept separate because providers only have assertions for
-pubkeys inside their computed graph, assertions refresh every few hours,
+pubkeys inside their observer's reach, assertions refresh on a schedule,
 and a brand new implementer will have no score at all. Treating unknown as
 zero would hide exactly the newcomers the spec is designed to surface.
 Nothing is ever removed; the spec's "filtering demotes, never hides" rule
-applies.
+applies, so every list offers scored, low-scored, unscored, or all.
+
+The default threshold is 2: "vouched for at all". Unknown and muted keys
+sit at no rank or 0, so 2 is the anti-spam floor; raising it demands more
+than a toehold in the provider's graph.
 
 ## Feeding the spec's trust computation
 
-Spec §6.3 weights a review by graph distance (1.0 at distance 1, 0.5 at
-distance 2). With a lens active, replace the distance weight with
-`combined_score / 100` of the reviewer. Keep the override that any `fake`
-verdict from a reviewer above threshold makes a claim unverified.
+Spec §6.3 weights a reviewer by their rank under the active lens:
+`combined_score / 100`. Any `fake` verdict from a reviewer above threshold
+makes a claim unverified.
 
 ## Badge and provenance
 
-- The badge shows the combined score and, on hover or tap, one line per
-  source: provider name or npub, the score it gave, and when its assertion
-  was published.
-- Clicking through shows the raw 30382 event or, for a graph viewpoint,
-  the path (who follows whom) that produced the local score.
+- The badge shows the combined score and, on hover, one line per provider:
+  its label, the score it gave, and when the scores were fetched.
 - This is the same provenance rule as spec §6.7. A score with no visible
   source is an authority; a score with a visible source is a setting.
 
@@ -102,38 +109,31 @@ verdict from a reviewer above threshold makes a claim unverified.
 - Freshness: assertions are republished on a schedule, not on demand, so
   new npubs lag. Unknown-bucket handling covers this.
 - Coverage: a provider scores only what its observer's graph reaches.
-- Centralization: a hosted provider is one service. Keep it pluggable and
-  never the only path; local graph viewpoints must always work without it.
+- Centralization: a hosted provider is one service. Keep the list
+  pluggable; add instances as they appear.
 - Perspective confusion: make clear in the UI whose perspective a provider
   key represents. "Brainstorm" is not a perspective; "Brainstorm computed
-  for npubX" is.
+  for npubX" is, which is why the built-in row is labelled with the name.
 
 ## Implementation (this client)
 
-- `src/stores/lensStore.ts`: sources, scoring, buckets. Graph sources are
-  computed locally (follows 100, follows-of-follows 50, muted 0); NIP-85
-  sources read kind 30382 by `d` = subject from the provider key. Combination
-  is max. The "own graph" row is added on login and removed on logout.
-- `src/components/lens/TrustBadge.tsx`: the per-pubkey pill with per-source
+- `src/stores/lensStore.ts`: providers, scoring, buckets, the own-provider
+  lookup from `kind:10040`. Combination is max. `BUILTIN_PROVIDERS` is the
+  anonymous default.
+- `src/components/lens/TrustBadge.tsx`: the per-pubkey pill with per-provider
   provenance on hover.
 - `src/components/lens/LensBar.tsx`: the always-visible viewpoint line on
-  every listing, with the master switch and threshold.
-- `src/components/lens/TieredList.tsx`: above / below / unknown folds.
-- `src/components/lens/LensSettings.tsx`: Settings → Lens.
-
-Defaults: the operator graph (`ADMIN_PUBKEY` in `src/lib/constants.ts`) is the
-only built-in source. No NIP-85 provider ships enabled; the user pastes a
-provider key (for example a Brainstorm instance's service key) in Settings.
+  every listing, with the lens menu (master switch, per-provider switches,
+  Manage) and the threshold.
+- `src/components/lens/TieredList.tsx`: the score filter and folds.
+- `src/components/lens/LensSettings.tsx`: Settings → Lens, including the
+  "Your provider" card and the how-to for getting one.
 
 ## Default provider
 
-The client ships one NIP-85 source enabled by default: nosfabrica's
-Brainstorm Assistant (`npub10rkssdlt5zazgsuyr9wwg8f2y9t4ga4gax0y8updd6tjnpsw98nqm9l467`),
-read from `wss://nip85.brainstorm.world`. Brainstorm has no single key: every
-account gets an assistant that publishes `kind:30382` from that account's
-vantage point, so this is one viewpoint among possible many, chosen because
-it exists and publishes today. It is a built-in row: anyone can switch it off
-in the lens menu, and more instances are added to `BUILTIN_PROVIDERS` in
-`src/stores/lensStore.ts` as they appear. The point of leaning on a provider
-rather than a local graph walk is that the trust computation runs on the
-provider's side, not in every visitor's browser.
+The client ships one provider enabled by default: nosfabrica's Brainstorm
+Assistant (`npub10rkssdlt5zazgsuyr9wwg8f2y9t4ga4gax0y8updd6tjnpsw98nqm9l467`),
+read from `wss://nip85.brainstorm.world`. It is one viewpoint among possible
+many, chosen because it exists and publishes today. Anyone can switch it off
+in the lens menu, and more instances are added to `BUILTIN_PROVIDERS` as they
+appear.

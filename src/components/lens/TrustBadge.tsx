@@ -52,7 +52,7 @@ export function TrustBadge({ pubkey, className, compact = false }: { pubkey: str
             const v = score?.per[s.id]
             return (
               <p key={s.id} className="flex items-center justify-between gap-4 text-neutral-400">
-                <span className="truncate">{s.label} <span className="text-neutral-600">({s.type === 'nip85' ? 'provider' : 'graph'})</span></span>
+                <span className="truncate">{s.label} <span className="text-neutral-600">({s.own ? 'your provider' : 'provider'})</span></span>
                 <span className="tabular-nums text-neutral-300">{v === null || v === undefined ? '—' : v}</span>
               </p>
             )

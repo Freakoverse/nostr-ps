@@ -7,7 +7,7 @@ Client application: a general Nostr client foundation (relay pool, auth, PoW, Bl
 ## Docs
 
 - [NIP-PS spec](docs/NIP-PS.md) — the protocol: drafts, releases, backups, adoption claims, reviews.
-- [Client lens](docs/CLIENT-LENS.md) — client-side trust scoring via NIP-85 providers and graph viewpoints.
+- [Client lens](docs/CLIENT-LENS.md) — client-side trust scoring, read from NIP-85 providers (Brainstorm instances); nothing is computed in the browser.
 - [Deploying](docs/deploying.md) — static build, GitHub Pages, nginx.
 
 ## Develop
@@ -44,7 +44,7 @@ npm run dev
 ## Before deploying
 
 - The default lens source is a Brainstorm NIP-85 provider (`BUILTIN_PROVIDERS` in `src/stores/lensStore.ts`); add more there as more instances appear.
-- `ADMIN_PUBKEY` / `ADMIN_NPUB` in `src/lib/constants.ts` are optional. Set them to a dedicated operator key if you want an announcement banner and an operator graph as the anonymous default viewpoint; left empty, anonymous visitors see the raw view until they add a lens source or log in.
+- `ADMIN_PUBKEY` / `ADMIN_NPUB` in `src/lib/constants.ts` are optional and only drive the announcement banner (NIP-78 posts signed by that key). The lens does not use them.
 - Kind numbers `8201`, `8202`, `30851`, `30852` are provisional (spec §12). `30817` is shared with an existing NIP directory on purpose.
 - The favicon is `public/favicon.svg`, a plain "PS" tile; replace it if you want a brand mark.
 - GitHub Pages: set the Pages source to "GitHub Actions"; the workflow in `.github/workflows/pages.yml` builds and deploys on every push to `main`.

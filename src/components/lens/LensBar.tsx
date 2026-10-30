@@ -56,7 +56,7 @@ export function LensBar({ className }: { className?: string }) {
             >
               <span className="min-w-0">
                 <span className="block truncate text-sm">{s.label}</span>
-                <span className="block text-[11px] text-neutral-500">{s.type === 'nip85' ? 'NIP-85 provider' : 'follow graph'}</span>
+                <span className="block text-[11px] text-neutral-500">{s.own ? 'your provider, from your kind 10040' : 'NIP-85 provider'}</span>
               </span>
               <Switch checked={s.enabled} onCheckedChange={(v) => toggleSource(s.id, v)} onClick={(e) => e.stopPropagation()} aria-label={`Toggle ${s.label}`} />
             </DropdownMenuItem>

@@ -44,10 +44,9 @@ export const SECURE_KEYS = {
 
 // ─── Operator ───────────────────────────────────────────────────────
 //
-// Optional operator key: publishes the announcement banner and is the anonymous
-// default viewpoint (docs/CLIENT-LENS.md). Leave both empty to ship without an
-// operator: no banner, no operator graph, anonymous visitors see the raw view
-// until they add a source or log in (their own graph is added automatically).
+// Optional operator key: signs the announcement banner (NIP-78). The lens does
+// not use it; trust comes from NIP-85 providers (docs/CLIENT-LENS.md). Leave
+// both empty to ship without a banner.
 
 export const ADMIN_NPUB = ''
 export const ADMIN_PUBKEY = ''
