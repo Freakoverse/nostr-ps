@@ -99,10 +99,9 @@ export function releaseNevent(id: string, author: string, relays?: string[]): st
 export function shortId(id: string): string {
   return id.length > 12 ? `${id.slice(0, 4)}…${id.slice(-4)}` : id
 }
-
+/** `<title> v<version> by <npub> (<release event id>)` per §3, in full: it is the copyable reference, so nothing is shortened. */
 export function releaseLabel(r: { title: string; version: string; pubkey: string; id: string }): string {
-  const npub = nip19.npubEncode(r.pubkey)
-  return `${r.title} v${r.version} by ${npub.slice(0, 12)}…${npub.slice(-6)} (${shortId(r.id)})`
+  return `${r.title} v${r.version} by ${nip19.npubEncode(r.pubkey)} (${r.id})`
 }
 
 // ─── Types ──────────────────────────────────────────────────────────
