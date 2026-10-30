@@ -134,8 +134,7 @@ reference releases only.
     ["title", "<human title>"],            // REQUIRED
     ["k", "<kind number>", "<name>"],      // OPTIONAL, repeatable: kinds the spec defines or uses
     ["t", "<topic>"],                      // OPTIONAL, repeatable
-    ["status", "review"],                  // RECOMMENDED: "review" while in progress, "released" once a release exists
-    ["release", "<release event id>", "<relay>"], // OPTIONAL, see below
+    ["status", "review"],                  // RECOMMENDED, always "review": a draft is a draft
     ["fork", "<parent release id>", "<relay>"],   // OPTIONAL, advisory: this draft forks that release
     ["nonce", "<n>", "<difficulty>"]       // RECOMMENDED, NIP-13
   ]
@@ -147,10 +146,13 @@ Rules:
 - `d` is the proposal's `uuid` for its whole life, including every release.
 - Discussion happens in `kind:1111` comments (NIP-22) rooted at the draft's
   address.
-- When a release is published, the author SHOULD republish the draft with a
-  `release` tag pointing at the latest release event. This is advisory.
-  Clients MUST NOT rely on it: they detect releases by querying `kind:8201`
-  events whose `a` tag references the draft (§6.1).
+- **A draft carries no record of its releases.** Publishing a release does
+  not modify the draft: the draft is not republished, its `status` stays
+  `review`, and no tag on it points at any release. Whether a proposal has
+  been released is a fact about `kind:8201` events, and clients learn it
+  only by querying for them (§6.1), never by reading a label on the draft.
+  This keeps every fact stored in exactly one place, so a deleted or
+  unreachable release cannot leave a stale claim behind on the draft.
 - A draft MAY continue to be edited after a release, as the working copy
   for the next version.
 - `fork` is an advisory hint that this draft was forked from a release. It
@@ -417,9 +419,12 @@ protocol.
 
 For a draft at `30817:<author>:<uuid>`, clients detect releases by querying
 `kind:8201` events from `<author>` whose `a` tag references that address,
-or whose `v` tag begins with `<uuid>:`. If any exist, the draft view MUST
-show that a release exists and link to the latest version, regardless of
-whether the draft carries a `release` tag.
+or whose `v` tag begins with `<uuid>:`. The draft itself says nothing
+about this (§4.1), so the query is the only source. A draft view SHOULD
+show that the check is in progress, then either that no release exists or
+a link to the latest version. A draft listing MAY mark released drafts
+using the bounded query below. In every case the mark is the result of a
+query, never of a label on the draft.
 
 Clients SHOULD bound these queries with the `o` tag. Detecting releases
 for a list of drafts is one query: `kind:8201`, `#a` set to the draft
@@ -625,9 +630,9 @@ An empty market ranks nothing. A NIP-PS deployment SHOULD start with:
 
 - **Drafts share `kind:30817`** with an existing NIP directory that uses
   the same addressable, random-uuid, title and `k` tag shape. Drafts
-  written in either place appear in both. The `release` tag and NIP-PS
-  release detection are additive; a directory that ignores them loses
-  nothing.
+  written in either place appear in both. NIP-PS never modifies a draft
+  on release, so a directory that knows nothing about releases sees
+  exactly what it would have seen anyway.
 - **Approval labels** published by other directories as NIP-32 `kind:1985`
   events MAY be read as weak `recommend` reviews if the namespace mapping is
   known. They are not written by NIP-PS clients.

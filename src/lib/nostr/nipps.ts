@@ -113,8 +113,6 @@ export interface Draft {
   kinds: KindRef[]
   topics: string[]
   status?: string
-  /** Author-advisory pointer to the latest release (§4.1). Not relied on. */
-  releaseId?: string
   content: string
   createdAt: number
   deleted: boolean
@@ -223,7 +221,6 @@ export function parseDraft(ev: NostrEvent): Draft | null {
     kinds: parseKindRefs(ev),
     topics: parseTopics(ev),
     status: tag(ev, 'status')?.trim() || undefined,
-    releaseId: tag(ev, 'release') || undefined,
     content: ev.content,
     createdAt: ev.created_at,
     deleted: isDeleted(ev),
@@ -338,9 +335,6 @@ export interface DraftInput {
   kinds?: KindRef[]
   topics?: string[]
   status?: string
-  /** Latest release id, when the author stamps the draft after releasing. */
-  releaseId?: string
-  releaseRelay?: string
 }
 
 export function buildDraftEvent(input: DraftInput): UnsignedEvent {
@@ -352,7 +346,6 @@ export function buildDraftEvent(input: DraftInput): UnsignedEvent {
   for (const k of input.kinds ?? []) tags.push(k.name ? ['k', String(k.kind), k.name] : ['k', String(k.kind)])
   for (const t of input.topics ?? []) tags.push(['t', t.trim().toLowerCase()])
   if (input.status?.trim()) tags.push(['status', input.status.trim()])
-  if (input.releaseId) tags.push(input.releaseRelay ? ['release', input.releaseId, input.releaseRelay] : ['release', input.releaseId])
   tags.push(['client', CLIENT_NAME])
   return { kind: KINDS.PS_DRAFT, content: input.content, tags, created_at: now(), pubkey: '' }
 }

@@ -8,7 +8,7 @@ import { useAuthStore } from '@/stores/authStore'
 import { KINDS } from '@/lib/constants'
 import { signAndPublish, type PublishStatus } from '@/lib/nostr/publish'
 import {
-  fetchDraft, fetchRelease, fetchReleasesForDraft, buildReleaseEvent, buildDraftEvent, releaseNevent, draftNaddr, specId,
+  fetchDraft, fetchRelease, fetchReleasesForDraft, buildReleaseEvent, releaseNevent, draftNaddr, specId,
   isValidVersion, nextMajor, nextMinor, type Draft, type Release,
 } from '@/lib/nostr/nipps'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
@@ -112,24 +112,6 @@ export function ReleaseCreatePage() {
     if (!res.success || !res.event) { toast.error(res.error || 'Failed to publish release'); setStatus('error'); return }
     toast.success(`Released v${version}`)
 
-    // Advisory: stamp the draft with the release pointer (§4.1). Best effort;
-    // clients detect releases without it.
-    try {
-      const stamp = buildDraftEvent({
-        uuid: draft.uuid,
-        title: draft.title,
-        summary: draft.summary,
-        content: draft.content,
-        kinds: draft.kinds,
-        topics: draft.topics,
-        status: 'released',
-        releaseId: res.event.id,
-        releaseRelay: writeRelay,
-      })
-      const f = draft.event.tags.find((t) => t[0] === 'fork')
-      if (f) stamp.tags.push(f)
-      await signAndPublish(stamp)
-    } catch { /* non-fatal */ }
 
     navigate(`/release/${releaseNevent(res.event.id, res.event.pubkey)}`)
   }

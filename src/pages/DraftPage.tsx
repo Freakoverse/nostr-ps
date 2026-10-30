@@ -1,7 +1,7 @@
 import { useEffect, useMemo, useState } from 'react'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
-import { Loader2, Pencil, Rocket, AlertCircle, ArrowRight, Trash2 } from 'lucide-react'
+import { Loader2, Pencil, Rocket, AlertCircle, ArrowRight, Trash2, FileText } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
 import { KINDS } from '@/lib/constants'
@@ -24,6 +24,9 @@ export function DraftPage() {
   const myPubkey = useAuthStore((s) => s.pubkey)
   const [draft, setDraft] = useState<Draft | null>(null)
   const [releases, setReleases] = useState<Release[]>([])
+  // Whether a release exists is learned only by querying (§6.1); until the
+  // query answers, the page says so rather than guessing either way.
+  const [checking, setChecking] = useState(true)
   const [loading, setLoading] = useState(true)
   const [deleteOpen, setDeleteOpen] = useState(false)
 
@@ -39,16 +42,20 @@ export function DraftPage() {
     if (!addr) { setLoading(false); return }
     let cancelled = false
     setLoading(true)
+    setChecking(true)
+    setReleases([])
     const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
     ;(async () => {
       const d = await fetchDraft(relays, addr.pubkey, addr.identifier)
       if (cancelled) return
       setDraft(d)
       setLoading(false)
-      if (!d) return
+      if (!d) { setChecking(false); return }
       ensureEventPresent(d.event)
       const rs = await fetchReleasesForDraft(relays, d).catch(() => [])
-      if (!cancelled) setReleases(rs)
+      if (cancelled) return
+      setReleases(rs)
+      setChecking(false)
     })()
     return () => { cancelled = true }
   }, [addr])
@@ -87,7 +94,12 @@ export function DraftPage() {
         </div>
       </div>
 
-      {latest && (
+      {checking ? (
+        <div className="flex items-center gap-3 rounded-lg border border-edge bg-panel px-4 py-3 text-sm text-neutral-500">
+          <Loader2 className="h-4 w-4 shrink-0 animate-spin" />
+          Checking for a release post…
+        </div>
+      ) : latest ? (
         <Link to={`/release/${releaseNevent(latest.id, latest.pubkey)}`} className="flex items-center gap-3 rounded-lg border border-emerald-500/30 bg-emerald-500/5 px-4 py-3 text-sm transition-colors hover:border-emerald-500/60">
           <Rocket className="h-4 w-4 shrink-0 text-emerald-400" />
           <span className="min-w-0 flex-1 text-neutral-200">
@@ -96,6 +108,11 @@ export function DraftPage() {
           </span>
           <ArrowRight className="h-4 w-4 shrink-0 text-neutral-500" />
         </Link>
+      ) : (
+        <div className="flex items-center gap-3 rounded-lg border border-edge bg-panel px-4 py-3 text-sm text-neutral-500">
+          <FileText className="h-4 w-4 shrink-0" />
+          No release post yet. This is a draft, open for discussion and edits.
+        </div>
       )}
 
       {isAuthor && (

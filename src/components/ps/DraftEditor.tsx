@@ -44,10 +44,8 @@ export function DraftEditor({ initial, prefill }: { initial?: Draft; prefill?: P
       content,
       kinds,
       topics,
-      // Drafts are work in progress by definition (§5.1); the release flow
-      // restamps this as "released". Shared-kind directories read it too.
-      status: initial?.status === 'released' ? 'released' : 'review',
-      releaseId: initial?.releaseId,
+      // Always "review": a draft is a draft (§4.1). Releases are separate events.
+      status: 'review',
     })
     // A fork hint so the release form can point at the parent (§4.2 `fork`).
     if (prefill?.forkOfId && !initial) event.tags.push(['fork', prefill.forkOfId])
