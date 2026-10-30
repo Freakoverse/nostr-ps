@@ -532,6 +532,12 @@ well SHOULD:
 - index the `v` tag (single-letter tags are indexed per NIP-01)
 - support NIP-50 search over `kind:8201` content and `title` tags
 
+Event size: relays commonly reject events above 64 KB. A backup (§4.3) wraps
+a whole release as JSON, so the release is the binding case. Clients SHOULD
+cap a release body at 30,000 characters and keep tags modest (this client
+uses 150 for titles, 500 for summaries, 20 topics and 30 kinds). A release
+that needs more belongs split into a profile of another spec (§12).
+
 ---
 
 ## 8. Security and abuse considerations
