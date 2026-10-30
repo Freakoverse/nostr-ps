@@ -27,15 +27,18 @@ import {
 
 interface ProfileCardProps {
   pubkey: string
+  /** A row of extra facts under the identity line, e.g. proof of work, trust score, published date. */
+  extra?: React.ReactNode
 }
 
 const iconBtn =
   'flex flex-1 items-center justify-center rounded-lg border border-edge p-2 text-neutral-400 transition-colors hover:border-edge-2 hover:text-foreground'
 
 /** Author card: banner, avatar, identity, follow, block/report menu. */
-export function ProfileCard({ pubkey }: ProfileCardProps) {
+export function ProfileCard({ pubkey, extra }: ProfileCardProps) {
   const myPubkey = useAuthStore(s => s.pubkey)
   const [profile, setProfile] = useState<UserProfile | null>(null)
+  const [bioOpen, setBioOpen] = useState(false)
 
   const npub = nip19.npubEncode(pubkey)
   const profileHref = `/profile/${npub}`
@@ -184,8 +187,27 @@ export function ProfileCard({ pubkey }: ProfileCardProps) {
           <IdentityLine pubkey={pubkey} npub={npub} nip05={profile?.nip05 as string | undefined} />
         </div>
 
+        {extra && <div className="mt-2 flex flex-wrap items-center gap-x-3 gap-y-1">{extra}</div>}
+
         {profile?.about && (
-          <p className="mt-2 text-sm text-neutral-400 line-clamp-3">{profile.about as string}</p>
+          <>
+            <button
+              type="button"
+              onClick={() => setBioOpen(true)}
+              className="mt-2 w-full text-left text-sm text-neutral-400 line-clamp-3 transition-colors hover:text-neutral-200"
+            >
+              {profile.about as string}
+            </button>
+            <Dialog open={bioOpen} onOpenChange={setBioOpen}>
+              <DialogContent className="bg-panel border-edge sm:max-w-lg">
+                <DialogHeader>
+                  <DialogTitle className="text-neutral-100">{displayName}</DialogTitle>
+                  <DialogDescription className="text-neutral-500">Bio</DialogDescription>
+                </DialogHeader>
+                <p className="max-h-[60vh] overflow-y-auto whitespace-pre-wrap text-sm leading-relaxed text-neutral-300">{profile.about as string}</p>
+              </DialogContent>
+            </Dialog>
+          </>
         )}
 
         {/* Follow */}
