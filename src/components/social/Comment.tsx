@@ -10,7 +10,8 @@ import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { CommentContent } from './CommentContent'
 import { ReactionButton } from './ReactionButton'
 import { CommentForm } from './CommentForm'
-import { SocialPostMenu } from './SocialPostMenu'
+import { ItemMenu } from '@/components/ps/ItemMenu'
+import { useAuthStore } from '@/stores/authStore'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 
 interface CommentProps {
@@ -25,6 +26,7 @@ interface CommentProps {
 
 export function Comment({ node, root, onReplyPublished, onOpenThread, focused = false }: CommentProps) {
   const { event, pow, replies } = node
+  const myPubkey = useAuthStore((s) => s.pubkey)
   const [profile, setProfile] = useState<UserProfile | null>(null)
   const [replyOpen, setReplyOpen] = useState(false)
   const [deleted, setDeleted] = useState(false)
@@ -79,7 +81,14 @@ export function Comment({ node, root, onReplyPublished, onOpenThread, focused = 
           </div>
           <p className="text-[11px] text-neutral-600 font-mono truncate">{npub.slice(0, 14)}…{npub.slice(-6)}</p>
         </div>
-        <SocialPostMenu event={event} onDeleted={() => setDeleted(true)} />
+        <ItemMenu
+          event={event}
+          link={`${window.location.origin}${window.location.pathname}?c=${event.id}`}
+          mine={myPubkey === event.pubkey}
+          noun="comment"
+          title="this comment"
+          onDeleted={() => setDeleted(true)}
+        />
       </div>
 
       <div className="mt-3"><CommentContent content={event.content} /></div>

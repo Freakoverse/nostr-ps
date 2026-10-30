@@ -90,6 +90,11 @@ export function ClaimDialog({
           <DialogTitle className="text-foreground">{existing ? 'Update adoption claim' : 'Claim adoption'}</DialogTitle>
           <DialogDescription className="text-neutral-400">
             &quot;We implement <span className="text-neutral-200">{release.title} v{release.version}</span>.&quot; A claim is a statement by you. Publishing one does not make it true; others can review it.
+            {existing && existing.version !== release.version && (
+              <span className="mt-2 block rounded-md border border-purple-500/30 bg-purple-500/5 px-3 py-2 text-xs text-neutral-300">
+                Your current claim points at <span className="font-mono">v{existing.version}</span>. Saving moves it to <span className="font-mono">v{release.version}</span>: one claim per proposal, so the old one is replaced, not kept.
+              </span>
+            )}
           </DialogDescription>
         </DialogHeader>
 
