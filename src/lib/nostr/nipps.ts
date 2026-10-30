@@ -564,6 +564,19 @@ export function getCachedReleasedCoords(): Set<string> {
   return out
 }
 
+/** Cached claims published by one implementer. */
+export function getCachedClaimsBy(pubkey: string): Claim[] {
+  return parseAll(getCachedEventsOfKind(KINDS.PS_CLAIM), parseClaim)
+    .filter((c) => c.pubkey === pubkey)
+    .sort((a, b) => b.createdAt - a.createdAt)
+}
+
+/** Cached reviews written by one reviewer, newest first. */
+export function getCachedReviewsBy(pubkey: string): Review[] {
+  return latestPerAuthor(parseAll(getCachedEventsOfKind(KINDS.PS_REVIEW), parseReview).filter((r) => r.pubkey === pubkey))
+    .sort((a, b) => b.createdAt - a.createdAt)
+}
+
 export { whenEventCacheReady }
 
 export async function fetchDraft(relays: string[], pubkey: string, uuid: string): Promise<Draft | null> {

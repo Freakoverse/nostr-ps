@@ -27,9 +27,10 @@ import { CommentSection } from '@/components/social/CommentSection'
 import { AuthorLine } from '@/components/social/AuthorLine'
 import { LensBar } from '@/components/lens/LensBar'
 import { TieredList } from '@/components/lens/TieredList'
-import { Chip, KindChips, TopicChips, ReleaseRow, ClaimCard, ReviewCard, VerdictChip } from '@/components/ps/Cards'
+import { Chip, KindChips, TopicChips, ClaimCard, ReviewCard, VerdictChip } from '@/components/ps/Cards'
 import { ClaimDialog } from '@/components/ps/ClaimDialog'
 import { ReviewDialog } from '@/components/ps/ReviewDialog'
+import { VersionList } from '@/components/ps/VersionDiff'
 import type { ForkPrefill } from './DraftEditPage'
 
 export function ReleasePage() {
@@ -277,7 +278,7 @@ export function ReleasePage() {
               Versions
               {!checked && <span className="flex items-center gap-1 normal-case tracking-normal text-neutral-500"><Loader2 className="h-3 w-3 animate-spin" /> checking</span>}
             </p>
-            {versions.map((v) => <ReleaseRow key={v.id} r={v} current={v.id === release.id} />)}
+            <VersionList versions={versions} currentId={release.id} />
             {!checked && versions.length <= 1 && (
               <div className="space-y-1 px-2 pb-1 pt-1">
                 <div className="h-7 rounded-md bg-panel-2" />

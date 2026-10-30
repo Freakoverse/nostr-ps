@@ -18,7 +18,7 @@ import { Textarea } from '@/components/ui/textarea'
 import { MarkdownEditor } from '@/components/ps/MarkdownEditor'
 import { LIMITS } from '@/lib/limits'
 import { CharCounter } from '@/components/shared/CharCounter'
-import { ReleaseRow } from '@/components/ps/Cards'
+import { VersionList } from '@/components/ps/VersionDiff'
 import { cn } from '@/lib/utils'
 
 /**
@@ -128,7 +128,7 @@ export function ReleaseCreatePage() {
       {releases.length > 0 && (
         <div className="rounded-lg border border-edge bg-panel p-2">
           <p className="px-3 pb-1 pt-1 text-xs font-medium uppercase tracking-wider text-neutral-500">Existing versions</p>
-          {releases.map((r) => <ReleaseRow key={r.id} r={r} />)}
+          <VersionList versions={releases} />
         </div>
       )}
 
