@@ -1,0 +1,104 @@
+import { useEffect, useState } from 'react'
+import { Link } from 'react-router-dom'
+import { nip19 } from 'nostr-tools'
+import { Loader2 } from 'lucide-react'
+import { useSettingsStore } from '@/stores/settingsStore'
+import {
+  fetchDrafts, fetchReleases, fetchClaimsBy, fetchReviewsBy, groupReleases, releaseNevent,
+  type Draft, type Release, type Claim, type Review,
+} from '@/lib/nostr/nipps'
+import { KINDS } from '@/lib/constants'
+import { DraftCard, ReleaseRow, ClaimCard, ReviewCard, Chip } from './Cards'
+
+function Loading() {
+  return <div className="flex items-center justify-center gap-2 py-12 text-sm text-neutral-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading…</div>
+}
+function Empty({ text }: { text: string }) {
+  return <p className="py-12 text-center text-sm text-neutral-500">{text}</p>
+}
+
+function useLoad<T>(load: (relays: string[]) => Promise<T>, deps: unknown[]): { data: T | null; loading: boolean } {
+  const [data, setData] = useState<T | null>(null)
+  const [loading, setLoading] = useState(true)
+  useEffect(() => {
+    let cancelled = false
+    setLoading(true)
+    const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
+    load(relays).then((d) => { if (!cancelled) setData(d) }).catch(() => { if (!cancelled) setData(null) }).finally(() => { if (!cancelled) setLoading(false) })
+    return () => { cancelled = true }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, deps)
+  return { data, loading }
+}
+
+export function DraftsTab({ pubkey }: { pubkey: string }) {
+  const { data, loading } = useLoad<Draft[]>((relays) => fetchDrafts(relays, { authors: [pubkey], limit: 200 }), [pubkey])
+  if (loading) return <Loading />
+  if (!data?.length) return <Empty text="No drafts." />
+  return <div className="space-y-3">{data.map((d) => <DraftCard key={d.coord} draft={d} />)}</div>
+}
+
+export function ReleasesTab({ pubkey }: { pubkey: string }) {
+  const { data, loading } = useLoad<Release[]>((relays) => fetchReleases(relays, { authors: [pubkey], limit: 500 }), [pubkey])
+  if (loading) return <Loading />
+  if (!data?.length) return <Empty text="No releases." />
+  const groups = [...groupReleases(data).values()].sort((a, b) => b[0].createdAt - a[0].createdAt)
+  return (
+    <div className="space-y-3">
+      {groups.map((list) => {
+        const latest = list[0]
+        return (
+          <div key={`${latest.pubkey}:${latest.uuid}`} className="rounded-lg border border-[#262626] bg-[#1c1c1c] p-3">
+            <div className="flex items-center justify-between gap-2 px-1 pb-2">
+              <Link to={`/release/${releaseNevent(latest.id, latest.pubkey)}`} className="truncate text-sm font-semibold text-neutral-100 hover:text-purple-300">{latest.title}</Link>
+              <Chip>{list.length} {list.length === 1 ? 'version' : 'versions'}</Chip>
+            </div>
+            {list.map((r) => <ReleaseRow key={r.id} r={r} />)}
+          </div>
+        )
+      })}
+    </div>
+  )
+}
+
+export function AdoptedTab({ pubkey }: { pubkey: string }) {
+  const { data, loading } = useLoad<Claim[]>((relays) => fetchClaimsBy(relays, pubkey), [pubkey])
+  if (loading) return <Loading />
+  if (!data?.length) return <Empty text="No adoption claims." />
+  return (
+    <div className="space-y-3">
+      {data.map((c) => (
+        <div key={c.coord} className="space-y-1">
+          <Link to={`/release/${releaseNevent(c.releaseId, c.releaseAuthor)}`} className="px-1 text-xs text-neutral-500 hover:text-purple-300">
+            → release {c.releaseId.slice(0, 8)} · v{c.version}
+          </Link>
+          <ClaimCard claim={c} />
+        </div>
+      ))}
+    </div>
+  )
+}
+
+export function ReviewsTab({ pubkey }: { pubkey: string }) {
+  const { data, loading } = useLoad<Review[]>((relays) => fetchReviewsBy(relays, pubkey), [pubkey])
+  if (loading) return <Loading />
+  if (!data?.length) return <Empty text="No reviews." />
+  return (
+    <div className="space-y-3">
+      {data.map((r) => (
+        <ReviewCard
+          key={r.event.id}
+          review={r}
+          targetLabel={r.target === 'release'
+            ? <Link to={`/release/${nip19.neventEncode({ id: r.releaseId, kind: KINDS.PS_RELEASE })}`} className="text-xs text-neutral-500 hover:text-purple-300">release {r.releaseId.slice(0, 8)}</Link>
+            : <span className="text-xs text-neutral-500">claim by {claimAuthorOf(r.claimCoord)}</span>}
+        />
+      ))}
+    </div>
+  )
+}
+
+function claimAuthorOf(coord: string): string {
+  const pk = coord.split(':')[1]
+  try { return nip19.npubEncode(pk).slice(0, 12) + '…' } catch { return pk?.slice(0, 8) ?? '?' }
+}

@@ -11,6 +11,7 @@ import { dnnService } from '@/lib/dnn/dnnService'
 import { isValidDnnFormat } from '@/lib/dnn/dnnUtils'
 import { formatDnnId } from '@/lib/dnn/formatDnnId'
 import { ProfileCard } from '@/components/social/ProfileCard'
+import { DraftsTab, ReleasesTab, AdoptedTab, ReviewsTab } from '@/components/ps/ProfileTabs'
 import { Button } from '@/components/ui/button'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 import { Skeleton } from '@/components/ui/skeleton'
@@ -142,16 +143,16 @@ export default function ProfilePage() {
               </TabsList>
 
               <TabsContent value="drafts" forceMount className={hideInactive}>
-                <Placeholder label="drafts" />
+                <DraftsTab pubkey={targetPubkey} />
               </TabsContent>
               <TabsContent value="releases" forceMount className={hideInactive}>
-                <Placeholder label="releases" />
+                <ReleasesTab pubkey={targetPubkey} />
               </TabsContent>
               <TabsContent value="adopted" forceMount className={hideInactive}>
-                <Placeholder label="adoption claims" />
+                <AdoptedTab pubkey={targetPubkey} />
               </TabsContent>
               <TabsContent value="reviews" forceMount className={hideInactive}>
-                <Placeholder label="reviews" />
+                <ReviewsTab pubkey={targetPubkey} />
               </TabsContent>
             </Tabs>
           ) : (
@@ -176,14 +177,5 @@ export default function ProfilePage() {
         </div>
       </div>
     </div>
-  )
-}
-
-/** Stand-in until the NIP-PS listings land (see docs/NIP-PS.md §4). */
-function Placeholder({ label }: { label: string }) {
-  return (
-    <p className="py-12 text-center text-sm text-neutral-500">
-      This person&apos;s {label} will be listed here.
-    </p>
   )
 }

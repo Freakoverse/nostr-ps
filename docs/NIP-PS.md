@@ -135,6 +135,7 @@ reference releases only.
     ["t", "<topic>"],                      // OPTIONAL, repeatable
     ["status", "review"],                  // OPTIONAL, marks work in progress
     ["release", "<release event id>", "<relay>"], // OPTIONAL, see below
+    ["fork", "<parent release id>", "<relay>"],   // OPTIONAL, advisory: this draft forks that release
     ["nonce", "<n>", "<difficulty>"]       // RECOMMENDED, NIP-13
   ]
 }
@@ -151,6 +152,9 @@ Rules:
   events whose `a` tag references the draft (§6.1).
 - A draft MAY continue to be edited after a release, as the working copy
   for the next version.
+- `fork` is an advisory hint that this draft was forked from a release. It
+  carries no identity; the release form reads it to set the `fork` marker on
+  the first release (§4.2). Clients MUST NOT treat it as ancestry on its own.
 
 ### 4.2 Release (`kind:8201`)
 

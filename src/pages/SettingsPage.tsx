@@ -28,15 +28,17 @@ import { toast } from 'sonner'
 import {
   Globe, Server, Database, Cpu, Shield, Plus, Trash2, RefreshCw, Save,
   Loader2, CheckCircle, XCircle, Circle, ArrowUpDown, LogOut, AlertTriangle, RotateCcw,
-  SlidersHorizontal, BadgeCheck, MessageSquare, Send, Search
+  SlidersHorizontal, BadgeCheck, MessageSquare, Send, Search, Eye
 } from 'lucide-react'
 import type { Event as NostrEvent } from 'nostr-tools'
+import { LensSettings } from '@/components/lens/LensSettings'
 
 // ─── Sidebar navigation ────────────────────────────────────────────────
 
-type SettingsTab = 'network' | 'preferences'
+type SettingsTab = 'lens' | 'network' | 'preferences'
 
 const sidebarItems: { id: SettingsTab; label: string; icon: typeof Globe }[] = [
+  { id: 'lens', label: 'Lens', icon: Eye },
   { id: 'network', label: 'Network', icon: Globe },
   { id: 'preferences', label: 'Preferences', icon: SlidersHorizontal },
 ]
@@ -1026,7 +1028,7 @@ function SettingsCard({
 // ─── Main Settings Page ─────────────────────────────────────────────────
 
 export default function SettingsPage() {
-  const [activeTab, setActiveTab] = useState<SettingsTab>('network')
+  const [activeTab, setActiveTab] = useState<SettingsTab>('lens')
   const pubkey = useAuthStore((s) => s.pubkey)
 
   const visibleItems = sidebarItems
@@ -1081,6 +1083,7 @@ export default function SettingsPage() {
         {/* Content */}
         <div className="flex-1 min-w-0">
           <div className="bg-[#0f0f0f] border border-[#262626] rounded-xl p-6">
+            {activeTab === 'lens' && <LensSettings />}
             {activeTab === 'network' && <NetworkSettings />}
             {activeTab === 'preferences' && <PreferencesSettings />}
           </div>

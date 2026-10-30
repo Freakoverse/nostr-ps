@@ -9,6 +9,7 @@ import { useBlockStore } from '@/stores/blockStore'
 import { useDnnStore } from '@/stores/dnnStore'
 import { useRelayCapabilityStore } from '@/stores/relayCapabilityStore'
 import { useLoginModalStore } from '@/stores/loginModalStore'
+import { bindLensToAuth } from '@/stores/lensStore'
 import { StorageKey } from '@/lib/constants'
 import { restoreSession } from '@/lib/auth/restore'
 import { MainLayout } from '@/components/layout/MainLayout'
@@ -19,6 +20,12 @@ import { NotificationsPage } from '@/pages/NotificationsPage'
 import SettingsPage from '@/pages/SettingsPage'
 import { AboutPage } from '@/pages/AboutPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { DraftsPage } from '@/pages/DraftsPage'
+import { DraftPage } from '@/pages/DraftPage'
+import { DraftEditPage } from '@/pages/DraftEditPage'
+import { ReleaseCreatePage } from '@/pages/ReleaseCreatePage'
+import { ProposalsPage } from '@/pages/ProposalsPage'
+import { ReleasePage } from '@/pages/ReleasePage'
 
 /** Renders the login screen as a full-screen overlay, keeping the current page mounted. */
 function LoginModalHost() {
@@ -50,6 +57,9 @@ export default function App() {
 
     // Start the DNN naming service (resolves/verifies DNN IDs).
     useDnnStore.getState().initService()
+
+    // Keep the lens's "my graph" source in step with login.
+    const unbindLens = bindLensToAuth()
 
     // Keep login state in sync across tabs.
     const onStorage = (e: StorageEvent) => {
@@ -93,6 +103,7 @@ export default function App() {
     return () => {
       window.removeEventListener('storage', onStorage)
       unsubAuth()
+      unbindLens()
       clearTimeout(redundancyTimer)
     }
   }, [])
@@ -105,6 +116,13 @@ export default function App() {
           <Route path="/login" element={<LoginPage />} />
           <Route path="/profile" element={<ProfilePage />} />
           <Route path="/profile/:npub" element={<ProfilePage />} />
+          <Route path="/proposals" element={<ProposalsPage />} />
+          <Route path="/release/:nevent" element={<ReleasePage />} />
+          <Route path="/drafts" element={<DraftsPage />} />
+          <Route path="/draft/:naddr" element={<DraftPage />} />
+          <Route path="/draft/:naddr/edit" element={<DraftEditPage />} />
+          <Route path="/draft/:naddr/release" element={<ReleaseCreatePage />} />
+          <Route path="/submit-draft" element={<DraftEditPage />} />
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/about" element={<AboutPage />} />
