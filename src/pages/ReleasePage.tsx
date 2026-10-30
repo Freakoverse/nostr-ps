@@ -25,15 +25,15 @@ import { Markdown } from '@/components/shared/Markdown'
 import { PostMenu } from '@/components/ps/PostMenu'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { CommentSection } from '@/components/social/CommentSection'
-import { AuthorLine } from '@/components/social/AuthorLine'
 import { LensBar } from '@/components/lens/LensBar'
 import { TieredList } from '@/components/lens/TieredList'
-import { Chip, KindChips, TopicChips, ClaimCard, ReviewCard, VerdictChip } from '@/components/ps/Cards'
+import { Chip, ClaimCard, ReviewCard, VerdictChip } from '@/components/ps/Cards'
 import { ClaimDialog } from '@/components/ps/ClaimDialog'
 import { ReviewDialog } from '@/components/ps/ReviewDialog'
 import { VersionList } from '@/components/ps/VersionDiff'
 import { ClaimDetailDialog } from '@/components/ps/ClaimDetailDialog'
 import { ItemMenu } from '@/components/ps/ItemMenu'
+import { AuthorCard, MetaCard, ReferenceCard } from '@/components/ps/SideCards'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 const tabTrigger = 'py-1.5 data-[state=active]:bg-edge data-[state=active]:text-purple-400'
@@ -238,12 +238,6 @@ export function ReleasePage() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight">{release.title}</h1>
         {release.summary && <Markdown content={release.summary} className="rounded-lg border border-edge bg-well px-4 py-3 text-[15px] text-neutral-300" />}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <AuthorLine pubkey={release.pubkey} at={release.createdAt} />
-          <KindChips kinds={release.kinds} max={20} expandable />
-          <TopicChips topics={release.topics} max={20} expandable />
-        </div>
-        <p className="font-mono text-[11px] text-neutral-600">{releaseLabel(release)}</p>
       </div>
 
       <LensBar />
@@ -281,6 +275,7 @@ export function ReleasePage() {
 
         {/* Versions */}
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+          <AuthorCard pubkey={release.pubkey} at={release.createdAt} />
           <div className={cn('rounded-lg border bg-panel p-2 transition-colors', checked ? 'border-edge' : 'animate-pulse border-purple-500/30')}>
             <p className="flex items-center justify-between px-3 pb-1 pt-1 text-xs font-medium uppercase tracking-wider text-neutral-500">
               Versions
@@ -302,6 +297,8 @@ export function ReleasePage() {
               ))}
             </div>
           )}
+          <ReferenceCard label={releaseLabel(release)} />
+          <MetaCard kinds={release.kinds} topics={release.topics} />
         </aside>
       </div>
 

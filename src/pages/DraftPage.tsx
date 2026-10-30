@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BackButton } from '@/components/shared/BackButton'
+import { AuthorCard, MetaCard } from '@/components/ps/SideCards'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
 import { Loader2, Pencil, Rocket, AlertCircle, ArrowRight, Trash2, FileText } from 'lucide-react'
@@ -14,8 +15,7 @@ import { Button } from '@/components/ui/button'
 import { Markdown } from '@/components/shared/Markdown'
 import { RequestDeleteDialog } from '@/components/shared/RequestDeleteDialog'
 import { CommentSection } from '@/components/social/CommentSection'
-import { AuthorLine } from '@/components/social/AuthorLine'
-import { Chip, KindChips, TopicChips } from '@/components/ps/Cards'
+import { Chip } from '@/components/ps/Cards'
 import { PostMenu } from '@/components/ps/PostMenu'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 
@@ -108,11 +108,6 @@ export function DraftPage() {
         </div>
         <h1 className="text-3xl font-bold tracking-tight">{draft.title}</h1>
         {draft.summary && <Markdown content={draft.summary} className="rounded-lg border border-edge bg-well px-4 py-3 text-[15px] text-neutral-300" />}
-        <div className="flex flex-wrap items-center gap-x-4 gap-y-2">
-          <AuthorLine pubkey={draft.pubkey} at={draft.createdAt} />
-          <KindChips kinds={draft.kinds} max={20} expandable />
-          <TopicChips topics={draft.topics} max={20} expandable />
-        </div>
       </div>
 
       {checking && !latest ? (
@@ -148,9 +143,15 @@ export function DraftPage() {
         </div>
       )}
 
-      <article className="rounded-lg border border-edge bg-panel p-6">
-        <Markdown content={draft.content} className="text-[15px]" />
-      </article>
+      <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
+        <article className="min-w-0 rounded-lg border border-edge bg-panel p-6">
+          <Markdown content={draft.content} className="text-[15px]" />
+        </article>
+        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+          <AuthorCard pubkey={draft.pubkey} at={draft.createdAt} />
+          <MetaCard kinds={draft.kinds} topics={draft.topics} />
+        </aside>
+      </div>
 
       {!latest && (
         <div className="flex items-start gap-2 rounded-lg border border-edge bg-well px-4 py-3 text-xs text-neutral-500">
