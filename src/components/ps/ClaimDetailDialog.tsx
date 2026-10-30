@@ -54,7 +54,7 @@ export function ClaimDetailDialog({ open, onOpenChange, claim, reviews, mine, on
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
-          <ClaimCard claim={claim} legit={trusted.legit} fake={trusted.fake} menu={claimMenu} />
+          <ClaimCard claim={claim} legit={trusted.legit} fake={trusted.fake} menu={claimMenu} className="bg-well" />
 
           <section className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2 px-1">
@@ -90,22 +90,27 @@ export function ClaimDetailDialog({ open, onOpenChange, claim, reviews, mine, on
 }
 
 /** A verdict: flat row, coloured left edge, author and verdict on one line, reasoning under it. */
+/**
+ * A verdict, styled the way a reply sits under a comment in a thread: the
+ * same card shape as the claim above it, but on the plain panel surface with
+ * tighter padding, while the claim itself sits on the raised "well" surface.
+ */
 export function VerdictRow({ review, menu, label }: { review: Review; menu?: ReactNode; label?: ReactNode }) {
   const legit = review.verdict === 'legit'
   return (
-    <div className={cn('rounded-r-md border-l-2 bg-panel-2/60 px-3 py-2', legit ? 'border-emerald-500/70' : 'border-red-500/70')}>
+    <div className="rounded-lg border border-edge bg-panel p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <AuthorLine pubkey={review.pubkey} at={review.createdAt} size="xs" />
         <div className="flex items-center gap-1.5">
           {label}
-          <span className={cn('flex items-center gap-1 text-xs font-medium', legit ? 'text-emerald-400' : 'text-red-400')}>
-            {legit ? <ShieldCheck className="h-3.5 w-3.5" /> : <ShieldX className="h-3.5 w-3.5" />}
+          <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium', legit ? 'border-emerald-500/30 text-emerald-400' : 'border-red-500/30 text-red-400')}>
+            {legit ? <ShieldCheck className="h-3 w-3" /> : <ShieldX className="h-3 w-3" />}
             {legit ? 'legit' : 'fake'}
           </span>
           {menu}
         </div>
       </div>
-      {review.content && <div className="mt-1.5 text-sm text-neutral-300"><Markdown content={review.content} /></div>}
+      {review.content && <div className="mt-2 text-sm text-neutral-300"><Markdown content={review.content} /></div>}
     </div>
   )
 }

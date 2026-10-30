@@ -1,6 +1,6 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BackButton } from '@/components/shared/BackButton'
-import { Link, useNavigate, useParams } from 'react-router-dom'
+import { Link, useParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
 import {
   Loader2, GitFork, Archive, Users, MessageSquareText, ShieldCheck, FileText, Rocket,
@@ -33,14 +33,13 @@ import { ClaimDetailDialog } from '@/components/ps/ClaimDetailDialog'
 import { ItemMenu } from '@/components/ps/ItemMenu'
 import { AuthorCard, MetaCard, ReferenceCard } from '@/components/ps/SideCards'
 import { BackupDialog } from '@/components/ps/BackupDialog'
+import { ForkDialog } from '@/components/ps/ForkDialog'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 const tabTrigger = 'py-1.5 data-[state=active]:bg-edge data-[state=active]:text-purple-400'
-import type { ForkPrefill } from './DraftEditPage'
 
 export function ReleasePage() {
   const { nevent } = useParams<{ nevent: string }>()
-  const navigate = useNavigate()
   const myPubkey = useAuthStore((s) => s.pubkey)
   const [release, setRelease] = useState<Release | null>(null)
   const [versions, setVersions] = useState<Release[]>([])
@@ -59,6 +58,7 @@ export function ReleasePage() {
   const [claimReviewTarget, setClaimReviewTarget] = useState<Claim | null>(null)
   const [claimDetail, setClaimDetail] = useState<Claim | null>(null)
   const [backupOpen, setBackupOpen] = useState(false)
+  const [forkOpen, setForkOpen] = useState(false)
 
   const enabled = useLensStore((s) => s.enabled)
   const scores = useLensStore((s) => s.scores)
@@ -188,17 +188,10 @@ export function ReleasePage() {
     setBackupOpen(true)
   }
 
+  // The fork itself starts from ForkDialog, after an explanation.
   const fork = () => {
     if (!myPubkey) { useLoginModalStore.getState().open(); return }
-    const prefill: ForkPrefill = {
-      title: `${release.title} (fork)`,
-      summary: release.summary,
-      content: release.content,
-      kinds: release.kinds,
-      topics: release.topics,
-      forkOfId: release.id,
-    }
-    navigate('/submit-draft', { state: { fork: prefill } })
+    setForkOpen(true)
   }
 
   return (
@@ -362,6 +355,7 @@ export function ReleasePage() {
 
       <ClaimDialog open={claimOpen} onOpenChange={setClaimOpen} release={release} versions={versions} existing={myClaim} onPublished={reload} />
       <BackupDialog open={backupOpen} onOpenChange={setBackupOpen} release={release} onPublished={reload} />
+      <ForkDialog open={forkOpen} onOpenChange={setForkOpen} release={release} />
       <ReviewDialog open={reviewOpen} onOpenChange={setReviewOpen} target={{ kind: 'release', release }} existing={myReview} onPublished={reload} />
       {claimDetail && (
         <ClaimDetailDialog

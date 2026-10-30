@@ -160,7 +160,8 @@ function Pill({ onClick, className, children }: { onClick?: () => void; classNam
   )
 }
 
-export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine, menu }: {
+export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine, menu, className }: {
+  className?: string
   claim: Claim
   legit?: number
   fake?: number
@@ -173,7 +174,7 @@ export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine, 
   menu?: React.ReactNode
 }) {
   return (
-    <div className={cn('rounded-lg border border-edge bg-panel p-4', claim.withdrawn && 'opacity-60')}>
+    <div className={cn('rounded-lg border border-edge bg-panel p-4', claim.withdrawn && 'opacity-60', className)}>
       <div className="flex items-start justify-between gap-3">
         <div className="min-w-0">
           <p className="truncate text-sm font-semibold text-neutral-100">
