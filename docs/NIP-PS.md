@@ -116,19 +116,22 @@ what links the claim to a lineage.
 
 ## 4. Events
 
-Kind numbers marked provisional MUST be checked against the current kind
-registry before this spec is finalized. Kind `30817` is already in use by an
-existing NIP directory for exactly the draft semantics described here and
-is reused deliberately (§10).
+NIP-PS defines four kinds of its own and reuses two that predate it. The
+four it defines, `8201`, `8202`, `30851` and `30852`, were checked against
+the kind registry and against popular relays before this spec was
+published and were unused; they are fixed as the NIP-PS kinds. The two it
+reuses are not NIP-PS inventions: `30817` is the draft kind of an existing
+NIP directory, adopted on purpose so that drafts written in either place
+appear in both (§10), and `1111` is the NIP-22 comment kind.
 
-| Kind    | Type        | Purpose                                | Status      |
-|---------|-------------|----------------------------------------|-------------|
-| `30817` | addressable | Draft                                  | existing    |
-| `1111`  | regular     | Discussion on a draft (NIP-22)         | existing    |
-| `8201`  | regular     | Release (immutable version)            | provisional |
-| `8202`  | regular     | Backup of a release                    | provisional |
-| `30851` | addressable | Adoption claim                         | provisional |
-| `30852` | addressable | Review (of a release or of a claim)    | provisional |
+| Kind    | Type        | Purpose                                | Defined by         |
+|---------|-------------|----------------------------------------|--------------------|
+| `30817` | addressable | Draft                                  | existing directory |
+| `1111`  | regular     | Discussion on a draft (NIP-22)         | NIP-22             |
+| `8201`  | regular     | Release (immutable version)            | NIP-PS             |
+| `8202`  | regular     | Backup of a release                    | NIP-PS             |
+| `30851` | addressable | Adoption claim                         | NIP-PS             |
+| `30852` | addressable | Review (of a release or of a claim)    | NIP-PS             |
 
 The spec-id tag is `v`. Its value is `<uuid>:<version>`. The lineage tag
 on releases is `o`, with the value `original` or `updated`.
