@@ -42,8 +42,11 @@ Replace `public/favicon.png`. The header and login card show the text
 3. The build script copies `dist/index.html` to `dist/404.html`. Pages
    serves that for any unknown path, so a deep link such as
    `/<repo>/draft/naddr1…` loads the app, and the router reads the path.
-4. For a custom domain at the root, add `public/CNAME` with the domain and
-   change the workflow's `VITE_BASE` to `/`.
+4. For a custom domain, put the domain in `public/CNAME`. GitHub's Pages
+   settings write a root `CNAME` file, which the Actions deploy does not
+   ship; `public/` is copied into `dist/`, so keep the copy there. When
+   that file exists the workflow builds with base `/`, since the site is
+   then served from the domain root rather than `/<repo>/`.
 
 ## Guide B: Linux server (nginx)
 
