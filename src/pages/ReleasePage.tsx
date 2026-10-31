@@ -3,12 +3,13 @@ import { BackButton } from '@/components/shared/BackButton'
 import { Link, useParams } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
 import {
-  Loader2, GitFork, Archive, Users, MessageSquareText, ShieldCheck, FileText, Rocket,
+  Loader2, GitFork, Archive, Users, MessageSquareText, ShieldCheck, FileText, Rocket, RotateCcw,
 } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useLoginModalStore } from '@/stores/loginModalStore'
-import { useLensStore, requestScores } from '@/stores/lensStore'
+import { useLensStore, requestScores, DEFAULT_VERIFY_THRESHOLD } from '@/stores/lensStore'
+import { Slider } from '@/components/ui/slider'
 import { KINDS } from '@/lib/constants'
 import {
   fetchRelease, fetchReleasesOf, fetchClaimsFor, fetchReleaseReviews, fetchClaimReviews, fetchBackups, fetchForksOf,
@@ -77,6 +78,7 @@ export function ReleasePage() {
   const scores = useLensStore((s) => s.scores)
   const threshold = useLensStore((s) => s.threshold)
   const verifyThreshold = useLensStore((s) => s.verifyThreshold)
+  const setVerifyThreshold = useLensStore((s) => s.setVerifyThreshold)
   const bucketOf = useLensStore((s) => s.bucketOf)
   const scoreOf = useLensStore((s) => s.scoreOf)
   const rawFloorOn = useSettingsStore((s) => s.rawPowFloor)
@@ -396,9 +398,25 @@ export function ReleasePage() {
               {rawFloorOn && <span className={belowFloor.claims ? 'text-amber-400' : ''}> · PoW floor: {belowFloor.claims ? `${belowFloor.claims} excluded` : 'nothing excluded'}</span>}
             </span>
           </div>
-          {/* §6.6 tiers as the same menu the lists use for scores: verified by default, the rest one click away. */}
+          {/* §6.6 tiers as the same menu the lists use for scores: verified by default, the rest one click away.
+              Beside it, the §6.3 verification threshold the tiers are computed from. */}
           {enabled && claims.length > 0 && (
-            <ChoiceMenu
+            <div className="flex flex-wrap items-center gap-3">
+              <div className="flex items-center gap-2 text-xs">
+                <Tip label={`A claim is verified once the legit verdicts from reviewers above your rank threshold, each weighing rank/100, add up to ${verifyThreshold.toFixed(1)}. One reviewer ranked ${Math.round(verifyThreshold * 100)} is enough; any trusted "fake" blocks it.`}>
+                  <span className="text-neutral-500">Verify at</span>
+                </Tip>
+                <Slider min={0.1} max={3} step={0.1} value={[verifyThreshold]} onValueChange={([v]) => setVerifyThreshold(v)} className="w-24" aria-label="Verification threshold" />
+                <span className="w-6 text-right tabular-nums text-neutral-200">{verifyThreshold.toFixed(1)}</span>
+                {verifyThreshold !== DEFAULT_VERIFY_THRESHOLD && (
+                  <Tip label={`Reset to ${DEFAULT_VERIFY_THRESHOLD.toFixed(1)}`}>
+                    <button type="button" onClick={() => setVerifyThreshold(DEFAULT_VERIFY_THRESHOLD)} className="text-neutral-500 hover:text-neutral-200" aria-label={`Reset verification threshold to ${DEFAULT_VERIFY_THRESHOLD}`}>
+                      <RotateCcw className="h-3.5 w-3.5" />
+                    </button>
+                  </Tip>
+                )}
+              </div>
+              <ChoiceMenu
               value={tier}
               onChange={setTier}
               ariaLabel="Filter claims by verification"
@@ -413,7 +431,8 @@ export function ReleasePage() {
                 tier !== 'disputed' && claimTiers.disputed.length ? `${claimTiers.disputed.length} disputed` : '',
                 tier !== 'unverified' && claimTiers.unverified.length ? `${claimTiers.unverified.length} unverified` : '',
               ].filter(Boolean).join(' · ') || undefined}
-            />
+              />
+            </div>
           )}
         </div>
         {claims.length === 0 ? (
