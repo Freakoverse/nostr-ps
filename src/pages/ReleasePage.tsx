@@ -176,7 +176,7 @@ export function ReleasePage() {
 
   // §6.6 tiers. `all` keeps relay order for the raw view; `rest` is sorted by the
   // claimant's rank (usage would come first per spec, once observed), withdrawn last.
-  const [tier, setTier] = useState<'verified' | 'unverified' | 'all'>('verified')
+  const [tier, setTier] = useState<'verified' | 'disputed' | 'unverified' | 'all'>('verified')
   const claimTiers = useMemo(() => {
     void scores; void threshold
     const verified: Claim[] = []
@@ -188,13 +188,9 @@ export function ReleasePage() {
     }
     const rank = (pk: string) => scoreOf(pk)?.combined ?? -1
     rest.sort((a, b) => Number(a.withdrawn) - Number(b.withdrawn) || rank(b.pubkey) - rank(a.pubkey) || b.createdAt - a.createdAt)
-    return {
-      all: claims,
-      verified,
-      rest,
-      disputed: rest.filter((c) => !c.withdrawn && claimStats.get(c.coord)?.disputed).length,
-      withdrawn: rest.filter((c) => c.withdrawn).length,
-    }
+    const disputed = rest.filter((c) => !c.withdrawn && claimStats.get(c.coord)?.disputed)
+    const unverified = rest.filter((c) => !disputed.includes(c))
+    return { all: claims, verified, rest, disputed, unverified }
   }, [claims, claimStats, scoreOf, scores, threshold])
 
   const renderClaimTile = (c: Claim) => {
@@ -361,51 +357,53 @@ export function ReleasePage() {
 
       {/* Claims */}
       <TabsContent value="adoption" className="space-y-3">
-        <div className="flex items-baseline justify-between">
-          <h2 className="text-lg font-semibold">Adoption claims</h2>
-          <span className="text-xs text-neutral-500">
-            {liveClaims.length} live · {claims.length - liveClaims.length} withdrawn
-            {rawFloorOn && <span className={belowFloor.claims ? 'text-amber-400' : ''}> · PoW floor: {belowFloor.claims ? `${belowFloor.claims} excluded` : 'nothing excluded'}</span>}
-          </span>
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <div className="flex flex-wrap items-baseline gap-x-3 gap-y-1">
+            <h2 className="text-lg font-semibold">Adoption claims</h2>
+            <span className="text-xs text-neutral-500">
+              {liveClaims.length} live · {claims.length - liveClaims.length} withdrawn
+              {rawFloorOn && <span className={belowFloor.claims ? 'text-amber-400' : ''}> · PoW floor: {belowFloor.claims ? `${belowFloor.claims} excluded` : 'nothing excluded'}</span>}
+            </span>
+          </div>
+          {/* §6.6 tiers as the same menu the lists use for scores: verified by default, the rest one click away. */}
+          {enabled && claims.length > 0 && (
+            <ChoiceMenu
+              value={tier}
+              onChange={setTier}
+              ariaLabel="Filter claims by verification"
+              options={[
+                { id: 'verified', label: 'Verified only', hint: 'Enough trusted legit verdicts', count: claimTiers.verified.length },
+                { id: 'disputed', label: 'Disputed only', hint: 'A trusted reviewer said fake', count: claimTiers.disputed.length },
+                { id: 'unverified', label: 'Unverified only', hint: 'No decision under your lens yet', count: claimTiers.unverified.length },
+                { id: 'all', label: 'Show all', hint: 'Everything, in one list', count: claims.length },
+              ]}
+              hiddenNote={tier === 'all' ? undefined : [
+                tier !== 'verified' && claimTiers.verified.length ? `${claimTiers.verified.length} verified` : '',
+                tier !== 'disputed' && claimTiers.disputed.length ? `${claimTiers.disputed.length} disputed` : '',
+                tier !== 'unverified' && claimTiers.unverified.length ? `${claimTiers.unverified.length} unverified` : '',
+              ].filter(Boolean).join(' · ') || undefined}
+            />
+          )}
         </div>
         {claims.length === 0 ? (
           <p className="rounded-lg border border-dashed border-edge py-10 text-center text-sm text-neutral-500">No one has claimed adoption yet. Implemented it? Say so.</p>
-        ) : !enabled ? (
-          // Raw view: every non-withdrawn claim counts (§6.5), one grid, no tiers.
-          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-            {claimTiers.all.map((c) => <div key={c.coord} className="min-w-0">{renderClaimTile(c)}</div>)}
-          </div>
-        ) : (
-          // §6.6 tiers as a filter menu, like the score menu on the lists: verified
-          // by default, the rest folded behind the count and one click away.
-          <>
-            <div className="flex justify-end">
-              <ChoiceMenu
-                value={tier}
-                onChange={setTier}
-                ariaLabel="Filter claims by verification"
-                options={[
-                  { id: 'verified', label: 'Verified only', hint: 'Enough trusted legit verdicts, nobody trusted said fake', count: claimTiers.verified.length },
-                  { id: 'unverified', label: 'Unverified only', hint: `Not yet verified${claimTiers.disputed ? `, including ${claimTiers.disputed} disputed` : ''}${claimTiers.withdrawn ? `, ${claimTiers.withdrawn} withdrawn` : ''}`, count: claimTiers.rest.length },
-                  { id: 'all', label: 'Show all', hint: 'Everything, verified first', count: claims.length },
-                ]}
-                hiddenNote={tier === 'verified' && claimTiers.rest.length ? `${claimTiers.rest.length} unverified` : tier === 'unverified' && claimTiers.verified.length ? `${claimTiers.verified.length} verified` : undefined}
-              />
+        ) : (() => {
+          // Raw view (lens off): every non-withdrawn claim counts (§6.5), one grid.
+          const shown = !enabled ? claimTiers.all
+            : tier === 'verified' ? claimTiers.verified
+            : tier === 'disputed' ? claimTiers.disputed
+            : tier === 'unverified' ? claimTiers.unverified
+            : [...claimTiers.verified, ...claimTiers.unverified, ...claimTiers.disputed]
+          return shown.length === 0 ? (
+            <p className="rounded-lg border border-dashed border-edge py-6 text-center text-xs text-neutral-500">
+              {tier === 'verified' ? 'No claim is verified under your lens yet.' : tier === 'disputed' ? 'Nothing disputed.' : 'Nothing unverified.'}
+            </p>
+          ) : (
+            <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+              {shown.map((c) => <div key={c.coord} className="min-w-0">{renderClaimTile(c)}</div>)}
             </div>
-            {(() => {
-              const shown = tier === 'verified' ? claimTiers.verified : tier === 'unverified' ? claimTiers.rest : [...claimTiers.verified, ...claimTiers.rest]
-              return shown.length === 0 ? (
-                <p className="rounded-lg border border-dashed border-edge py-6 text-center text-xs text-neutral-500">
-                  {tier === 'verified' ? 'No claim is verified under your lens yet.' : 'Nothing unverified.'}
-                </p>
-              ) : (
-                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                  {shown.map((c) => <div key={c.coord} className="min-w-0">{renderClaimTile(c)}</div>)}
-                </div>
-              )
-            })()}
-          </>
-        )}
+          )
+        })()}
       </TabsContent>
 
       {/* Reviews */}
