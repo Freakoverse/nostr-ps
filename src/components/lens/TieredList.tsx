@@ -12,9 +12,11 @@ export type BucketCounts = LensCounts
 export function ScoreFilterMenu({ value, onChange, counts }: { value: ScoreFilter; onChange: (f: ScoreFilter) => void; counts: BucketCounts }) {
   const total = counts.above + counts.below + counts.unknown + counts.belowPow
   const countFor = (id: ScoreFilter) => id === 'scored' ? counts.above : id === 'low' ? counts.below : id === 'unscored' ? counts.unknown : total
-  const hiddenNote = value === 'scored'
-    ? [counts.below && `${counts.below} low`, counts.unknown && `${counts.unknown} unscored`].filter(Boolean).join(' · ')
-    : ''
+  const hiddenNote = [
+    value === 'scored' && counts.below ? `${counts.below} low` : '',
+    value === 'scored' && counts.unknown ? `${counts.unknown} unscored` : '',
+    value !== 'all' && counts.belowPow ? `${counts.belowPow} below PoW floor` : '',
+  ].filter(Boolean).join(' · ')
   return (
     <div className="flex items-center gap-2 text-xs text-neutral-500">
       {hiddenNote && <span>{hiddenNote} not shown</span>}
