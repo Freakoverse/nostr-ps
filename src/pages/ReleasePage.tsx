@@ -174,6 +174,46 @@ export function ReleasePage() {
   // §6.3 item 4: distinct counted reviewers per verdict, rank-weighted.
   const reviewTally = useMemo(() => tallyRelease(reviews, weightOf), [reviews, weightOf])
 
+  // §6.6 tiers. `all` keeps relay order for the raw view; `rest` is sorted by the
+  // claimant's rank (usage would come first per spec, once observed), withdrawn last.
+  const [showUnverified, setShowUnverified] = useState(false)
+  const claimTiers = useMemo(() => {
+    void scores; void threshold
+    const verified: Claim[] = []
+    const rest: Claim[] = []
+    for (const c of claims) {
+      const st = claimStats.get(c.coord)
+      if (!c.withdrawn && st?.verified) verified.push(c)
+      else rest.push(c)
+    }
+    const rank = (pk: string) => scoreOf(pk)?.combined ?? -1
+    rest.sort((a, b) => Number(a.withdrawn) - Number(b.withdrawn) || rank(b.pubkey) - rank(a.pubkey) || b.createdAt - a.createdAt)
+    return {
+      all: claims,
+      verified,
+      rest,
+      disputed: rest.filter((c) => !c.withdrawn && claimStats.get(c.coord)?.disputed).length,
+      withdrawn: rest.filter((c) => c.withdrawn).length,
+    }
+  }, [claims, claimStats, scoreOf, scores, threshold])
+
+  const renderClaimTile = (c: Claim) => {
+    const st = claimStats.get(c.coord)
+    return (
+      <ClaimTile
+        claim={c}
+        legit={st?.legit}
+        fake={st?.fake}
+        verified={st?.verified}
+        disputed={st?.disputed}
+        mine={!!myPubkey && (claimReviews.get(c.coord) ?? []).some((r) => r.pubkey === myPubkey)}
+        onReview={() => (myPubkey ? setClaimReviewTarget(c) : useLoginModalStore.getState().open())}
+        onOpen={() => setClaimDetail(c)}
+        menu={<ItemMenu event={c.event} mine={c.pubkey === myPubkey} onEdit={() => setClaimOpen(true)} noun="claim" title={`your claim for ${c.name}`} onDeleted={reload} />}
+      />
+    )
+  }
+
   const myClaim = useMemo(() => claims.find((c) => c.pubkey === myPubkey) ?? null, [claims, myPubkey])
   const myReview = useMemo(() => reviews.find((r) => r.pubkey === myPubkey) ?? null, [reviews, myPubkey])
   const myClaimReview = useMemo(() => {
@@ -328,28 +368,43 @@ export function ReleasePage() {
             {rawFloorOn && <span className={belowFloor.claims ? 'text-amber-400' : ''}> · PoW floor: {belowFloor.claims ? `${belowFloor.claims} excluded` : 'nothing excluded'}</span>}
           </span>
         </div>
-        <TieredList
-          items={claims}
-          keyOf={(c) => c.coord}
-          layout="grid"
-          render={(c) => {
-            const st = claimStats.get(c.coord)
-            return (
-              <ClaimTile
-                claim={c}
-                legit={st?.legit}
-                fake={st?.fake}
-                verified={st?.verified}
-                disputed={st?.disputed}
-                mine={!!myPubkey && (claimReviews.get(c.coord) ?? []).some((r) => r.pubkey === myPubkey)}
-                onReview={() => (myPubkey ? setClaimReviewTarget(c) : useLoginModalStore.getState().open())}
-                onOpen={() => setClaimDetail(c)}
-                menu={<ItemMenu event={c.event} mine={c.pubkey === myPubkey} onEdit={() => setClaimOpen(true)} noun="claim" title={`your claim for ${c.name}`} onDeleted={reload} />}
-              />
-            )
-          }}
-          empty={<p className="rounded-lg border border-dashed border-edge py-10 text-center text-sm text-neutral-500">No one has claimed adoption yet. Implemented it? Say so.</p>}
-        />
+        {claims.length === 0 ? (
+          <p className="rounded-lg border border-dashed border-edge py-10 text-center text-sm text-neutral-500">No one has claimed adoption yet. Implemented it? Say so.</p>
+        ) : !enabled ? (
+          // Raw view: every non-withdrawn claim counts (§6.5), one grid, no tiers.
+          <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            {claimTiers.all.map((c) => <div key={c.coord} className="min-w-0">{renderClaimTile(c)}</div>)}
+          </div>
+        ) : (
+          // §6.6 tiers: verified shown normally; everything else folded behind a count,
+          // sorted by the claimant's rank so a real newcomer sits at the top of the fold.
+          <>
+            {claimTiers.verified.length === 0 ? (
+              <p className="rounded-lg border border-dashed border-edge py-6 text-center text-xs text-neutral-500">No claim is verified under your lens yet.</p>
+            ) : (
+              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                {claimTiers.verified.map((c) => <div key={c.coord} className="min-w-0">{renderClaimTile(c)}</div>)}
+              </div>
+            )}
+            {claimTiers.rest.length > 0 && (
+              <div className="space-y-3">
+                <button
+                  type="button"
+                  onClick={() => setShowUnverified((v) => !v)}
+                  className="flex w-full items-center justify-between rounded-lg border border-dashed border-edge px-4 py-2.5 text-sm text-neutral-400 transition-colors hover:border-purple-500/40 hover:text-neutral-200"
+                >
+                  <span>{claimTiers.rest.length} unverified {claimTiers.rest.length === 1 ? 'claim' : 'claims'}{claimTiers.disputed ? ` · ${claimTiers.disputed} disputed` : ''}{claimTiers.withdrawn ? ` · ${claimTiers.withdrawn} withdrawn` : ''}</span>
+                  <span className="text-xs">{showUnverified ? 'Hide' : 'Show'}</span>
+                </button>
+                {showUnverified && (
+                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                    {claimTiers.rest.map((c) => <div key={c.coord} className="min-w-0">{renderClaimTile(c)}</div>)}
+                  </div>
+                )}
+              </div>
+            )}
+          </>
+        )}
       </TabsContent>
 
       {/* Reviews */}
