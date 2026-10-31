@@ -7,7 +7,7 @@ import { buildTrustProviderListEvent } from '@/lib/nostr/events'
 import { PublishPhase } from '@/components/shared/PublishPhase'
 import { toast } from 'sonner'
 import { cn, shortNpub } from '@/lib/utils'
-import { useLensStore, DEFAULT_THRESHOLD, type ProviderEntry } from '@/stores/lensStore'
+import { useLensStore, DEFAULT_THRESHOLD, DEFAULT_VERIFY_THRESHOLD, type ProviderEntry } from '@/stores/lensStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useLoginModalStore } from '@/stores/loginModalStore'
@@ -37,6 +37,8 @@ export function LensSettings() {
   const setRawPowFloor = useSettingsStore((s) => s.setRawPowFloor)
   const threshold = useLensStore((s) => s.threshold)
   const setThreshold = useLensStore((s) => s.setThreshold)
+  const verifyThreshold = useLensStore((s) => s.verifyThreshold)
+  const setVerifyThreshold = useLensStore((s) => s.setVerifyThreshold)
   const sources = useLensStore((s) => s.sources)
   const addSource = useLensStore((s) => s.addSource)
   const removeSource = useLensStore((s) => s.removeSource)
@@ -86,6 +88,24 @@ export function LensSettings() {
           </div>
           <Slider min={0} max={100} step={1} value={[threshold]} onValueChange={([v]) => setThreshold(v)} />
           <p className="mt-1.5 text-xs text-muted-foreground">Ranks run 0 to 100, normalised by each provider. Keys the provider&apos;s graph never reached carry no rank at all and show as unscored; muted or reported keys sit at 0. The default of {DEFAULT_THRESHOLD} therefore means &quot;vouched for at all&quot;, the anti-spam floor. Raise it to demand more than a toehold. The score filter on each list lets you view scored, low-scored, or unscored authors.</p>
+        </div>
+        <div>
+          <div className="mb-2 flex items-center justify-between">
+            <label className="text-sm font-medium text-foreground">Verification threshold</label>
+            <div className="flex items-center gap-2">
+              <span className="rounded bg-secondary px-2 py-0.5 font-mono text-sm text-muted-foreground">{verifyThreshold.toFixed(1)}</span>
+              <button
+                type="button"
+                onClick={() => setVerifyThreshold(DEFAULT_VERIFY_THRESHOLD)}
+                disabled={verifyThreshold === DEFAULT_VERIFY_THRESHOLD}
+                className="flex shrink-0 items-center gap-1 text-xs text-neutral-500 transition-colors hover:text-neutral-300 disabled:cursor-default disabled:opacity-40"
+              >
+                <RotateCcw size={11} /> Reset
+              </button>
+            </div>
+          </div>
+          <Slider min={0.1} max={3} step={0.1} value={[verifyThreshold]} onValueChange={([v]) => setVerifyThreshold(v)} />
+          <p className="mt-1.5 text-xs text-muted-foreground">How much &quot;legit&quot; an adoption claim needs before it counts as verified. Each reviewer above the threshold weighs rank/100, counted once, and the weights add up; any trusted &quot;fake&quot; verdict blocks verification outright. The default of {DEFAULT_VERIFY_THRESHOLD.toFixed(1)} is one reviewer ranked {Math.round(DEFAULT_VERIFY_THRESHOLD * 100)} or better, or a few lower-ranked ones. Raise it to demand several trusted reviewers; lower it if your graph is small. Your own rank never counts toward your own claim.</p>
         </div>
       </Card>
 

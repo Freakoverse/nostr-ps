@@ -25,8 +25,8 @@ export interface ClaimVerdictStats {
   uncounted: number
 }
 
-/** Recommended default: one fully trusted reviewer, or several partially trusted ones. */
-export const VERIFY_SUM_THRESHOLD = 1.0
+/** Recommended default: one reviewer ranked 50 or better, or a few partially trusted ones. The lens store holds the live value. */
+export const VERIFY_SUM_THRESHOLD = 0.5
 
 export function verifyClaim(reviews: Review[], weightOf: WeightOf, sumThreshold = VERIFY_SUM_THRESHOLD): ClaimVerdictStats {
   // One vote per reviewer: the newest verdict wins (reviews are addressable, so normally one each).

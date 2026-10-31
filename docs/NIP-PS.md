@@ -542,8 +542,8 @@ Given the ranks from the active lens (§6.2):
    `C`. Sum the weights of DISTINCT reviewers at or above threshold who said
    `legit`. Fifty reviews from one pubkey count once. `C` is "verified"
    when the sum reaches a client-configurable threshold (recommended
-   default: 1.0). Any `fake` from a reviewer at or above threshold makes
-   `C` unverified, full stop.
+   default: 0.5, i.e. one reviewer ranked 50 or two ranked 25). Any `fake`
+   from a reviewer at or above threshold makes `C` unverified, full stop.
 4. **Recommendation of a release `R`.** Count distinct `recommend`,
    `not-recommend`, and `unsure` reviewers at or above threshold, weighted
    by rank. Displayed as its own column. Never mixed into the adoption

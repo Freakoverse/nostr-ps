@@ -76,6 +76,7 @@ export function ReleasePage() {
   const enabled = useLensStore((s) => s.enabled)
   const scores = useLensStore((s) => s.scores)
   const threshold = useLensStore((s) => s.threshold)
+  const verifyThreshold = useLensStore((s) => s.verifyThreshold)
   const bucketOf = useLensStore((s) => s.bucketOf)
   const scoreOf = useLensStore((s) => s.scoreOf)
   const rawFloorOn = useSettingsStore((s) => s.rawPowFloor)
@@ -164,12 +165,12 @@ export function ReleasePage() {
     return (scoreOf(pk)?.combined ?? 0) / 100
   }, [enabled, bucketOf, scoreOf, scores, threshold]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Claim verification per §6.3: weighted legit sum reaches 1.0 and no counted fake.
+  // Claim verification per §6.3: weighted legit sum reaches the verification threshold and no counted fake.
   const claimStats = useMemo(() => {
     const out = new Map<string, ReturnType<typeof verifyClaim>>()
-    for (const c of claims) out.set(c.coord, verifyClaim(claimReviews.get(c.coord) ?? [], weightOf))
+    for (const c of claims) out.set(c.coord, verifyClaim(claimReviews.get(c.coord) ?? [], weightOf, verifyThreshold))
     return out
-  }, [claims, claimReviews, weightOf])
+  }, [claims, claimReviews, weightOf, verifyThreshold])
 
   const liveClaims = useMemo(() => claims.filter((c) => !c.withdrawn), [claims])
   const thisVersionClaims = useMemo(() => liveClaims.filter((c) => c.releaseId === release?.id), [liveClaims, release])

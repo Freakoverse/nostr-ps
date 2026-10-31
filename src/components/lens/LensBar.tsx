@@ -2,7 +2,7 @@ import { Link } from 'react-router-dom'
 import { Eye, EyeOff, SlidersHorizontal, RotateCcw, ChevronDown, Pickaxe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tip } from '@/components/shared/Tip'
-import { useLensStore, DEFAULT_THRESHOLD } from '@/stores/lensStore'
+import { useLensStore, DEFAULT_THRESHOLD, DEFAULT_VERIFY_THRESHOLD } from '@/stores/lensStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { Switch } from '@/components/ui/switch'
@@ -19,6 +19,8 @@ export function LensBar({ className }: { className?: string }) {
   const setEnabled = useLensStore((s) => s.setEnabled)
   const threshold = useLensStore((s) => s.threshold)
   const setThreshold = useLensStore((s) => s.setThreshold)
+  const verifyThreshold = useLensStore((s) => s.verifyThreshold)
+  const setVerifyThreshold = useLensStore((s) => s.setVerifyThreshold)
   const sources = useLensStore((s) => s.sources)
   const toggleSource = useLensStore((s) => s.toggleSource)
   const own = useLensStore((s) => s.ownProvider)
@@ -118,6 +120,24 @@ export function LensBar({ className }: { className?: string }) {
           {threshold !== DEFAULT_THRESHOLD && (
             <Tip label={`Reset to ${DEFAULT_THRESHOLD}`}>
               <button type="button" onClick={() => setThreshold(DEFAULT_THRESHOLD)} className="text-neutral-500 hover:text-neutral-200" aria-label={`Reset threshold to ${DEFAULT_THRESHOLD}`}>
+                <RotateCcw className="h-3.5 w-3.5" />
+              </button>
+            </Tip>
+          )}
+        </div>
+      )}
+
+      {/* §6.3 verification: how much rank-weighted "legit" a claim needs. */}
+      {enabled && active.length > 0 && (
+        <div className="flex items-center gap-2">
+          <Tip label={`A claim is verified once the legit verdicts from reviewers above the threshold, each weighing rank/100, add up to ${verifyThreshold.toFixed(1)}. One reviewer ranked ${Math.round(verifyThreshold * 100)} is enough; any trusted "fake" blocks it.`}>
+            <span className="text-neutral-500">Verify at</span>
+          </Tip>
+          <Slider min={0.1} max={3} step={0.1} value={[verifyThreshold]} onValueChange={([v]) => setVerifyThreshold(v)} className="w-24" />
+          <span className="w-6 text-right tabular-nums text-neutral-200">{verifyThreshold.toFixed(1)}</span>
+          {verifyThreshold !== DEFAULT_VERIFY_THRESHOLD && (
+            <Tip label={`Reset to ${DEFAULT_VERIFY_THRESHOLD.toFixed(1)}`}>
+              <button type="button" onClick={() => setVerifyThreshold(DEFAULT_VERIFY_THRESHOLD)} className="text-neutral-500 hover:text-neutral-200" aria-label={`Reset verification threshold to ${DEFAULT_VERIFY_THRESHOLD}`}>
                 <RotateCcw className="h-3.5 w-3.5" />
               </button>
             </Tip>

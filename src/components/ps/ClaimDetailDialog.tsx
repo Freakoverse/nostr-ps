@@ -9,7 +9,7 @@ import { Markdown } from '@/components/shared/Markdown'
 import { Tip } from '@/components/shared/Tip'
 import { formatRelativeTime, formatTimestamp } from '@/lib/utils'
 import { cn } from '@/lib/utils'
-import { verifyClaim, VERIFY_SUM_THRESHOLD } from '@/lib/nostr/trust'
+import { verifyClaim } from '@/lib/nostr/trust'
 import { PowBadge } from '@/components/shared/PowBadge'
 
 /**
@@ -35,6 +35,7 @@ export function ClaimDetailDialog({ open, onOpenChange, claim, reviews, mine, on
   const bucketOf = useLensStore((s) => s.bucketOf)
   const scores = useLensStore((s) => s.scores)
   const threshold = useLensStore((s) => s.threshold)
+  const verifyThreshold = useLensStore((s) => s.verifyThreshold)
 
   const scoreOf = useLensStore((s) => s.scoreOf)
 
@@ -51,8 +52,8 @@ export function ClaimDetailDialog({ open, onOpenChange, claim, reviews, mine, on
       if (b !== 'above') return 0
       return (scoreOf(pk)?.combined ?? 0) / 100
     }
-    return verifyClaim(reviews, weightOf)
-  }, [reviews, enabled, bucketOf, scoreOf, scores, threshold])
+    return verifyClaim(reviews, weightOf, verifyThreshold)
+  }, [reviews, enabled, bucketOf, scoreOf, scores, threshold, verifyThreshold])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -74,7 +75,7 @@ export function ClaimDetailDialog({ open, onOpenChange, claim, reviews, mine, on
                 <span className="flex items-center gap-1 text-emerald-400"><ShieldCheck className="h-3.5 w-3.5" /> {legit.length} legit</span>
                 <span className="flex items-center gap-1 text-red-400"><ShieldX className="h-3.5 w-3.5" /> {fake.length} fake</span>
                 {enabled && (
-                  <span>· weighted legit {stats.legitWeight.toFixed(2)} / {VERIFY_SUM_THRESHOLD.toFixed(1)}{stats.uncounted ? ` ·  below threshold` : ''}</span>
+                  <span>· weighted legit {stats.legitWeight.toFixed(2)} / {verifyThreshold.toFixed(1)}{stats.uncounted ? ` ·  below threshold` : ''}</span>
                 )}
                 <span className={stats.disputed ? 'text-red-300' : stats.verified ? 'text-emerald-300' : 'text-neutral-400'}>· {stats.disputed ? 'disputed' : stats.verified ? 'verified' : 'unverified'}</span>
               </div>
