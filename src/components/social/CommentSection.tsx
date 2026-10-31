@@ -92,30 +92,34 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
   // Drop comments/replies from blocked users. Trust is the lens's job and the
   // lens folds rather than hides, so nothing else is pruned here.
   const blocked = useBlockStore((s) => s.blockedPubkeys)
-  const tree = useMemo(() => {
-    const prune = (nodes: CommentNode[]): CommentNode[] =>
-      nodes
+  // Blocking and "author only" apply to both trees, so the lens menu can count
+  // every comment, including those the proof-of-work floor is hiding.
+  const shape = useCallback((nodes: CommentNode[]): CommentNode[] => {
+    const prune = (list: CommentNode[]): CommentNode[] =>
+      list
         .filter((n) => !blocked.has(n.event.pubkey))
         .map((n) => ({ ...n, replies: prune(n.replies) }))
-    return prune(powTree)
-  }, [powTree, blocked])
-
-  // Apply view filters. "Author only" shows just the post author's top-level
-  // comments, without their reply threads.
-  const displayTree = useMemo(() => {
-    if (!filters.authorOnly) return tree
-    return tree
+    const pruned = prune(nodes)
+    if (!filters.authorOnly) return pruned
+    return pruned
       .filter((n) => n.event.pubkey === root.pubkey)
       .map((n) => ({ ...n, replies: [] as CommentNode[] }))
-  }, [tree, filters.authorOnly, root.pubkey])
+  }, [blocked, filters.authorOnly, root.pubkey])
+  const tree = useMemo(() => shape(powTree), [shape, powTree])
+  const displayTree = tree
+  const allTree = useMemo(() => shape(unfilteredTree), [shape, unfilteredTree])
 
   const total = useMemo(() => countComments(displayTree), [displayTree])
 
   // The lens, as on every list: top-level comments by their author's rank,
-  // scored first, the rest one menu click away. Replies stay with their
-  // parent inside the thread modal, each carrying its author's trust badge.
-  const topLevel = useMemo(() => displayTree.map((n) => ({ ...n, pubkey: n.event.pubkey })), [displayTree])
+  // scored first, the rest one menu click away. It runs over every top-level
+  // comment so the menu counts are complete; the proof-of-work floor then
+  // decides which of the kept ones are shown. Replies stay with their parent
+  // inside the thread modal, each carrying its author's trust badge.
+  const topLevel = useMemo(() => allTree.map((n) => ({ ...n, pubkey: n.event.pubkey })), [allTree])
   const lens = useLensFilter(topLevel)
+  const shownIds = useMemo(() => new Set(displayTree.map((n) => n.event.id)), [displayTree])
+  const visible = useMemo(() => lens.main.filter((n) => shownIds.has(n.event.id)), [lens.main, shownIds])
 
   // Arriving from a notification: once the target comment is in the tree, scroll
   // here and open the thread modal focused on it (seeded with its ancestry).
@@ -195,7 +199,7 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
                 </button>
               </Tip>
             )}
-            {belowPow > 0 && <span className="text-neutral-500">{belowPow} folded</span>}
+            {belowPow > 0 && <span className="text-neutral-500">{belowPow} {belowPow === 1 ? 'comment' : 'comments'} hidden (PoW below {minPow})</span>}
           </div>
           {lensEnabled && <ScoreFilterMenu value={lens.filter} onChange={lens.setFilter} counts={lens.counts} />}
         </div>
@@ -219,11 +223,11 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
               ? `${belowPow} ${belowPow === 1 ? 'comment is' : 'comments are'} under the proof-of-work floor. Lower the slider to see ${belowPow === 1 ? 'it' : 'them'}.`
               : 'No comments yet. Be the first to comment.'}
         </p>
-      ) : lens.main.length === 0 ? (
+      ) : visible.length === 0 ? (
         <EmptyFiltered filter={lens.filter} />
       ) : (
         <div className="space-y-6">
-          {lens.main.map(node => (
+          {visible.map(node => (
             <Comment
               key={node.event.id}
               node={node}
