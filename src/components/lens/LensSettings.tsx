@@ -83,6 +83,12 @@ export function LensSettings() {
       </Card>
 
       <Card icon={Network} title="Providers" description="Each is a key that publishes NIP-85 trusted assertions (kind 30382) computed from one observer's vantage point. Scored in parallel and combined by maximum, so one provider vouching is enough to surface something.">
+        <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border border-edge bg-panel-2 px-3 py-2">
+          <p className="text-xs text-neutral-400">Scores are cached for ten minutes, including "unscored" answers. Refresh after a provider has finished computing, or when its relay was slow and left authors unscored.</p>
+          <Button variant="outline" size="sm" onClick={() => { invalidate(); toast.success('Scores cleared; they refetch as pages load.') }} disabled={busy} className="shrink-0 gap-1.5 border-edge">
+            <RefreshCw className={cn('h-3.5 w-3.5', busy && 'animate-spin')} /> Refresh scores now
+          </Button>
+        </div>
         <div className="divide-y divide-edge">
           {sources.map((s) => (
             <div key={s.id} className="flex items-center gap-3 py-2.5">
@@ -110,10 +116,6 @@ export function LensSettings() {
             A person&apos;s own npub is not a provider: nobody publishes assertions under their personal key. Use the assistant or service key an instance such as Brainstorm created for them.
           </p>
         </div>
-
-        <Button variant="outline" size="sm" onClick={() => { invalidate(); toast.success('Scores cleared; they refetch on the next page.') }} disabled={busy} className="gap-1.5 border-edge">
-          <RefreshCw className={cn('h-3.5 w-3.5', busy && 'animate-spin')} /> Clear cached scores
-        </Button>
       </Card>
 
       <Card icon={Radar} title="How the default was chosen" description="Anonymous visitors look through the built-in providers, currently one Brainstorm instance. That is a default authority in structure; what keeps it a setting is that it is shown on every list and can be swapped or switched off here, without logging in. Trust is computed on the provider's side, never by walking follow lists in your browser.">
