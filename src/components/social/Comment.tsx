@@ -13,6 +13,7 @@ import { CommentForm } from './CommentForm'
 import { ItemMenu } from '@/components/ps/ItemMenu'
 import { useAuthStore } from '@/stores/authStore'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
+import { TrustBadge } from '@/components/lens/TrustBadge'
 
 interface CommentProps {
   node: CommentNode
@@ -61,6 +62,7 @@ export function Comment({ node, root, onReplyPublished, onOpenThread, focused = 
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5">
             <Link to={`/profile/${npub}`} className="text-sm font-medium text-neutral-200 hover:text-purple-400 transition-colors truncate">{name}</Link>
+            <TrustBadge pubkey={event.pubkey} />
             <span className="text-xs text-neutral-600">·</span>
             {focused ? (
               <span className="text-xs text-neutral-500">{formatRelativeTime(event.created_at)}</span>

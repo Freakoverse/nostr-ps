@@ -117,10 +117,13 @@ function parentIdOf(event: NostrEvent): string | null {
 
 /**
  * Build a threaded comment tree from a flat list, filtering out events whose
- * PoW is below `minPow`. Replies whose parent was filtered out (or isn't
- * present) are promoted to top level so they remain visible.
+ * PoW is below `minPow`. A reply always lives under the comment it answers:
+ * when that parent is absent (filtered, deleted, or not fetched) the reply is
+ * left out of the tree rather than promoted to the top level, so the page
+ * shows only comments on the root and every reply is reached through its
+ * parent. `rootId` tells a comment on the root apart from a reply.
  */
-export function buildCommentTree(events: NostrEvent[], minPow = 0, powExempt?: Set<string>): CommentNode[] {
+export function buildCommentTree(events: NostrEvent[], minPow = 0, powExempt?: Set<string>, rootId?: string): CommentNode[] {
   // Dedupe by id, drop deleted + below-threshold.
   const byId = new Map<string, NostrEvent>()
   for (const ev of events) {
@@ -140,8 +143,12 @@ export function buildCommentTree(events: NostrEvent[], minPow = 0, powExempt?: S
   for (const node of nodes.values()) {
     const parentId = parentIdOf(node.event)
     const parent = parentId ? nodes.get(parentId) : null
-    if (parent && parent !== node) parent.replies.push(node)
-    else roots.push(node)
+    if (parent && parent !== node) { parent.replies.push(node); continue }
+    // Its parent is another comment (NIP-22 `k` 1111, or an `e` that is not the root) that is not here: keep it off the page.
+    const parentKind = node.event.tags.find((t) => t[0] === 'k')?.[1]
+    const isReply = parentKind === '1111' || (!!parentId && !!rootId && parentId !== rootId)
+    if (isReply) continue
+    roots.push(node)
   }
 
   const sortRec = (list: CommentNode[]) => {

@@ -19,6 +19,8 @@ import { CommentForm } from './CommentForm'
 import { Comment } from './Comment'
 import { CommentThreadModal } from './CommentThreadModal'
 import { CommentFilters, DEFAULT_COMMENT_FILTERS, type CommentFilterState } from './CommentFilters'
+import { useLensFilter } from '@/components/lens/useLensFilter'
+import { ScoreFilterMenu, EmptyFiltered } from '@/components/lens/TieredList'
 
 interface CommentSectionProps {
   root: NostrTarget
@@ -77,8 +79,8 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
   // Filtering demotes, never hides (spec §6): comments under the proof-of-work
   // filter are folded behind a count the reader can expand, not dropped.
   const [showBelowPow, setShowBelowPow] = useState(false)
-  const unfilteredTree = useMemo(() => buildCommentTree(events, 0, followed), [events, followed])
-  const filteredTree = useMemo(() => buildCommentTree(events, minPow, followed), [events, minPow, followed])
+  const unfilteredTree = useMemo(() => buildCommentTree(events, 0, followed, root.id), [events, followed, root.id])
+  const filteredTree = useMemo(() => buildCommentTree(events, minPow, followed, root.id), [events, minPow, followed, root.id])
   const powTree = showBelowPow ? unfilteredTree : filteredTree
   const belowPow = useMemo(() => countComments(unfilteredTree) - countComments(filteredTree), [unfilteredTree, filteredTree])
 
@@ -104,6 +106,12 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
 
   const total = useMemo(() => countComments(displayTree), [displayTree])
 
+  // The lens, as on every list: top-level comments by their author's rank,
+  // scored first, the rest one menu click away. Replies stay with their
+  // parent inside the thread modal, each carrying its author's trust badge.
+  const topLevel = useMemo(() => displayTree.map((n) => ({ ...n, pubkey: n.event.pubkey })), [displayTree])
+  const lens = useLensFilter(topLevel)
+
   // Arriving from a notification: once the target comment is in the tree, scroll
   // here and open the thread modal focused on it (seeded with its ancestry).
   useEffect(() => {
@@ -123,6 +131,9 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
           Comments
           {!loading && <span className="text-sm font-normal text-neutral-500">({total})</span>}
         </h2>
+        {!loading && displayTree.length > 0 && lens.filterActive && (
+          <ScoreFilterMenu value={lens.filter} onChange={lens.setFilter} counts={lens.counts} />
+        )}
         {!loading && belowPow > 0 && (
           <p className="order-last basis-full text-xs text-neutral-500">
             {belowPow} {belowPow === 1 ? 'comment is' : 'comments are'} below your proof-of-work filter ({minPow} bits).{' '}
@@ -190,9 +201,11 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
             ? 'No comments from the author yet.'
             : 'No comments yet. Be the first to comment.'}
         </p>
+      ) : lens.main.length === 0 ? (
+        <EmptyFiltered filter={lens.filter} />
       ) : (
         <div className="space-y-6">
-          {displayTree.map(node => (
+          {lens.main.map(node => (
             <Comment
               key={node.event.id}
               node={node}
