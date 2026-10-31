@@ -1,5 +1,5 @@
 import { useMemo, type ReactNode } from 'react'
-import { ShieldCheck, ShieldX, ShieldQuestion, ExternalLink } from 'lucide-react'
+import { ShieldCheck, ShieldX, ExternalLink } from 'lucide-react'
 import type { Claim, Review } from '@/lib/nostr/nipps'
 import { useLensStore } from '@/stores/lensStore'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
@@ -56,7 +56,7 @@ export function ClaimDetailDialog({ open, onOpenChange, claim, reviews, mine, on
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
-          <ClaimFullView claim={claim} legit={trusted.legit} fake={trusted.fake} menu={claimMenu} />
+          <ClaimFullView claim={claim} menu={claimMenu} />
 
           <section className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2 px-1">
@@ -121,20 +121,7 @@ export function VerdictRow({ review, menu, label }: { review: Review; menu?: Rea
  * The claim in full, for the dialog: everything the event carries, laid out
  * as facts rather than a card, since here there is room for all of it.
  */
-function ClaimFullView({ claim, legit, fake, menu }: { claim: Claim; legit: number; fake: number; menu?: ReactNode }) {
-  const status = fake > 0 ? 'disputed' : legit > 0 ? 'verified' : 'unverified'
-  const statusCls = status === 'verified'
-    ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300'
-    : status === 'disputed'
-      ? 'border-red-500/30 bg-red-500/5 text-red-300'
-      : 'border-edge bg-panel-2 text-neutral-400'
-  const StatusIcon = status === 'verified' ? ShieldCheck : status === 'disputed' ? ShieldX : ShieldQuestion
-  const statusTitle = status === 'verified' ? 'Verified' : status === 'disputed' ? 'Disputed' : 'Unverified'
-  const statusSub = status === 'verified'
-    ? `${legit} legit${fake ? ` · ${fake} fake` : ''} above your threshold`
-    : status === 'disputed'
-      ? `${fake} fake${legit ? ` · ${legit} legit` : ''} above your threshold`
-      : 'no verdicts above your threshold'
+function ClaimFullView({ claim, menu }: { claim: Claim; menu?: ReactNode }) {
 
   const fact = (label: string, value: ReactNode) => (
     <div className="grid grid-cols-[8rem_1fr] gap-x-3 gap-y-0.5 py-1.5 text-sm">
@@ -157,16 +144,7 @@ function ClaimFullView({ claim, legit, fake, menu }: { claim: Claim; legit: numb
             {claim.withdrawn && <span className="text-red-400"> · withdrawn</span>}
           </p>
         </div>
-        <div className="flex items-start gap-1">
-          <div className={cn('flex items-center gap-2.5 rounded-lg border px-3 py-2', statusCls)}>
-            <StatusIcon className="h-5 w-5 shrink-0" />
-            <span>
-              <span className="block text-sm font-medium leading-tight">{statusTitle}</span>
-              <span className="block text-[11px] opacity-80">{statusSub}</span>
-            </span>
-          </div>
-          {menu}
-        </div>
+        {menu}
       </div>
 
       <dl className="divide-y divide-edge px-4">

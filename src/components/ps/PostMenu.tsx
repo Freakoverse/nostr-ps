@@ -23,7 +23,9 @@ export function PostMenu({ event, link, children }: { event: NostrEvent; link?: 
 
   return (
     <>
-      <DropdownMenu>
+      {/* Non-modal: a modal dropdown disables pointer events behind it, so a click
+          inside a parent dialog would land on the body and dismiss the dialog. */}
+      <DropdownMenu modal={false}>
         <DropdownMenuTrigger asChild>
           <button
             type="button"
