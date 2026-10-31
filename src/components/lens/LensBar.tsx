@@ -3,6 +3,7 @@ import { Eye, EyeOff, SlidersHorizontal, RotateCcw, ChevronDown } from 'lucide-r
 import { cn } from '@/lib/utils'
 import { Tip } from '@/components/shared/Tip'
 import { useLensStore, DEFAULT_THRESHOLD } from '@/stores/lensStore'
+import { useAuthStore } from '@/stores/authStore'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu'
@@ -19,6 +20,8 @@ export function LensBar({ className }: { className?: string }) {
   const setThreshold = useLensStore((s) => s.setThreshold)
   const sources = useLensStore((s) => s.sources)
   const toggleSource = useLensStore((s) => s.toggleSource)
+  const own = useLensStore((s) => s.ownProvider)
+  const myPubkey = useAuthStore((s) => s.pubkey)
   const active = sources.filter((s) => s.enabled)
 
   return (
@@ -47,6 +50,19 @@ export function LensBar({ className }: { className?: string }) {
           <DropdownMenuSeparator className="bg-edge" />
           <DropdownMenuLabel className="text-[11px] font-medium uppercase tracking-wider text-neutral-500">Sources</DropdownMenuLabel>
           {sources.length === 0 && <p className="px-2 py-1.5 text-xs text-neutral-500">No sources yet.</p>}
+          {/* Logged in without a kind 10040: show the row they would have, disabled, pointing at Manage. */}
+          {myPubkey && own.state === 'missing' && (
+            <DropdownMenuItem onSelect={(e) => e.preventDefault()} className="justify-between gap-3 opacity-70" disabled>
+              <span className="min-w-0">
+                <span className="block truncate text-sm">Your provider</span>
+                <span className="block text-[11px] text-neutral-500">none yet, set one up under Manage</span>
+              </span>
+              <Switch checked={false} disabled aria-label="Your provider (none)" />
+            </DropdownMenuItem>
+          )}
+          {myPubkey && own.state === 'checking' && (
+            <p className="px-2 py-1.5 text-[11px] text-neutral-500">Checking your kind 10040…</p>
+          )}
           {sources.map((s) => (
             <DropdownMenuItem
               key={s.id}

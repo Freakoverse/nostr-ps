@@ -124,6 +124,34 @@ export function buildDeletedEvent(
  * Step 2: kind 5 deletion request. Addressable events are referenced by
  * coordinate (`a`), regular events by id (`e`).
  */
+/**
+ * NIP-85 kind 10040, the user's trust-provider list. Built by MERGING: every
+ * tag of the existing event that is not a `30382:rank` entry is kept, as is
+ * any encrypted private list in `content`, and the given providers become
+ * the new `30382:rank` entries. Only published on the user's explicit action.
+ */
+export function buildTrustProviderListEvent(
+  existing: NostrEvent | null,
+  providers: { provider: string; relay?: string }[],
+): UnsignedEvent {
+  const kept = (existing?.tags ?? []).filter((t) => t[0] !== '30382:rank' && t[0] !== 'client')
+  const seen = new Set<string>()
+  const rank: string[][] = []
+  for (const p of providers) {
+    const pk = p.provider.toLowerCase()
+    if (seen.has(pk)) continue
+    seen.add(pk)
+    rank.push(p.relay ? ['30382:rank', pk, p.relay] : ['30382:rank', pk])
+  }
+  return {
+    kind: KINDS.TRUSTED_PROVIDERS,
+    content: existing?.content ?? '',
+    tags: [...rank, ...kept, ['client', CLIENT_NAME]],
+    created_at: now(),
+    pubkey: '',
+  }
+}
+
 export function buildDeletionRequest(originalEvent: NostrEvent, reason?: string): UnsignedEvent {
   const isAddressable = originalEvent.kind >= 30000 && originalEvent.kind < 40000
   const tags: string[][] = []

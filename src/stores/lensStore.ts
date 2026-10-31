@@ -53,14 +53,21 @@ export interface PubkeyScore {
 }
 
 /** Status of the logged-in user's own provider lookup (kind 10040). */
+export interface ProviderEntry {
+  provider: string
+  relay?: string
+}
+
 export type OwnProviderStatus =
   | { state: 'anonymous' }
   | { state: 'checking'; user: string }
-  | { state: 'found'; user: string; provider: string; relay?: string }
-  | { state: 'missing'; user: string }
+  /** `event` is the raw kind 10040, kept so an edit can merge into it rather than overwrite other entries. */
+  | { state: 'found'; user: string; providers: ProviderEntry[]; event: NostrEvent }
+  | { state: 'missing'; user: string; event: NostrEvent | null }
 
-/** The logged-in user's own provider row. Added and removed automatically. */
+/** Prefix of the logged-in user's own provider rows (`own:<provider pubkey>`). Added and removed automatically. */
 export const OWN_SOURCE_ID = 'own'
+export const isOwnSourceId = (id: string) => id === OWN_SOURCE_ID || id.startsWith(`${OWN_SOURCE_ID}:`)
 /**
  * Default threshold. Ranks are normalised 0-100 by the provider. GrapeRank's
  * own "valid user" cutoff is around 2, and unknown or muted keys sit at 0 or
@@ -130,12 +137,21 @@ function combine(per: Record<string, number | null>): number | null {
   return best
 }
 
-/** The `30382:rank` entry of a kind 10040, or any `30382:*` entry as a fallback. */
-function providerFrom10040(ev: NostrEvent): { provider: string; relay?: string } | null {
-  const tags = ev.tags.filter((t) => typeof t[0] === 'string' && t[0].startsWith('30382') && /^[0-9a-f]{64}$/i.test(t[1] ?? ''))
-  const pick = tags.find((t) => t[0] === '30382:rank') ?? tags[0]
-  if (!pick) return null
-  return { provider: pick[1].toLowerCase(), relay: pick[2] && /^wss?:\/\//.test(pick[2]) ? pick[2] : undefined }
+/**
+ * Every `30382:rank` entry of a kind 10040 (NIP-85 allows several providers
+ * for one result type; its own example lists two). Falls back to any
+ * `30382:*` entry when no rank entry exists. Deduplicated by provider key.
+ */
+export function providersFrom10040(ev: NostrEvent): ProviderEntry[] {
+  const valid = ev.tags.filter((t) => typeof t[0] === 'string' && t[0].startsWith('30382') && /^[0-9a-f]{64}$/i.test(t[1] ?? ''))
+  const ranks = valid.filter((t) => t[0] === '30382:rank')
+  const picked = ranks.length ? ranks : valid.slice(0, 1)
+  const out = new Map<string, ProviderEntry>()
+  for (const t of picked) {
+    const pk = t[1].toLowerCase()
+    if (!out.has(pk)) out.set(pk, { provider: pk, relay: t[2] && /^wss?:\/\//.test(t[2]) ? t[2] : undefined })
+  }
+  return [...out.values()]
 }
 
 export const useLensStore = create<LensState>()(
@@ -170,7 +186,7 @@ export const useLensStore = create<LensState>()(
       },
 
       syncOwnProvider: async (pubkey) => {
-        const without = () => get().sources.filter((x) => x.id !== OWN_SOURCE_ID)
+        const without = () => get().sources.filter((x) => !isOwnSourceId(x.id))
         if (!pubkey) {
           if (without().length !== get().sources.length) { set({ sources: without() }); get().invalidate() }
           set({ ownProvider: { state: 'anonymous' } })
@@ -179,30 +195,35 @@ export const useLensStore = create<LensState>()(
         const cur = get().ownProvider
         if (cur.state !== 'anonymous' && cur.user === pubkey && cur.state !== 'checking') return
         set({ ownProvider: { state: 'checking', user: pubkey } })
-        let found: { provider: string; relay?: string } | null = null
+        let event: NostrEvent | null = null
+        let entries: ProviderEntry[] = []
         try {
           const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
           const evs = await fetchEvents(relays, { kinds: [KINDS.TRUSTED_PROVIDERS], authors: [pubkey], limit: 3 }, 8000)
-          const newest = evs.sort((a, b) => b.created_at - a.created_at)[0]
-          if (newest) found = providerFrom10040(newest)
+          event = evs.sort((a, b) => b.created_at - a.created_at)[0] ?? null
+          if (event) entries = providersFrom10040(event)
         } catch { /* treated as missing; the user can retry from settings */ }
         // Login may have changed while we were fetching.
         if (useAuthStore.getState().pubkey !== pubkey) return
-        if (found) {
-          const existing = get().sources.find((x) => x.id === OWN_SOURCE_ID)
-          const row: LensSource = {
-            id: OWN_SOURCE_ID,
-            pubkey: found.provider,
-            label: 'Your provider',
-            relays: found.relay ? [found.relay] : undefined,
-            enabled: existing?.enabled ?? true,
-            builtin: true,
-            own: true,
-          }
-          // Own provider first so it reads as "you", then the built-in defaults.
-          set({ sources: [row, ...without()], ownProvider: { state: 'found', user: pubkey, provider: found.provider, relay: found.relay } })
+        if (event && entries.length) {
+          const prev = get().sources
+          const rows: LensSource[] = entries.map((e) => {
+            const id = `${OWN_SOURCE_ID}:${e.provider}`
+            const existing = prev.find((x) => x.id === id)
+            return {
+              id,
+              pubkey: e.provider,
+              label: entries.length > 1 ? `Your provider (${e.relay ? e.relay.replace(/^wss?:\/\//, '') : shortNpub(nip19.npubEncode(e.provider))})` : 'Your provider',
+              relays: e.relay ? [e.relay] : undefined,
+              enabled: existing?.enabled ?? true,
+              builtin: true,
+              own: true,
+            }
+          })
+          // Own providers first so they read as "you", then the built-in defaults.
+          set({ sources: [...rows, ...without()], ownProvider: { state: 'found', user: pubkey, providers: entries, event } })
         } else {
-          set({ sources: without(), ownProvider: { state: 'missing', user: pubkey } })
+          set({ sources: without(), ownProvider: { state: 'missing', user: pubkey, event } })
         }
         get().invalidate()
       },
@@ -264,7 +285,7 @@ export const useLensStore = create<LensState>()(
           // client reads provider assertions only. Keep user-added providers.
           if (version < 4) {
             s.sources = (s.sources as (LensSource & { type?: string })[])
-              .filter((x) => x.type !== 'graph' && x.id !== 'operator' && x.id !== OWN_SOURCE_ID)
+              .filter((x) => x.type !== 'graph' && x.id !== 'operator' && !isOwnSourceId(x.id))
               .map(({ type: _t, ...rest }) => rest)
             for (const p of BUILTIN_PROVIDERS) if (!s.sources.some((x) => x.id === p.id)) s.sources = [...s.sources, p]
             s.scores = {}
