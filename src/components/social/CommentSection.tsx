@@ -1,6 +1,6 @@
 import { useState, useEffect, useCallback, useMemo, useRef } from 'react'
 import { Link, useSearchParams } from 'react-router-dom'
-import { MessagesSquare, Loader2, RefreshCw, Settings, ListFilter } from 'lucide-react'
+import { MessagesSquare, Loader2, RefreshCw, Settings, ListFilter, Pickaxe, RotateCcw } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useBlockStore } from '@/stores/blockStore'
 import { useFollowedSet } from '@/hooks/useFollowedSet'
@@ -14,6 +14,9 @@ import {
   type NostrTarget,
 } from '@/lib/nostr/social'
 import { Button } from '@/components/ui/button'
+import { Slider } from '@/components/ui/slider'
+import { Tip } from '@/components/shared/Tip'
+import { useLensStore } from '@/stores/lensStore'
 import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 import { CommentForm } from './CommentForm'
 import { Comment } from './Comment'
@@ -39,7 +42,7 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
   const [filtersOpen, setFiltersOpen] = useState(false)
   const [filters, setFilters] = useState<CommentFilterState>(DEFAULT_COMMENT_FILTERS)
   const minPow = filters.minPow ?? defaultPow
-  const activeFilterCount = (filters.authorOnly ? 1 : 0) + (filters.minPow !== null ? 1 : 0)
+  const activeFilterCount = filters.authorOnly ? 1 : 0
   const sectionRef = useRef<HTMLElement>(null)
   const handledFocusRef = useRef<string | null>(null)
   const [searchParams, setSearchParams] = useSearchParams()
@@ -77,11 +80,13 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
 
   const followed = useFollowedSet()
   // Filtering demotes, never hides (spec §6): comments under the proof-of-work
-  // filter are folded behind a count the reader can expand, not dropped.
-  const [showBelowPow, setShowBelowPow] = useState(false)
+  // floor are folded behind a count, and the slider in the toolbar lowers the
+  // floor for this thread to bring them back.
   const unfilteredTree = useMemo(() => buildCommentTree(events, 0, followed, root.id), [events, followed, root.id])
   const filteredTree = useMemo(() => buildCommentTree(events, minPow, followed, root.id), [events, minPow, followed, root.id])
-  const powTree = showBelowPow ? unfilteredTree : filteredTree
+  const powTree = filteredTree
+  const lensEnabled = useLensStore((s) => s.enabled)
+  const powOverridden = filters.minPow !== null
   const belowPow = useMemo(() => countComments(unfilteredTree) - countComments(filteredTree), [unfilteredTree, filteredTree])
 
   // Drop comments/replies from blocked users. Trust is the lens's job and the
@@ -131,17 +136,6 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
           Comments
           {!loading && <span className="text-sm font-normal text-neutral-500">({total})</span>}
         </h2>
-        {!loading && displayTree.length > 0 && lens.filterActive && (
-          <ScoreFilterMenu value={lens.filter} onChange={lens.setFilter} counts={lens.counts} />
-        )}
-        {!loading && belowPow > 0 && (
-          <p className="order-last basis-full text-xs text-neutral-500">
-            {belowPow} {belowPow === 1 ? 'comment is' : 'comments are'} below your proof-of-work filter ({minPow} bits).{' '}
-            <button type="button" onClick={() => setShowBelowPow((v) => !v)} className="text-purple-400 hover:underline">
-              {showBelowPow ? 'Hide them again' : 'Show them'}
-            </button>
-          </p>
-        )}
         <div className="flex items-center gap-2">
           <Tooltip>
             <TooltipTrigger asChild>
@@ -185,6 +179,28 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
         </div>
       </div>
 
+      {/* Toolbar: the proof-of-work floor for this thread, live, and the lens menu. Always there, so the controls never move. */}
+      {!loading && (
+        <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 text-xs">
+          <div className="flex items-center gap-2">
+            <Tip label={`Comments with less than ${minPow} bits of proof of work are folded. Your Settings value is ${defaultPow} bits; moving this applies to this thread only. People you follow are never folded.`}>
+              <span className="flex items-center gap-1.5 text-neutral-500"><Pickaxe className="h-3.5 w-3.5 text-purple-400" /> PoW floor</span>
+            </Tip>
+            <Slider min={0} max={32} step={1} value={[minPow]} onValueChange={([v]) => setFilters({ ...filters, minPow: v === defaultPow ? null : v })} className="w-24" aria-label="Proof-of-work floor for this thread" />
+            <span className="w-6 text-right tabular-nums text-neutral-200">{minPow}</span>
+            {powOverridden && (
+              <Tip label={`Reset to ${defaultPow}`}>
+                <button type="button" onClick={() => setFilters({ ...filters, minPow: null })} className="text-neutral-500 hover:text-neutral-200" aria-label={`Reset proof-of-work floor to ${defaultPow}`}>
+                  <RotateCcw className="h-3.5 w-3.5" />
+                </button>
+              </Tip>
+            )}
+            {belowPow > 0 && <span className="text-neutral-500">{belowPow} folded</span>}
+          </div>
+          {lensEnabled && <ScoreFilterMenu value={lens.filter} onChange={lens.setFilter} counts={lens.counts} />}
+        </div>
+      )}
+
       {/* New top-level comment */}
       <div className="rounded-lg bg-panel p-4 shadow-md shadow-black/20">
         <CommentForm root={root} onPublished={handlePublished} />
@@ -199,7 +215,9 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
         <p className="py-8 text-center text-sm text-neutral-500">
           {filters.authorOnly
             ? 'No comments from the author yet.'
-            : 'No comments yet. Be the first to comment.'}
+            : belowPow > 0
+              ? `${belowPow} ${belowPow === 1 ? 'comment is' : 'comments are'} under the proof-of-work floor. Lower the slider to see ${belowPow === 1 ? 'it' : 'them'}.`
+              : 'No comments yet. Be the first to comment.'}
         </p>
       ) : lens.main.length === 0 ? (
         <EmptyFiltered filter={lens.filter} />
@@ -231,7 +249,6 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
         onOpenChange={setFiltersOpen}
         filters={filters}
         onChange={setFilters}
-        settingsPow={defaultPow}
       />
     </section>
   )
