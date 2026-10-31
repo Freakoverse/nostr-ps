@@ -3,7 +3,7 @@
  * step) can share the exact same logic. See docs on SEO discoverability.
  */
 
-export const SITE_NAME = 'NIP-PS'
+export const SITE_NAME = 'Nostr Permissionless Standards (NIP-PS)'
 export const DEFAULT_DESCRIPTION = 'NIP-PS — permissionless standards for Nostr.'
 const MAX_DESCRIPTION = 160
 
