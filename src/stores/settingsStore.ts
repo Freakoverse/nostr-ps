@@ -85,6 +85,8 @@ export interface SettingsState {
 
   powDifficulty: number
   powFilterDifficulty: number
+  /** §6.5: apply the content-filter difficulty to claims and reviews when the lens is off. Off by default. */
+  rawPowFloor: boolean
   blossomUploadLimitMb: number
   /** Max image download size (MB) before images render as a "too large" placeholder. 0 = unlimited. */
   mediaDownloadLimitMb: number
@@ -133,6 +135,7 @@ export interface SettingsState {
 
   setPowDifficulty: (difficulty: number) => void
   setPowFilterDifficulty: (difficulty: number) => void
+  setRawPowFloor: (v: boolean) => void
   setBlossomUploadLimitMb: (limit: number) => void
   setMediaDownloadLimitMb: (limit: number) => void
 
@@ -237,6 +240,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
   discoveredDnnNodes: [],
   powDifficulty: 15,
   powFilterDifficulty: 15,
+  rawPowFloor: false,
   blossomUploadLimitMb: 10,
   mediaDownloadLimitMb: 10,
 
@@ -401,6 +405,10 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
     set({ powFilterDifficulty: difficulty })
     localStorage.setItem(StorageKey.POW_FILTER_DIFFICULTY, difficulty.toString())
   },
+  setRawPowFloor: (v) => {
+    set({ rawPowFloor: v })
+    localStorage.setItem(StorageKey.RAW_POW_FLOOR, v ? '1' : '0')
+  },
   setBlossomUploadLimitMb: (limit) => {
     set({ blossomUploadLimitMb: limit })
     localStorage.setItem(StorageKey.BLOSSOM_UPLOAD_LIMIT_MB, limit.toString())
@@ -509,6 +517,7 @@ export const useSettingsStore = create<SettingsState>((set, get) => ({
       userDnnNodes: loadJson(StorageKey.USER_DNN_NODES, []),
       powDifficulty: parseInt(localStorage.getItem(StorageKey.POW_DIFFICULTY) ?? '15', 10),
       powFilterDifficulty: parseInt(localStorage.getItem(StorageKey.POW_FILTER_DIFFICULTY) ?? '15', 10),
+      rawPowFloor: localStorage.getItem(StorageKey.RAW_POW_FLOOR) === '1',
       blossomUploadLimitMb: parseInt(localStorage.getItem(StorageKey.BLOSSOM_UPLOAD_LIMIT_MB) ?? '10', 10),
       mediaDownloadLimitMb: parseInt(localStorage.getItem(StorageKey.MEDIA_DOWNLOAD_LIMIT_MB) ?? '10', 10),
       ...loadJson<PostingBehaviour>(StorageKey.POSTING_BEHAVIOUR, POSTING_DEFAULTS),

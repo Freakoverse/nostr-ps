@@ -4,6 +4,7 @@ import { Link } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
 import { Loader2 } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { rawPowFloor } from '@/lib/nostr/rawPow'
 import {
   fetchDrafts, fetchReleases, fetchClaimsBy, fetchReviewsBy, fetchLatestUpdates, fetchClaimsForMany, summarizeProposals, releaseNevent, shortId, PS_ORIGIN_TAG,
   getCachedDrafts, getCachedReleases, getCachedClaimsBy, getCachedClaimsByUuid, getCachedReviewsBy, whenEventCacheReady,
@@ -99,7 +100,7 @@ export function ReleasesTab({ pubkey }: { pubkey: string }) {
     () => {
       const mine = getCachedReleases().filter((r) => r.pubkey === pubkey)
       if (!mine.length) return null
-      return summarizeProposals(mine, getCachedClaimsByUuid()).sort((a, b) => b.latest.createdAt - a.latest.createdAt)
+      return summarizeProposals(mine, getCachedClaimsByUuid(), rawPowFloor()).sort((a, b) => b.latest.createdAt - a.latest.createdAt)
     },
     async (relays) => {
       const originals = await fetchReleases(relays, { authors: [pubkey], [`#${PS_ORIGIN_TAG}`]: ['original'], limit: 500 })
@@ -107,7 +108,7 @@ export function ReleasesTab({ pubkey }: { pubkey: string }) {
         fetchLatestUpdates(relays, originals).catch(() => [] as Release[]),
         fetchClaimsForMany(relays, [...new Set(originals.map((r) => r.uuid))]).catch(() => new Map<string, Claim[]>()),
       ])
-      return summarizeProposals([...originals, ...updates], claims).sort((a, b) => b.latest.createdAt - a.latest.createdAt)
+      return summarizeProposals([...originals, ...updates], claims, rawPowFloor()).sort((a, b) => b.latest.createdAt - a.latest.createdAt)
     },
     [pubkey],
   )

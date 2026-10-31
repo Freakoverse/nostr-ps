@@ -18,6 +18,7 @@ import { nip19, verifyEvent, type Event as NostrEvent, type Filter, type Unsigne
 import { KINDS, PS_SPEC_ID_TAG, CLIENT_NAME } from '@/lib/constants'
 import { fetchEvents, fetchEvent } from './relay-pool'
 import { isDeleted } from './events'
+import { countLeadingZeroBits } from '@/lib/pow/pow'
 import { cacheEvent, getCachedEvent, getCachedEventsOfKind, whenEventCacheReady } from './eventCache'
 
 const now = () => Math.floor(Date.now() / 1000)
@@ -761,13 +762,15 @@ export function groupReleases(releases: Release[]): Map<string, Release[]> {
   return by
 }
 
-export function summarizeProposals(releases: Release[], claimsByUuid: Map<string, Claim[]>): ProposalSummary[] {
+/** `minPow` is the raw-view floor (§6.5): claims below it are not counted. 0 = count all. */
+export function summarizeProposals(releases: Release[], claimsByUuid: Map<string, Claim[]>, minPow = 0): ProposalSummary[] {
   const out: ProposalSummary[] = []
   for (const [key, list] of groupReleases(releases)) {
     const latest = list[0]
     const ids = new Set(list.map((r) => r.id))
     // Claims carry the release author in `p`; only count those aimed at this lineage.
-    const claims = (claimsByUuid.get(latest.uuid) ?? []).filter((c) => !c.withdrawn && c.releaseAuthor === latest.pubkey && ids.has(c.releaseId))
+    const claims = (claimsByUuid.get(latest.uuid) ?? []).filter((c) =>
+      !c.withdrawn && c.releaseAuthor === latest.pubkey && ids.has(c.releaseId) && (minPow <= 0 || countLeadingZeroBits(c.event.id) >= minPow))
     const implementers = new Set(claims.map((c) => c.pubkey)).size
     const perVersion: Record<string, number> = {}
     for (const c of claims) perVersion[c.version] = (perVersion[c.version] ?? 0) + 1

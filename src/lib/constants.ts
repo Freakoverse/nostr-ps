@@ -30,6 +30,7 @@ export const StorageKey = {
   USER_DNN_NODES: 'nip-ps:user-dnn-nodes',
   POW_DIFFICULTY: 'nip-ps:pow-difficulty',
   POW_FILTER_DIFFICULTY: 'nip-ps:pow-filter',
+  RAW_POW_FLOOR: 'nip-ps:raw-pow-floor',
   HASH_RATE: 'nip-ps:hash-rate',
   BLOSSOM_UPLOAD_LIMIT_MB: 'nip-ps:blossom-upload-limit-mb',
   MEDIA_DOWNLOAD_LIMIT_MB: 'nip-ps:media-download-limit-mb',

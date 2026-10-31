@@ -32,6 +32,7 @@ import { VersionList } from '@/components/ps/VersionDiff'
 import { ClaimDetailDialog } from '@/components/ps/ClaimDetailDialog'
 import { ItemMenu } from '@/components/ps/ItemMenu'
 import { verifyClaim, tallyRelease, divergenceFlag } from '@/lib/nostr/trust'
+import { passesRawPow } from '@/lib/nostr/rawPow'
 import { AuthorCard, MetaCard, ReferenceCard } from '@/components/ps/SideCards'
 import { PowBadge } from '@/components/shared/PowBadge'
 import { Tip } from '@/components/shared/Tip'
@@ -70,6 +71,7 @@ export function ReleasePage() {
   const threshold = useLensStore((s) => s.threshold)
   const bucketOf = useLensStore((s) => s.bucketOf)
   const scoreOf = useLensStore((s) => s.scoreOf)
+  const rawFloorOn = useSettingsStore((s) => s.rawPowFloor)
   const sources = useLensStore((s) => s.sources)
 
   const id = useMemo(() => {
@@ -105,8 +107,8 @@ export function ReleasePage() {
         const cvs = getCachedVersions(r.pubkey, r.uuid)
         const lineage = new Set((cvs.length ? cvs : [r]).map((v) => v.id))
         setVersions(cvs.length ? cvs : [r])
-        setClaims(getCachedClaimsFor(r.uuid).filter((c) => c.releaseAuthor === r.pubkey && lineage.has(c.releaseId)))
-        setReviews(getCachedReleaseReviews(r.id))
+        setClaims(getCachedClaimsFor(r.uuid).filter((c) => c.releaseAuthor === r.pubkey && lineage.has(c.releaseId) && passesRawPow(c.event)))
+        setReviews(getCachedReleaseReviews(r.id).filter((x) => passesRawPow(x.event)))
       }
       const [vs, cs, rv, bk] = await Promise.all([
         fetchReleasesOf(relays, r.pubkey, r.uuid).catch(() => [r]),
@@ -116,17 +118,17 @@ export function ReleasePage() {
       ])
       if (cancelled) return
       const lineageIds = new Set(vs.map((v) => v.id))
-      const mine = cs.filter((c) => c.releaseAuthor === r.pubkey && lineageIds.has(c.releaseId))
+      const mine = cs.filter((c) => c.releaseAuthor === r.pubkey && lineageIds.has(c.releaseId) && passesRawPow(c.event))
       setVersions(vs.length ? vs : [r])
       setClaims(mine)
-      setReviews(rv)
+      setReviews(rv.filter((x) => passesRawPow(x.event)))
       setBackups(bk)
       setChecked(true)
       const cr = await fetchClaimReviews(relays, mine.map((c) => c.coord)).catch(() => new Map<string, Review[]>())
       if (!cancelled) setClaimReviews(cr)
     })()
     return () => { cancelled = true }
-  }, [id, tick])
+  }, [id, tick, rawFloorOn, enabled]) // the raw-view floor changes what counts, so refetch when it or the lens flips
 
   useEffect(() => {
     if (!enabled) return

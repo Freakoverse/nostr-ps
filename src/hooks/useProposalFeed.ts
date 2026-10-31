@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { useSettingsStore } from '@/stores/settingsStore'
+import { rawPowFloor } from '@/lib/nostr/rawPow'
 import {
   fetchReleases, fetchLatestUpdates, fetchClaimsForMany, summarizeProposals,
   getCachedReleases, getCachedClaimsByUuid, whenEventCacheReady, PS_ORIGIN_TAG,
@@ -59,7 +60,7 @@ export function useProposalFeed(tick = 0, batch = BATCH) {
     ])
     for (const r of updates) releases.current.set(r.id, r)
     for (const u of newUuids) claims.current.set(u, got.get(u) ?? [])
-    setItems(summarizeProposals([...releases.current.values()], claims.current))
+    setItems(summarizeProposals([...releases.current.values()], claims.current, rawPowFloor()))
     return fresh
   }, [])
 
@@ -77,7 +78,7 @@ export function useProposalFeed(tick = 0, batch = BATCH) {
       if (cachedReleases.length) {
         for (const r of cachedReleases) { releases.current.set(r.id, r); seeded.current.add(r.id) }
         for (const [u, cs] of getCachedClaimsByUuid()) claims.current.set(u, cs)
-        setItems(summarizeProposals(cachedReleases, claims.current))
+        setItems(summarizeProposals(cachedReleases, claims.current, rawPowFloor()))
         setLoading(false)
         setRefreshing(true)
       }

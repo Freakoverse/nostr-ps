@@ -4,6 +4,7 @@ import { cn } from '@/lib/utils'
 import { Tip } from '@/components/shared/Tip'
 import { useLensStore, DEFAULT_THRESHOLD } from '@/stores/lensStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
 import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator, DropdownMenuLabel } from '@/components/ui/dropdown-menu'
@@ -22,6 +23,9 @@ export function LensBar({ className }: { className?: string }) {
   const toggleSource = useLensStore((s) => s.toggleSource)
   const own = useLensStore((s) => s.ownProvider)
   const myPubkey = useAuthStore((s) => s.pubkey)
+  const rawFloorOn = useSettingsStore((s) => s.rawPowFloor)
+  const rawFloorBits = useSettingsStore((s) => s.powFilterDifficulty)
+  const rawFloor = rawFloorOn && !enabled ? rawFloorBits : 0
   const active = sources.filter((s) => s.enabled)
 
   return (
@@ -94,7 +98,7 @@ export function LensBar({ className }: { className?: string }) {
                   <span className="text-neutral-200">{s.label}</span>
                 </span>
               ))}</>
-          : 'Off: raw view. Every claim counts, nothing is weighted.'}
+          : `Off: raw view. Every claim counts, nothing is weighted.`}
       </div>
 
       {enabled && active.length > 0 && (

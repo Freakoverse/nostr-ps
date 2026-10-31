@@ -9,6 +9,7 @@ import { toast } from 'sonner'
 import { cn, shortNpub } from '@/lib/utils'
 import { useLensStore, DEFAULT_THRESHOLD, type ProviderEntry } from '@/stores/lensStore'
 import { useAuthStore } from '@/stores/authStore'
+import { useSettingsStore } from '@/stores/settingsStore'
 import { useLoginModalStore } from '@/stores/loginModalStore'
 import { Switch } from '@/components/ui/switch'
 import { Slider } from '@/components/ui/slider'
@@ -31,6 +32,9 @@ function decodePubkey(input: string): string | null {
 export function LensSettings() {
   const enabled = useLensStore((s) => s.enabled)
   const setEnabled = useLensStore((s) => s.setEnabled)
+  const powFilterDifficulty = useSettingsStore((s) => s.powFilterDifficulty)
+  const rawPowFloor = useSettingsStore((s) => s.rawPowFloor)
+  const setRawPowFloor = useSettingsStore((s) => s.setRawPowFloor)
   const threshold = useLensStore((s) => s.threshold)
   const setThreshold = useLensStore((s) => s.setThreshold)
   const sources = useLensStore((s) => s.sources)
@@ -61,6 +65,9 @@ export function LensSettings() {
       <Card icon={Eye} title="Lens" description="Every ranking is a viewpoint. Providers score the authors of claims and reviews; nothing is hidden, only folded. Turn it off to see the raw market.">
         <Row label="Enable lens" description="Off means every claim counts equally and nothing is weighted.">
           <Switch checked={enabled} onCheckedChange={setEnabled} />
+        </Row>
+        <Row label="Proof-of-work floor in the raw view" description={`With the lens off, ignore claims and reviews with less than ${powFilterDifficulty} bits of proof of work (the content-filter difficulty in Preferences). Raises the cost of volume spam; it is a floor, not a defense. Off by default.`}>
+          <Switch checked={rawPowFloor} onCheckedChange={setRawPowFloor} />
         </Row>
         <div>
           <div className="mb-2 flex items-center justify-between">
