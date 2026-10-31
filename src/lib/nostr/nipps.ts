@@ -690,26 +690,28 @@ export async function fetchReleasesOf(relays: string[], pubkey: string, uuid: st
   return all.filter((r) => r.uuid === uuid).sort((a, b) => compareVersions(b.version, a.version))
 }
 
-/** A fork of a proposal: its current release, and which parent version it branched from. */
+/** A fork of a proposal: the release that branched off, and which parent version it branched from. */
 export interface Fork {
-  /** The fork's latest known version. */
-  latest: Release
-  /** The fork's first release, the one carrying the `fork` marker. */
-  first: Release
+  /** The fork's first release, the one carrying the `fork` marker. Its page shows later versions. */
+  release: Release
   /** The parent release it was derived from. */
   parentId: string
 }
 
+/** How many fork releases one query asks a relay for; past this the count shows as "N+". */
+export const FORKS_QUERY_LIMIT = 200
+
 /**
  * Forks of a proposal (§5): releases whose `e` tag with the `fork` marker
  * points at any version of it. One bounded `#e` query over the parent's
- * version ids finds each fork's first release; a limit-1 query per fork then
- * finds its latest version, as the proposal list does.
+ * version ids, nothing per fork: the row opens the fork's own page, where its
+ * versions load as usual. `capped` says a relay returned the full limit, so
+ * there may be more than were seen.
  */
-export async function fetchForksOf(relays: string[], parentIds: string[]): Promise<Fork[]> {
-  if (parentIds.length === 0) return []
+export async function fetchForksOf(relays: string[], parentIds: string[]): Promise<{ forks: Fork[]; capped: boolean }> {
+  if (parentIds.length === 0) return { forks: [], capped: false }
   const want = new Set(parentIds)
-  const evs = await fetchEvents(relays, { kinds: [KINDS.PS_RELEASE], '#e': parentIds, limit: 200 }, 8000)
+  const evs = await fetchEvents(relays, { kinds: [KINDS.PS_RELEASE], '#e': parentIds, limit: FORKS_QUERY_LIMIT }, 8000)
   const firsts = dedupeById(parseAll(evs, parseRelease)).filter((r) => r.forkOf && want.has(r.forkOf.id))
   // One fork per proposal (author + uuid); a fork is a new uuid, so this only folds re-sent duplicates.
   const byProposal = new Map<string, Release>()
@@ -718,12 +720,10 @@ export async function fetchForksOf(relays: string[], parentIds: string[]): Promi
     const prev = byProposal.get(k)
     if (!prev || compareVersions(r.version, prev.version) < 0) byProposal.set(k, r)
   }
-  const list = [...byProposal.values()]
-  const updates = await fetchLatestUpdates(relays, list).catch(() => [] as Release[])
-  const latestByCoord = new Map(updates.map((u) => [u.draftCoord, u]))
-  return list
-    .map((first) => ({ first, latest: (first.draftCoord && latestByCoord.get(first.draftCoord)) || first, parentId: first.forkOf!.id }))
-    .sort((a, b) => b.latest.createdAt - a.latest.createdAt)
+  const forks = [...byProposal.values()]
+    .map((release) => ({ release, parentId: release.forkOf!.id }))
+    .sort((a, b) => b.release.createdAt - a.release.createdAt)
+  return { forks, capped: evs.length >= FORKS_QUERY_LIMIT }
 }
 
 export async function fetchClaimsFor(relays: string[], uuid: string): Promise<Claim[]> {

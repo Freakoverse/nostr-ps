@@ -55,6 +55,7 @@ export function ReleasePage() {
   const [reviews, setReviews] = useState<Review[]>([])
   const [backups, setBackups] = useState<Backup[]>([])
   const [forks, setForks] = useState<Fork[]>([])
+  const [forksCapped, setForksCapped] = useState(false)
   const [forksChecked, setForksChecked] = useState(false)
   const [forkListOpen, setForkListOpen] = useState(false)
   /** What the §6.5 floor excluded on the last fetch, so the switch visibly does something. */
@@ -137,8 +138,8 @@ export function ReleasePage() {
       // Forks point at a parent version by id, so they can only be asked for once the versions are known.
       setForksChecked(false)
       fetchForksOf(relays, (vs.length ? vs : [r]).map((v) => v.id))
-        .catch(() => [] as Fork[])
-        .then((fk) => { if (!cancelled) { setForks(fk); setForksChecked(true) } })
+        .catch(() => ({ forks: [] as Fork[], capped: false }))
+        .then((fk) => { if (!cancelled) { setForks(fk.forks); setForksCapped(fk.capped); setForksChecked(true) } })
       const cr = await fetchClaimReviews(relays, mine.map((c) => c.coord)).catch(() => new Map<string, Review[]>())
       if (!cancelled) setClaimReviews(cr)
     })()
@@ -364,7 +365,7 @@ export function ReleasePage() {
                 onClick={() => setForkListOpen(true)}
                 className="mt-2 flex w-full items-center justify-between rounded-md border border-edge bg-panel-2 px-3 py-2 text-left text-sm text-neutral-200 transition-colors hover:border-purple-500/40 hover:text-purple-300"
               >
-                <span className="flex items-center gap-2"><GitFork className="h-3.5 w-3.5 text-purple-400" /> {forks.length === 1 ? '1 fork' : `${forks.length} forks`}</span>
+                <span className="flex items-center gap-2"><GitFork className="h-3.5 w-3.5 text-purple-400" /> {forks.length === 1 ? "1 fork" : `${forks.length}${forksCapped ? "+" : ""} forks`}</span>
                 <span className="text-[11px] text-neutral-500">view</span>
               </button>
             ) : (
@@ -471,7 +472,7 @@ export function ReleasePage() {
       <ClaimDialog open={claimOpen} onOpenChange={setClaimOpen} release={release} versions={versions} existing={myClaim} onPublished={reload} />
       <BackupDialog open={backupOpen} onOpenChange={setBackupOpen} release={release} existing={myBackup} onPublished={reload} onDeleted={reload} />
       <ForkDialog open={forkOpen} onOpenChange={setForkOpen} release={release} />
-      <ForkListDialog open={forkListOpen} onOpenChange={setForkListOpen} release={release} versions={versions} forks={forks} />
+      <ForkListDialog open={forkListOpen} onOpenChange={setForkListOpen} release={release} versions={versions} forks={forks} capped={forksCapped} />
       <ReviewDialog open={reviewOpen} onOpenChange={setReviewOpen} target={{ kind: 'release', release }} existing={myReview} onPublished={reload} />
       {claimDetail && (
         <ClaimDetailDialog
