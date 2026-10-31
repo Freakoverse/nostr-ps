@@ -159,6 +159,33 @@ export function ReleaseRow({ r, current }: { r: Release; current?: boolean }) {
  * headline, what it implements, links as buttons, a verification status block
  * on the right, and "claimed by" demoted to the footer.
  */
+/**
+ * A claim's links as buttons: at most `max` of them, each truncated to a fixed
+ * width, then "+N" for the rest (URLs, relay, handler, repo), which opens the
+ * dialog where the full list is shown.
+ */
+function ClaimLinks({ claim, onOpen, max = 2, className }: { claim: Claim; onOpen?: () => void; max?: number; className?: string }) {
+  const shown = claim.urls.slice(0, max)
+  const extra = (claim.urls.length - shown.length) + (claim.relay ? 1 : 0) + (claim.handler ? 1 : 0) + (claim.repo ? 1 : 0)
+  if (shown.length === 0 && extra === 0) return null
+  return (
+    <div className={cn('flex flex-wrap items-center gap-1.5', className)}>
+      {shown.map((u) => (
+        <a key={u} href={u} target="_blank" rel="noopener noreferrer" title={u} className="inline-flex max-w-[11rem] items-center gap-1 rounded-md border border-edge bg-panel-2 px-2 py-1 text-xs text-neutral-200 transition-colors hover:border-purple-500/40 hover:text-purple-300">
+          <ExternalLink className="h-3 w-3 shrink-0 text-neutral-500" /><span className="truncate">{u.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+        </a>
+      ))}
+      {extra > 0 && (
+        onOpen ? (
+          <button type="button" onClick={onOpen} className="rounded-md border border-dashed border-edge px-2 py-1 text-xs text-neutral-400 transition-colors hover:border-purple-500/40 hover:text-purple-300">+{extra}</button>
+        ) : (
+          <span className="rounded-md border border-dashed border-edge px-2 py-1 text-xs text-neutral-500">+{extra}</span>
+        )
+      )}
+    </div>
+  )
+}
+
 export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine, menu, className }: {
   className?: string
   claim: Claim
@@ -211,18 +238,7 @@ export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine, 
             {claim.scope === 'partial' && <><span>·</span><span className="text-yellow-500">partial</span></>}
             {claim.withdrawn && <><span>·</span><span className="text-red-400">withdrawn</span></>}
           </p>
-          {(claim.urls.length > 0 || claim.relay || claim.handler || claim.repo) && (
-            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
-              {claim.urls.map((u) => (
-                <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="inline-flex max-w-full items-center gap-1 rounded-md border border-edge bg-panel-2 px-2 py-1 text-xs text-neutral-200 transition-colors hover:border-purple-500/40 hover:text-purple-300">
-                  <ExternalLink className="h-3 w-3 shrink-0 text-neutral-500" /><span className="truncate">{u.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
-                </a>
-              ))}
-              {claim.relay && <Chip className="font-mono">{claim.relay}</Chip>}
-              {claim.handler && <Tip label={claim.handler}><Chip>NIP-89 handler</Chip></Tip>}
-              {claim.repo && <Tip label={claim.repo}><Chip>NIP-34 repo</Chip></Tip>}
-            </div>
-          )}
+          <ClaimLinks claim={claim} onOpen={onOpen} className="mt-2.5" />
           {claim.content && (onOpen ? (
             <button type="button" onClick={onOpen} className="mt-2.5 block w-full border-l-2 border-edge-2 pl-3 text-left text-sm text-neutral-400 transition-colors hover:border-purple-500/60 hover:text-neutral-200">{claim.content}</button>
           ) : (
@@ -286,8 +302,6 @@ export function ClaimTile({ claim, legit = 0, fake = 0, onReview, onOpen, mine, 
     : status === 'disputed'
       ? `Disputed · ${fake} fake${legit ? `, ${legit} legit` : ''}`
       : 'Unverified · no verdicts'
-  const firstUrl = claim.urls[0]
-  const extraLinks = claim.urls.length - 1 + (claim.relay ? 1 : 0) + (claim.handler ? 1 : 0) + (claim.repo ? 1 : 0)
 
   return (
     <div className={cn('flex h-full flex-col rounded-lg border border-edge bg-panel', claim.withdrawn && 'opacity-60', className)}>
@@ -306,18 +320,7 @@ export function ClaimTile({ claim, legit = 0, fake = 0, onReview, onOpen, mine, 
           {menu}
         </div>
 
-        {(firstUrl || extraLinks > 0) && (
-          <div className="flex flex-wrap items-center gap-1.5">
-            {firstUrl && (
-              <a href={firstUrl} target="_blank" rel="noopener noreferrer" className="inline-flex max-w-full items-center gap-1 rounded-md border border-edge bg-panel-2 px-2 py-1 text-xs text-neutral-200 transition-colors hover:border-purple-500/40 hover:text-purple-300">
-                <ExternalLink className="h-3 w-3 shrink-0 text-neutral-500" /><span className="truncate">{firstUrl.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
-              </a>
-            )}
-            {extraLinks > 0 && onOpen && (
-              <button type="button" onClick={onOpen} className="text-[11px] text-neutral-500 hover:text-neutral-300">+{extraLinks} more</button>
-            )}
-          </div>
-        )}
+        <ClaimLinks claim={claim} onOpen={onOpen} />
 
         {claim.content && (onOpen ? (
           <button type="button" onClick={onOpen} className="line-clamp-2 w-full border-l-2 border-edge-2 pl-2.5 text-left text-xs text-neutral-400 transition-colors hover:border-purple-500/60 hover:text-neutral-200">{claim.content}</button>
