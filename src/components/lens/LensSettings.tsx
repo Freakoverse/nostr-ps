@@ -105,7 +105,7 @@ export function LensSettings() {
             </div>
           </div>
           <Slider min={0.1} max={3} step={0.1} value={[confirmThreshold]} onValueChange={([v]) => setConfirmThreshold(v)} />
-          <p className="mt-1.5 text-xs text-muted-foreground">How much &quot;accurate&quot; an adoption claim needs before it counts as confirmed. Each reviewer above the threshold weighs rank/100, counted once, and the weights add up; any trusted &quot;inaccurate&quot; verdict blocks confirmation outright. The default of {DEFAULT_CONFIRM_THRESHOLD.toFixed(1)} is one reviewer ranked {Math.round(DEFAULT_CONFIRM_THRESHOLD * 100)} or better, or a few lower-ranked ones. Raise it to demand several trusted reviewers; lower it if your graph is small. Your own rank never counts toward your own claim.</p>
+          <p className="mt-1.5 text-xs text-muted-foreground">How much &quot;accurate&quot; an adoption claim needs before it counts as confirmed. Each reviewer above the threshold weighs rank/100, counted once, and the weights add up; any trusted &quot;inaccurate&quot; verdict blocks confirmation outright. The default of {DEFAULT_CONFIRM_THRESHOLD.toFixed(1)} is one reviewer ranked {Math.round(DEFAULT_CONFIRM_THRESHOLD * 100)} or better, or ten at the rank floor of {DEFAULT_THRESHOLD}: ten times the floor, because the floor only excludes noise while this asks for trust. Raise it to demand several trusted reviewers; lower it if your graph is small. Your own rank never counts toward your own claim.</p>
         </div>
       </Card>
 

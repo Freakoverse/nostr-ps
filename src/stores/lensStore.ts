@@ -77,10 +77,11 @@ export const isOwnSourceId = (id: string) => id === OWN_SOURCE_ID || id.startsWi
 export const DEFAULT_THRESHOLD = 2
 /**
  * Default confirmation threshold (spec §6.3): the rank-weighted sum of
- * distinct "accurate" verdicts a claim needs. Weights are rank/100, so 0.5 means
- * one reviewer ranked 50 or better, or two ranked 25.
+ * distinct "accurate" verdicts a claim needs. Weights are rank/100, so 0.2 means
+ * one reviewer ranked 20 or better, or ten at the rank floor of 2. Ten times
+ * the floor: the floor only excludes noise, this asks for some trust.
  */
-export const DEFAULT_CONFIRM_THRESHOLD = 0.5
+export const DEFAULT_CONFIRM_THRESHOLD = 0.2
 
 const SCORE_TTL = 10 * 60 * 1000
 
@@ -283,7 +284,7 @@ export const useLensStore = create<LensState>()(
     }),
     {
       name: 'nip-ps:lens',
-      version: 5,
+      version: 6,
       // Scores persist too, so a cache-painted list is scored at once; anything
       // past SCORE_TTL is re-fetched on demand and a source change clears them.
       partialize: (s) => ({ sources: s.sources, enabled: s.enabled, threshold: s.threshold, confirmThreshold: s.confirmThreshold, scores: s.scores }),
@@ -291,6 +292,8 @@ export const useLensStore = create<LensState>()(
         const s = (persisted ?? {}) as Partial<LensState> & { sources?: (LensSource & { type?: string })[]; verifyThreshold?: number }
         // v5 renamed the verification threshold to the confirmation threshold.
         if (version < 5 && typeof s.verifyThreshold === 'number' && s.confirmThreshold === undefined) s.confirmThreshold = s.verifyThreshold
+        // v6 lowered the default confirmation threshold from 0.5 to 0.2; anyone still on the old default follows it.
+        if (version < 6 && s.confirmThreshold === 0.5) s.confirmThreshold = DEFAULT_CONFIRM_THRESHOLD
         // v0 shipped with a default threshold of 50, far too strict for ranks.
         if (version < 1 && s.threshold === 50) s.threshold = DEFAULT_THRESHOLD
         if (Array.isArray(s.sources)) {

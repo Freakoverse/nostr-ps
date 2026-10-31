@@ -546,9 +546,10 @@ Given the ranks from the active lens (§6.2):
    `C`. Sum the weights of DISTINCT reviewers at or above threshold who said
    `accurate`. Fifty reviews from one pubkey count once. `C` is "confirmed"
    when the sum reaches a client-configurable threshold (recommended
-   default: 0.5, i.e. one reviewer ranked 50 or two ranked 25). Any
-   `inaccurate` from a reviewer at or above threshold makes `C` "contested"
-   and not confirmed, full stop.
+   default: 0.2, i.e. one reviewer ranked 20, or ten at the rank floor of 2;
+   ten times the floor, since the floor excludes noise and this asks for
+   trust). Any `inaccurate` from a reviewer at or above threshold makes
+   `C` "contested" and not confirmed, full stop.
 4. **Recommendation of a release `R`.** Count distinct `recommend`,
    `not-recommend`, and `unsure` reviewers at or above threshold, weighted
    by rank. Displayed as its own column. Never mixed into the adoption

@@ -25,8 +25,8 @@ export interface ClaimVerdictStats {
   uncounted: number
 }
 
-/** Recommended default: one reviewer ranked 50 or better, or a few partially trusted ones. The lens store holds the live value. */
-export const CONFIRM_SUM_THRESHOLD = 0.5
+/** Recommended default: one reviewer ranked 20 or better, or several lower-ranked ones. The lens store holds the live value. */
+export const CONFIRM_SUM_THRESHOLD = 0.2
 
 /** §6.3 item 3: is the claim confirmed, contested, or neither, under the active lens. */
 export function assessClaim(reviews: Review[], weightOf: WeightOf, sumThreshold = CONFIRM_SUM_THRESHOLD): ClaimVerdictStats {
