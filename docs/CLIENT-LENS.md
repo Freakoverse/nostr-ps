@@ -94,8 +94,8 @@ than a toehold in the provider's graph.
 ## Feeding the spec's trust computation
 
 Spec §6.3 weights a reviewer by their rank under the active lens:
-`combined_score / 100`. Any `fake` verdict from a reviewer above threshold
-makes a claim unverified.
+`combined_score / 100`. Any `inaccurate` verdict from a reviewer above threshold
+makes a claim contested and not confirmed.
 
 ## Badge and provenance
 

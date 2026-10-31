@@ -8,7 +8,7 @@ import {
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
 import { useLoginModalStore } from '@/stores/loginModalStore'
-import { useLensStore, requestScores, DEFAULT_VERIFY_THRESHOLD } from '@/stores/lensStore'
+import { useLensStore, requestScores, DEFAULT_CONFIRM_THRESHOLD } from '@/stores/lensStore'
 import { Slider } from '@/components/ui/slider'
 import { KINDS } from '@/lib/constants'
 import {
@@ -32,7 +32,7 @@ import { ReviewDialog } from '@/components/ps/ReviewDialog'
 import { VersionList } from '@/components/ps/VersionDiff'
 import { ClaimDetailDialog } from '@/components/ps/ClaimDetailDialog'
 import { ItemMenu } from '@/components/ps/ItemMenu'
-import { verifyClaim, tallyRelease, divergenceFlag } from '@/lib/nostr/trust'
+import { assessClaim, tallyRelease, divergenceFlag } from '@/lib/nostr/trust'
 import { passesRawPow } from '@/lib/nostr/rawPow'
 import { AuthorCard, MetaCard, ReferenceCard } from '@/components/ps/SideCards'
 import { PowBadge } from '@/components/shared/PowBadge'
@@ -77,8 +77,8 @@ export function ReleasePage() {
   const enabled = useLensStore((s) => s.enabled)
   const scores = useLensStore((s) => s.scores)
   const threshold = useLensStore((s) => s.threshold)
-  const verifyThreshold = useLensStore((s) => s.verifyThreshold)
-  const setVerifyThreshold = useLensStore((s) => s.setVerifyThreshold)
+  const confirmThreshold = useLensStore((s) => s.confirmThreshold)
+  const setConfirmThreshold = useLensStore((s) => s.setConfirmThreshold)
   const bucketOf = useLensStore((s) => s.bucketOf)
   const scoreOf = useLensStore((s) => s.scoreOf)
   const rawFloorOn = useSettingsStore((s) => s.rawPowFloor)
@@ -167,44 +167,44 @@ export function ReleasePage() {
     return (scoreOf(pk)?.combined ?? 0) / 100
   }, [enabled, bucketOf, scoreOf, scores, threshold]) // eslint-disable-line react-hooks/exhaustive-deps
 
-  // Claim verification per §6.3: weighted legit sum reaches the verification threshold and no counted fake.
+  // Claim confirmation per §6.3: weighted "accurate" sum reaches the confirmation threshold and no counted "inaccurate".
   const claimStats = useMemo(() => {
-    const out = new Map<string, ReturnType<typeof verifyClaim>>()
-    for (const c of claims) out.set(c.coord, verifyClaim(claimReviews.get(c.coord) ?? [], weightOf, verifyThreshold))
+    const out = new Map<string, ReturnType<typeof assessClaim>>()
+    for (const c of claims) out.set(c.coord, assessClaim(claimReviews.get(c.coord) ?? [], weightOf, confirmThreshold))
     return out
-  }, [claims, claimReviews, weightOf, verifyThreshold])
+  }, [claims, claimReviews, weightOf, confirmThreshold])
 
   const liveClaims = useMemo(() => claims.filter((c) => !c.withdrawn), [claims])
   const thisVersionClaims = useMemo(() => liveClaims.filter((c) => c.releaseId === release?.id), [liveClaims, release])
   const rawImplementers = useMemo(() => new Set(liveClaims.map((c) => c.pubkey)).size, [liveClaims])
-  const verifiedImplementers = useMemo(() => {
+  const confirmedImplementers = useMemo(() => {
     const set = new Set<string>()
-    for (const c of liveClaims) if (claimStats.get(c.coord)?.verified) set.add(c.pubkey)
+    for (const c of liveClaims) if (claimStats.get(c.coord)?.confirmed) set.add(c.pubkey)
     return set.size
   }, [liveClaims, claimStats])
-  // §6.8: raw next to verified, flagged when the gap is large.
-  const diverging = enabled && divergenceFlag(rawImplementers, verifiedImplementers)
+  // §6.8: raw next to confirmed, flagged when the gap is large.
+  const diverging = enabled && divergenceFlag(rawImplementers, confirmedImplementers)
 
   // §6.3 item 4: distinct counted reviewers per verdict, rank-weighted.
   const reviewTally = useMemo(() => tallyRelease(reviews, weightOf), [reviews, weightOf])
 
   // §6.6 tiers. `all` keeps relay order for the raw view; `rest` is sorted by the
   // claimant's rank (usage would come first per spec, once observed), withdrawn last.
-  const [tier, setTier] = useState<'verified' | 'disputed' | 'unverified' | 'all'>('verified')
+  const [tier, setTier] = useState<'confirmed' | 'contested' | 'unconfirmed' | 'all'>('confirmed')
   const claimTiers = useMemo(() => {
     void scores; void threshold
-    const verified: Claim[] = []
+    const confirmed: Claim[] = []
     const rest: Claim[] = []
     for (const c of claims) {
       const st = claimStats.get(c.coord)
-      if (!c.withdrawn && st?.verified) verified.push(c)
+      if (!c.withdrawn && st?.confirmed) confirmed.push(c)
       else rest.push(c)
     }
     const rank = (pk: string) => scoreOf(pk)?.combined ?? -1
     rest.sort((a, b) => Number(a.withdrawn) - Number(b.withdrawn) || rank(b.pubkey) - rank(a.pubkey) || b.createdAt - a.createdAt)
-    const disputed = rest.filter((c) => !c.withdrawn && claimStats.get(c.coord)?.disputed)
-    const unverified = rest.filter((c) => !disputed.includes(c))
-    return { all: claims, verified, rest, disputed, unverified }
+    const contested = rest.filter((c) => !c.withdrawn && claimStats.get(c.coord)?.contested)
+    const unconfirmed = rest.filter((c) => !contested.includes(c))
+    return { all: claims, confirmed, rest, contested, unconfirmed }
   }, [claims, claimStats, scoreOf, scores, threshold])
 
   const renderClaimTile = (c: Claim) => {
@@ -212,10 +212,10 @@ export function ReleasePage() {
     return (
       <ClaimTile
         claim={c}
-        legit={st?.legit}
-        fake={st?.fake}
-        verified={st?.verified}
-        disputed={st?.disputed}
+        accurate={st?.accurate}
+        inaccurate={st?.inaccurate}
+        confirmed={st?.confirmed}
+        contested={st?.contested}
         mine={!!myPubkey && (claimReviews.get(c.coord) ?? []).some((r) => r.pubkey === myPubkey)}
         onReview={() => (myPubkey ? setClaimReviewTarget(c) : useLoginModalStore.getState().open())}
         onOpen={() => setClaimDetail(c)}
@@ -294,7 +294,7 @@ export function ReleasePage() {
           label="Implementers"
           value={rawImplementers}
           sub={enabled
-            ? <span className={diverging ? 'text-amber-400' : undefined}>{verifiedImplementers} verified{diverging ? ' · large gap, treat with suspicion' : ''}</span>
+            ? <span className={diverging ? 'text-amber-400' : undefined}>{confirmedImplementers} confirmed{diverging ? ' · large gap, treat with suspicion' : ''}</span>
             : `${thisVersionClaims.length} on this version`}
         />
         <Stat
@@ -398,19 +398,19 @@ export function ReleasePage() {
               {rawFloorOn && <span className={belowFloor.claims ? 'text-amber-400' : ''}> · PoW floor: {belowFloor.claims ? `${belowFloor.claims} excluded` : 'nothing excluded'}</span>}
             </span>
           </div>
-          {/* §6.6 tiers as the same menu the lists use for scores: verified by default, the rest one click away.
-              Beside it, the §6.3 verification threshold the tiers are computed from. */}
+          {/* §6.6 tiers as the same menu the lists use for scores: confirmed by default, the rest one click away.
+              Beside it, the §6.3 confirmation threshold the tiers are computed from. */}
           {enabled && claims.length > 0 && (
             <div className="flex flex-wrap items-center gap-3">
               <div className="flex items-center gap-2 text-xs">
-                <Tip label={`A claim is verified once the legit verdicts from reviewers above your rank threshold, each weighing rank/100, add up to ${verifyThreshold.toFixed(1)}. One reviewer ranked ${Math.round(verifyThreshold * 100)} is enough; any trusted "fake" blocks it.`}>
-                  <span className="text-neutral-500">Verify at</span>
+                <Tip label={`A claim is confirmed once the "accurate" verdicts from reviewers above your rank threshold, each weighing rank/100, add up to ${confirmThreshold.toFixed(1)}. One reviewer ranked ${Math.round(confirmThreshold * 100)} is enough; any trusted "inaccurate" blocks it.`}>
+                  <span className="text-neutral-500">Confirm at</span>
                 </Tip>
-                <Slider min={0.1} max={3} step={0.1} value={[verifyThreshold]} onValueChange={([v]) => setVerifyThreshold(v)} className="w-24" aria-label="Verification threshold" />
-                <span className="w-6 text-right tabular-nums text-neutral-200">{verifyThreshold.toFixed(1)}</span>
-                {verifyThreshold !== DEFAULT_VERIFY_THRESHOLD && (
-                  <Tip label={`Reset to ${DEFAULT_VERIFY_THRESHOLD.toFixed(1)}`}>
-                    <button type="button" onClick={() => setVerifyThreshold(DEFAULT_VERIFY_THRESHOLD)} className="text-neutral-500 hover:text-neutral-200" aria-label={`Reset verification threshold to ${DEFAULT_VERIFY_THRESHOLD}`}>
+                <Slider min={0.1} max={3} step={0.1} value={[confirmThreshold]} onValueChange={([v]) => setConfirmThreshold(v)} className="w-24" aria-label="Confirmation threshold" />
+                <span className="w-6 text-right tabular-nums text-neutral-200">{confirmThreshold.toFixed(1)}</span>
+                {confirmThreshold !== DEFAULT_CONFIRM_THRESHOLD && (
+                  <Tip label={`Reset to ${DEFAULT_CONFIRM_THRESHOLD.toFixed(1)}`}>
+                    <button type="button" onClick={() => setConfirmThreshold(DEFAULT_CONFIRM_THRESHOLD)} className="text-neutral-500 hover:text-neutral-200" aria-label={`Reset confirmation threshold to ${DEFAULT_CONFIRM_THRESHOLD}`}>
                       <RotateCcw className="h-3.5 w-3.5" />
                     </button>
                   </Tip>
@@ -419,17 +419,17 @@ export function ReleasePage() {
               <ChoiceMenu
               value={tier}
               onChange={setTier}
-              ariaLabel="Filter claims by verification"
+              ariaLabel="Filter claims by confirmation"
               options={[
-                { id: 'verified', label: 'Verified only', hint: 'Enough trusted legit verdicts', count: claimTiers.verified.length },
-                { id: 'disputed', label: 'Disputed only', hint: 'A trusted reviewer said fake', count: claimTiers.disputed.length },
-                { id: 'unverified', label: 'Unverified only', hint: 'No decision under your lens yet', count: claimTiers.unverified.length },
+                { id: 'confirmed', label: 'Confirmed only', hint: 'Enough trusted reviewers found it accurate', count: claimTiers.confirmed.length },
+                { id: 'contested', label: 'Contested only', hint: 'A trusted reviewer found it inaccurate', count: claimTiers.contested.length },
+                { id: 'unconfirmed', label: 'Unconfirmed only', hint: 'No trusted decision yet', count: claimTiers.unconfirmed.length },
                 { id: 'all', label: 'Show all', hint: 'Everything, in one list', count: claims.length },
               ]}
               hiddenNote={tier === 'all' ? undefined : [
-                tier !== 'verified' && claimTiers.verified.length ? `${claimTiers.verified.length} verified` : '',
-                tier !== 'disputed' && claimTiers.disputed.length ? `${claimTiers.disputed.length} disputed` : '',
-                tier !== 'unverified' && claimTiers.unverified.length ? `${claimTiers.unverified.length} unverified` : '',
+                tier !== 'confirmed' && claimTiers.confirmed.length ? `${claimTiers.confirmed.length} confirmed` : '',
+                tier !== 'contested' && claimTiers.contested.length ? `${claimTiers.contested.length} contested` : '',
+                tier !== 'unconfirmed' && claimTiers.unconfirmed.length ? `${claimTiers.unconfirmed.length} unconfirmed` : '',
               ].filter(Boolean).join(' · ') || undefined}
               />
             </div>
@@ -440,13 +440,13 @@ export function ReleasePage() {
         ) : (() => {
           // Raw view (lens off): every non-withdrawn claim counts (§6.5), one grid.
           const shown = !enabled ? claimTiers.all
-            : tier === 'verified' ? claimTiers.verified
-            : tier === 'disputed' ? claimTiers.disputed
-            : tier === 'unverified' ? claimTiers.unverified
-            : [...claimTiers.verified, ...claimTiers.unverified, ...claimTiers.disputed]
+            : tier === 'confirmed' ? claimTiers.confirmed
+            : tier === 'contested' ? claimTiers.contested
+            : tier === 'unconfirmed' ? claimTiers.unconfirmed
+            : [...claimTiers.confirmed, ...claimTiers.unconfirmed, ...claimTiers.contested]
           return shown.length === 0 ? (
             <p className="rounded-lg border border-dashed border-edge py-6 text-center text-xs text-neutral-500">
-              {tier === 'verified' ? 'No claim is verified under your lens yet.' : tier === 'disputed' ? 'Nothing disputed.' : 'Nothing unverified.'}
+              {tier === 'confirmed' ? 'No claim is confirmed under your lens yet.' : tier === 'contested' ? 'Nothing contested.' : 'Nothing unconfirmed.'}
             </p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">

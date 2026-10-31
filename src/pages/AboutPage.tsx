@@ -58,8 +58,8 @@ export function AboutPage() {
 
       <Section title="Reviews">
         Anyone can review a release (recommend, not recommend, unsure) or an adoption claim
-        (legit, fake). The two vocabularies never mix: disliking a spec says nothing about
-        whether an implementer exists, and verifying an implementer says nothing about whether
+        (accurate, inaccurate). The two vocabularies never mix: disliking a spec says nothing about
+        whether an implementer exists, and confirming an implementer says nothing about whether
         the spec is good.
       </Section>
 

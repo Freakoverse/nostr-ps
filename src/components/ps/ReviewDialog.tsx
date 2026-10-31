@@ -24,14 +24,14 @@ const RELEASE_OPTS: { v: ReleaseVerdict; label: string; hint: string; cls: strin
   { v: 'not-recommend', label: "Don't recommend", hint: 'This spec has problems.', cls: 'data-[on=true]:border-red-500/60 data-[on=true]:text-red-300' },
 ]
 const CLAIM_OPTS: { v: ClaimVerdict; label: string; hint: string; cls: string }[] = [
-  { v: 'legit', label: 'Legit', hint: 'I checked: this implementation is real.', cls: 'data-[on=true]:border-emerald-500/60 data-[on=true]:text-emerald-300' },
-  { v: 'fake', label: 'Fake', hint: 'Nothing behind this claim, or it is malicious.', cls: 'data-[on=true]:border-red-500/60 data-[on=true]:text-red-300' },
+  { v: 'accurate', label: 'Accurate', hint: 'I checked: the software implements it as claimed.', cls: 'data-[on=true]:border-emerald-500/60 data-[on=true]:text-emerald-300' },
+  { v: 'inaccurate', label: 'Inaccurate', hint: 'I checked: it does not, or not as claimed.', cls: 'data-[on=true]:border-red-500/60 data-[on=true]:text-red-300' },
 ]
 
 /**
  * One opinion per reviewer per target (kind 30852). Two vocabularies that
  * never mix: a release gets recommend / unsure / not-recommend, a claim gets
- * legit / fake.
+ * accurate / inaccurate.
  */
 export function ReviewDialog({
   open, onOpenChange, target, existing, onPublished,
@@ -64,7 +64,7 @@ export function ReviewDialog({
 
   const publish = async () => {
     if (!verdict) { toast.error('Pick a verdict'); return }
-    if (target.kind === 'claim' && verdict === 'fake' && !content.trim()) { toast.error('Say what you checked. A fake verdict needs evidence.'); return }
+    if (target.kind === 'claim' && verdict === 'inaccurate' && !content.trim()) { toast.error('Say what you checked. An inaccurate verdict needs evidence.'); return }
     setBusy(true)
     const event = target.kind === 'release'
       ? buildReleaseReviewEvent(target.release, verdict as ReleaseVerdict, content)

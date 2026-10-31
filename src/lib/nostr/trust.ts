@@ -12,23 +12,24 @@ import type { Review } from './nipps'
 export type WeightOf = (pubkey: string) => number
 
 export interface ClaimVerdictStats {
-  /** Distinct counted reviewers saying legit / fake (weight > 0). */
-  legit: number
-  fake: number
-  /** Sum of weights over distinct counted legit reviewers. */
-  legitWeight: number
-  /** A counted reviewer said fake: the claim is unverified, full stop. */
-  disputed: boolean
-  /** legitWeight reached the threshold and nobody counted said fake. */
-  verified: boolean
+  /** Distinct counted reviewers saying accurate / inaccurate (weight > 0). */
+  accurate: number
+  inaccurate: number
+  /** Sum of weights over distinct counted "accurate" reviewers. */
+  accurateWeight: number
+  /** A counted reviewer said inaccurate: the claim is unconfirmed, full stop. */
+  contested: boolean
+  /** accurateWeight reached the threshold and nobody counted said inaccurate. */
+  confirmed: boolean
   /** Reviewers that exist but did not count (below threshold or unknown). */
   uncounted: number
 }
 
 /** Recommended default: one reviewer ranked 50 or better, or a few partially trusted ones. The lens store holds the live value. */
-export const VERIFY_SUM_THRESHOLD = 0.5
+export const CONFIRM_SUM_THRESHOLD = 0.5
 
-export function verifyClaim(reviews: Review[], weightOf: WeightOf, sumThreshold = VERIFY_SUM_THRESHOLD): ClaimVerdictStats {
+/** §6.3 item 3: is the claim confirmed, contested, or neither, under the active lens. */
+export function assessClaim(reviews: Review[], weightOf: WeightOf, sumThreshold = CONFIRM_SUM_THRESHOLD): ClaimVerdictStats {
   // One vote per reviewer: the newest verdict wins (reviews are addressable, so normally one each).
   const byReviewer = new Map<string, Review>()
   for (const r of reviews) {
@@ -36,15 +37,15 @@ export function verifyClaim(reviews: Review[], weightOf: WeightOf, sumThreshold 
     const cur = byReviewer.get(r.pubkey)
     if (!cur || r.createdAt > cur.createdAt) byReviewer.set(r.pubkey, r)
   }
-  let legit = 0; let fake = 0; let legitWeight = 0; let uncounted = 0
+  let accurate = 0; let inaccurate = 0; let accurateWeight = 0; let uncounted = 0
   for (const r of byReviewer.values()) {
     const w = weightOf(r.pubkey)
     if (w <= 0) { uncounted++; continue }
-    if (r.verdict === 'legit') { legit++; legitWeight += w }
-    else fake++
+    if (r.verdict === 'accurate') { accurate++; accurateWeight += w }
+    else inaccurate++
   }
-  const disputed = fake > 0
-  return { legit, fake, legitWeight, disputed, verified: !disputed && legitWeight >= sumThreshold, uncounted }
+  const contested = inaccurate > 0
+  return { accurate, inaccurate, accurateWeight, contested, confirmed: !contested && accurateWeight >= sumThreshold, uncounted }
 }
 
 export interface ReleaseTally {
@@ -77,7 +78,7 @@ export function tallyRelease(reviews: Review[], weightOf: WeightOf): ReleaseTall
 
 /**
  * §6.8: a large gap between raw and verified implementer counts is itself
- * evidence of manipulation. Flag at five or more raw with under half verified.
+ * evidence of manipulation. Flag at five or more raw with under half confirmed.
  */
 export function divergenceFlag(raw: number, verified: number): boolean {
   return raw >= 5 && verified * 2 < raw

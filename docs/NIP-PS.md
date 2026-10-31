@@ -60,7 +60,7 @@ Observe → filter → investigate → verify → trust → adopt.
 - **Releases are immutable.** A released version is a regular event. It
   cannot be edited. Any change is a new version with a new event id, so an
   implementer can always say exactly what they implemented.
-- **Provenance over policy.** Every "verified" or "recommended" mark shown
+- **Provenance over policy.** Every "confirmed" or "recommended" mark shown
   to a viewer MUST be explainable: "because npubX, whom you follow, reviewed
   it." Thresholds and weights are client policy, not protocol.
 - **Graph owners are responsible for their graph.** The spec does not
@@ -380,7 +380,7 @@ the two meanings never blur.
     ["a", "30851:<implementer>:<uuid>", "<relay>"],   // REQUIRED
     ["k", "30851"],                                   // REQUIRED, target kind
     ["p", "<implementer>", "<relay>"],                // RECOMMENDED
-    ["verdict", "legit"],                             // REQUIRED: legit | fake
+    ["verdict", "accurate"],                          // REQUIRED: accurate | inaccurate
     ["nonce", "<n>", "<difficulty>"]                  // RECOMMENDED, NIP-13
   ]
 }
@@ -393,8 +393,12 @@ Rules:
   deletion.
 - Release verdicts are `recommend`, `not-recommend`, `unsure`. `unsure`
   distinguishes "reviewed, no verdict" from silence.
-- Claim verdicts are `legit`, `fake`. There is no middle option; an
-  unchecked claim is simply unreviewed.
+- Claim verdicts are `accurate` (the reviewer checked, and the software
+  implements the spec as the claim states) and `inaccurate` (it does not, or
+  not as stated). They judge the claim, not the software's quality or the
+  claimant's character. There is no middle option; an unchecked claim is
+  simply unreviewed. Clients SHOULD read the earlier values `legit` and
+  `fake` as `accurate` and `inaccurate`.
 - Clients MUST NOT infer a claim verdict from a release verdict or vice
   versa. Disliking a spec says nothing about whether an implementer exists.
   Verifying an implementer says nothing about whether the spec is good.
@@ -538,12 +542,13 @@ Given the ranks from the active lens (§6.2):
    quality bar.
 2. **Weight.** A reviewer's weight is `rank / 100`. Unknown reviewers weigh
    0 but are still shown, folded, so newcomers are visible.
-3. **Legitimacy of a claim `C`.** Collect `kind:30852` reviews targeting
+3. **Confirmation of a claim `C`.** Collect `kind:30852` reviews targeting
    `C`. Sum the weights of DISTINCT reviewers at or above threshold who said
-   `legit`. Fifty reviews from one pubkey count once. `C` is "verified"
+   `accurate`. Fifty reviews from one pubkey count once. `C` is "confirmed"
    when the sum reaches a client-configurable threshold (recommended
-   default: 0.5, i.e. one reviewer ranked 50 or two ranked 25). Any `fake`
-   from a reviewer at or above threshold makes `C` unverified, full stop.
+   default: 0.5, i.e. one reviewer ranked 50 or two ranked 25). Any
+   `inaccurate` from a reviewer at or above threshold makes `C` "contested"
+   and not confirmed, full stop.
 4. **Recommendation of a release `R`.** Count distinct `recommend`,
    `not-recommend`, and `unsure` reviewers at or above threshold, weighted
    by rank. Displayed as its own column. Never mixed into the adoption
@@ -584,18 +589,20 @@ update, which is acceptable at modest difficulty.
 
 ### 6.6 Tiers and collapsing
 
-With a viewpoint active, claims are split into two tiers:
+With a viewpoint active, claims are split into tiers:
 
-- **Verified.** Claims verified per §6.3. Shown normally.
-- **Unverified.** Everything else. Shown collapsed, e.g. "9 unverified
+- **Confirmed.** Claims confirmed per §6.3. Shown normally.
+- **Contested.** A reviewer at or above threshold said `inaccurate`. Shown
+  separately, since a trusted "this is not so" is information in itself.
+- **Unconfirmed.** Everything else. Shown collapsed, e.g. "9 unconfirmed
   claims, show", sorted by usage then by graph distance, so that a real
   newcomer surfaces to the top of the fold without anyone's intervention.
 
-The unverified tier MUST be reachable. Filtering demotes; it never removes.
+Every tier MUST be reachable. Filtering demotes; it never removes.
 
 ### 6.7 Provenance
 
-Wherever a client shows a claim as verified, or a release as recommended,
+Wherever a client shows a claim as confirmed, or a release as recommended,
 it MUST be able to show why in terms of the active trusted set: which
 pubkeys, at which distance, published which reviews.
 
@@ -605,8 +612,8 @@ unfollow, and every dependent mark disappears on the next render.
 
 ### 6.8 Divergence indicator
 
-Clients SHOULD show, per release, the raw claim count next to the verified
-count for the active viewpoint. A large gap ("212 claims, 4 verified") is
+Clients SHOULD show, per release, the raw claim count next to the confirmed
+count for the active viewpoint. A large gap ("212 claims, 4 confirmed") is
 itself evidence of a manipulation attempt and SHOULD be visually flagged.
 This makes volume attacks self-defeating: the attack is visible on the page
 it was meant to distort.
@@ -636,8 +643,8 @@ that needs more belongs split into a profile of another spec (§12).
 
 ## 8. Security and abuse considerations
 
-- **Fake claims.** Free to publish. Mitigated by: PoW floor in raw view;
-  usage weighting; `legit`/`fake` reviews in viewpoint views; divergence
+- **False claims.** Free to publish. Mitigated by: PoW floor in raw view;
+  usage weighting; `accurate`/`inaccurate` reviews in viewpoint views; divergence
   indicator. A rational attacker's payoff is limited to viewers with the
   viewpoint off, which is by design a small population.
 - **Infiltration.** With volume attacks unprofitable, the cheapest remaining
@@ -706,7 +713,7 @@ An empty market ranks nothing. A NIP-PS deployment SHOULD start with:
   replaceable list of "expert" pubkeys) are just a hand-picked distance-1
   set. A NIP-PS client MAY offer such a list as a selectable viewpoint.
 - **Third-party app compatibility ratings** published by other directories
-  MAY be read as weak `legit` evidence for the corresponding claim. They
+  MAY be read as weak `accurate` evidence for the corresponding claim. They
   are not implementer self-claims and MUST NOT be counted as adoption.
 - **NIP-89** handler events are the join key between claims and observed
   traffic for clients.
@@ -744,7 +751,7 @@ An empty market ranks nothing. A NIP-PS deployment SHOULD start with:
 - Whether usage observation should be specified as an indexer output event
   so that clients can consume it without scanning relays themselves. Such
   an event is one more self-reported number and would need its own
-  legitimacy handling.
+  confirmation handling.
 - Whether a release SHOULD be allowed without a prior draft.
 - How to represent a proposal that is only a profile of another
   (e.g. "spec X as used by project Y").

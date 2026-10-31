@@ -188,15 +188,15 @@ function ClaimLinks({ claim, onOpen, max = 2, className }: { claim: Claim; onOpe
   )
 }
 
-export function ClaimCard({ claim, legit = 0, fake = 0, verified = false, disputed = false, onReview, onOpen, mine, menu, className }: {
+export function ClaimCard({ claim, accurate = 0, inaccurate = 0, confirmed = false, contested = false, onReview, onOpen, mine, menu, className }: {
   className?: string
   claim: Claim
-  legit?: number
-  fake?: number
-  /** §6.3: weighted legit sum reached the threshold with no counted fake. */
-  verified?: boolean
-  /** A counted reviewer said fake. */
-  disputed?: boolean
+  accurate?: number
+  inaccurate?: number
+  /** §6.3: weighted "accurate" sum reached the threshold with no counted "inaccurate". */
+  confirmed?: boolean
+  /** A counted reviewer said inaccurate. */
+  contested?: boolean
   onReview?: () => void
   /** Opens the full claim with its verdicts; the status block becomes a button. */
   onOpen?: () => void
@@ -205,19 +205,19 @@ export function ClaimCard({ claim, legit = 0, fake = 0, verified = false, disput
   /** Three-dot menu slot (ItemMenu). */
   menu?: React.ReactNode
 }) {
-  const status = disputed ? 'disputed' : verified ? 'verified' : 'unverified'
-  const statusCls = status === 'verified'
+  const status = contested ? 'contested' : confirmed ? 'confirmed' : 'unconfirmed'
+  const statusCls = status === 'confirmed'
     ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300'
-    : status === 'disputed'
+    : status === 'contested'
       ? 'border-red-500/30 bg-red-500/5 text-red-300'
       : 'border-edge bg-panel-2 text-neutral-400'
-  const StatusIcon = status === 'verified' ? ShieldCheck : status === 'disputed' ? ShieldX : ShieldQuestion
-  const statusTitle = status === 'verified' ? 'Verified' : status === 'disputed' ? 'Disputed' : 'Unverified'
-  const statusSub = status === 'verified'
-    ? `${legit} legit${fake ? ` · ${fake} fake` : ''}`
-    : status === 'disputed'
-      ? `${fake} fake${legit ? ` · ${legit} legit` : ''}`
-      : legit > 0 ? `${legit} legit, not enough weight yet` : 'no verdicts yet'
+  const StatusIcon = status === 'confirmed' ? ShieldCheck : status === 'contested' ? ShieldX : ShieldQuestion
+  const statusTitle = status === 'confirmed' ? 'Confirmed' : status === 'contested' ? 'Contested' : 'Unconfirmed'
+  const statusSub = status === 'confirmed'
+    ? `${accurate} accurate${inaccurate ? ` · ${inaccurate} inaccurate` : ''}`
+    : status === 'contested'
+      ? `${inaccurate} inaccurate${accurate ? ` · ${accurate} accurate` : ''}`
+      : accurate > 0 ? `${accurate} accurate, not enough weight yet` : 'no verdicts yet'
   const StatusBlock = (
     <div className={cn('flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left', statusCls, onOpen && 'cursor-pointer transition-colors hover:border-purple-500/40')}>
       <StatusIcon className="h-5 w-5 shrink-0" />
@@ -286,32 +286,32 @@ export function ClaimCard({ claim, legit = 0, fake = 0, verified = false, disput
  * verification status, and "claimed by" in the footer. The wide ClaimCard
  * stays for the dialog and single-column places.
  */
-export function ClaimTile({ claim, legit = 0, fake = 0, verified = false, disputed = false, onReview, onOpen, mine, menu, className }: {
+export function ClaimTile({ claim, accurate = 0, inaccurate = 0, confirmed = false, contested = false, onReview, onOpen, mine, menu, className }: {
   className?: string
   claim: Claim
-  legit?: number
-  fake?: number
-  /** §6.3: weighted legit sum reached the threshold with no counted fake. */
-  verified?: boolean
-  /** A counted reviewer said fake. */
-  disputed?: boolean
+  accurate?: number
+  inaccurate?: number
+  /** §6.3: weighted "accurate" sum reached the threshold with no counted "inaccurate". */
+  confirmed?: boolean
+  /** A counted reviewer said inaccurate. */
+  contested?: boolean
   onReview?: () => void
   onOpen?: () => void
   mine?: boolean
   menu?: React.ReactNode
 }) {
-  const status = disputed ? 'disputed' : verified ? 'verified' : 'unverified'
-  const statusCls = status === 'verified'
+  const status = contested ? 'contested' : confirmed ? 'confirmed' : 'unconfirmed'
+  const statusCls = status === 'confirmed'
     ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300'
-    : status === 'disputed'
+    : status === 'contested'
       ? 'border-red-500/30 bg-red-500/5 text-red-300'
       : 'border-edge bg-panel-2 text-neutral-400'
-  const StatusIcon = status === 'verified' ? ShieldCheck : status === 'disputed' ? ShieldX : ShieldQuestion
-  const statusText = status === 'verified'
-    ? `Verified · ${legit} legit${fake ? `, ${fake} fake` : ''}`
-    : status === 'disputed'
-      ? `Disputed · ${fake} fake${legit ? `, ${legit} legit` : ''}`
-      : legit > 0 ? `Unverified · ${legit} legit, not enough weight yet` : 'Unverified · no verdicts'
+  const StatusIcon = status === 'confirmed' ? ShieldCheck : status === 'contested' ? ShieldX : ShieldQuestion
+  const statusText = status === 'confirmed'
+    ? `Confirmed · ${accurate} accurate${inaccurate ? `, ${inaccurate} inaccurate` : ''}`
+    : status === 'contested'
+      ? `Contested · ${inaccurate} inaccurate${accurate ? `, ${accurate} accurate` : ''}`
+      : accurate > 0 ? `Unconfirmed · ${accurate} accurate, not enough weight yet` : 'Unconfirmed · no verdicts'
 
   return (
     <div className={cn('flex h-full flex-col rounded-lg border border-edge bg-panel', claim.withdrawn && 'opacity-60', className)}>
@@ -365,7 +365,7 @@ export function ClaimTile({ claim, legit = 0, fake = 0, verified = false, disput
           {mine && onOpen ? (
             <button type="button" onClick={onOpen} className="flex shrink-0 items-center gap-1 text-neutral-400 hover:text-purple-400"><ShieldCheck className="h-3.5 w-3.5" /> Your verdict</button>
           ) : onReview ? (
-            <button type="button" onClick={onReview} className="shrink-0 text-neutral-400 hover:text-purple-400">Is this real?</button>
+            <button type="button" onClick={onReview} className="shrink-0 text-neutral-400 hover:text-purple-400">Check this claim</button>
           ) : null}
         </div>
       </div>
@@ -379,8 +379,8 @@ const VERDICT_STYLE: Record<string, string> = {
   'recommend': 'border-emerald-500/30 text-emerald-400',
   'not-recommend': 'border-red-500/30 text-red-400',
   'unsure': 'border-yellow-500/30 text-yellow-400',
-  'legit': 'border-emerald-500/30 text-emerald-400',
-  'fake': 'border-red-500/30 text-red-400',
+  'accurate': 'border-emerald-500/30 text-emerald-400',
+  'inaccurate': 'border-red-500/30 text-red-400',
 }
 
 export function VerdictChip({ verdict }: { verdict: string }) {

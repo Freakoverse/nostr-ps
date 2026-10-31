@@ -217,9 +217,11 @@ export interface Claim {
 }
 
 export type ReleaseVerdict = 'recommend' | 'not-recommend' | 'unsure'
-export type ClaimVerdict = 'legit' | 'fake'
+export type ClaimVerdict = 'accurate' | 'inaccurate'
 export const RELEASE_VERDICTS: ReleaseVerdict[] = ['recommend', 'not-recommend', 'unsure']
-export const CLAIM_VERDICTS: ClaimVerdict[] = ['legit', 'fake']
+export const CLAIM_VERDICTS: ClaimVerdict[] = ['accurate', 'inaccurate']
+/** Earlier events wrote `legit` / `fake`; read them as the current values. */
+const CLAIM_VERDICT_ALIASES: Record<string, ClaimVerdict> = { legit: 'accurate', fake: 'inaccurate' }
 
 export type Review =
   | { event: NostrEvent; pubkey: string; target: 'release'; releaseId: string; verdict: ReleaseVerdict; content: string; createdAt: number }
@@ -373,8 +375,9 @@ function parseReviewInner(ev: NostrEvent): Review | null {
   }
   if (k === KINDS.PS_CLAIM) {
     const coord = tag(ev, 'a')
-    if (!coord || !CLAIM_VERDICTS.includes(verdict as ClaimVerdict)) return null
-    return { event: ev, pubkey: ev.pubkey, target: 'claim', claimCoord: coord, verdict: verdict as ClaimVerdict, content: ev.content, createdAt: ev.created_at }
+    const cv = (verdict && CLAIM_VERDICT_ALIASES[verdict]) || (verdict as ClaimVerdict)
+    if (!coord || !CLAIM_VERDICTS.includes(cv)) return null
+    return { event: ev, pubkey: ev.pubkey, target: 'claim', claimCoord: coord, verdict: cv, content: ev.content, createdAt: ev.created_at }
   }
   return null
 }

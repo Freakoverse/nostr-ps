@@ -76,11 +76,11 @@ export const isOwnSourceId = (id: string) => id === OWN_SOURCE_ID || id.startsWi
  */
 export const DEFAULT_THRESHOLD = 2
 /**
- * Default verification threshold (spec §6.3): the rank-weighted sum of
- * distinct legit verdicts a claim needs. Weights are rank/100, so 0.5 means
+ * Default confirmation threshold (spec §6.3): the rank-weighted sum of
+ * distinct "accurate" verdicts a claim needs. Weights are rank/100, so 0.5 means
  * one reviewer ranked 50 or better, or two ranked 25.
  */
-export const DEFAULT_VERIFY_THRESHOLD = 0.5
+export const DEFAULT_CONFIRM_THRESHOLD = 0.5
 
 const SCORE_TTL = 10 * 60 * 1000
 
@@ -89,15 +89,15 @@ interface LensState {
   /** Master switch. Off = raw view, every claim counts. */
   enabled: boolean
   threshold: number // 0..100
-  /** §6.3 claim verification: weighted legit sum needed, 0.1..3. */
-  verifyThreshold: number
+  /** §6.3 claim confirmation: weighted "accurate" sum needed, 0.1..3. */
+  confirmThreshold: number
   scores: Record<string, PubkeyScore>
   busy: number
   ownProvider: OwnProviderStatus
 
   setEnabled: (v: boolean) => void
   setThreshold: (v: number) => void
-  setVerifyThreshold: (v: number) => void
+  setConfirmThreshold: (v: number) => void
   addSource: (s: Omit<LensSource, 'id' | 'enabled' | 'own'> & { enabled?: boolean }) => string
   removeSource: (id: string) => void
   toggleSource: (id: string, enabled?: boolean) => void
@@ -169,14 +169,14 @@ export const useLensStore = create<LensState>()(
       sources: DEFAULT_SOURCES,
       enabled: true,
       threshold: DEFAULT_THRESHOLD,
-      verifyThreshold: DEFAULT_VERIFY_THRESHOLD,
+      confirmThreshold: DEFAULT_CONFIRM_THRESHOLD,
       scores: {},
       busy: 0,
       ownProvider: { state: 'anonymous' },
 
       setEnabled: (v) => set({ enabled: v }),
       setThreshold: (v) => set({ threshold: Math.max(0, Math.min(100, Math.round(v))) }),
-      setVerifyThreshold: (v) => set({ verifyThreshold: Math.max(0.1, Math.min(3, Math.round(v * 10) / 10)) }),
+      setConfirmThreshold: (v) => set({ confirmThreshold: Math.max(0.1, Math.min(3, Math.round(v * 10) / 10)) }),
 
       addSource: (s) => {
         const id = `nip85:${s.pubkey}`
@@ -283,12 +283,14 @@ export const useLensStore = create<LensState>()(
     }),
     {
       name: 'nip-ps:lens',
-      version: 4,
+      version: 5,
       // Scores persist too, so a cache-painted list is scored at once; anything
       // past SCORE_TTL is re-fetched on demand and a source change clears them.
-      partialize: (s) => ({ sources: s.sources, enabled: s.enabled, threshold: s.threshold, verifyThreshold: s.verifyThreshold, scores: s.scores }),
+      partialize: (s) => ({ sources: s.sources, enabled: s.enabled, threshold: s.threshold, confirmThreshold: s.confirmThreshold, scores: s.scores }),
       migrate: (persisted, version) => {
-        const s = (persisted ?? {}) as Partial<LensState> & { sources?: (LensSource & { type?: string })[] }
+        const s = (persisted ?? {}) as Partial<LensState> & { sources?: (LensSource & { type?: string })[]; verifyThreshold?: number }
+        // v5 renamed the verification threshold to the confirmation threshold.
+        if (version < 5 && typeof s.verifyThreshold === 'number' && s.confirmThreshold === undefined) s.confirmThreshold = s.verifyThreshold
         // v0 shipped with a default threshold of 50, far too strict for ranks.
         if (version < 1 && s.threshold === 50) s.threshold = DEFAULT_THRESHOLD
         if (Array.isArray(s.sources)) {

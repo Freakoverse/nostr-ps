@@ -168,7 +168,7 @@ export function ReviewsTab({ pubkey }: { pubkey: string }) {
   )
 }
 
-/** Verdicts on adoption claims only (legit / fake), in the flat row style of the claim dialog. */
+/** Verdicts on adoption claims only (accurate / inaccurate), in the flat row style of the claim dialog. */
 export function VerdictsTab({ pubkey }: { pubkey: string }) {
   const { data, loading, refreshing } = useLoad<Review[]>(
     () => nonEmpty(getCachedReviewsBy(pubkey).filter((r) => r.target === 'claim')),

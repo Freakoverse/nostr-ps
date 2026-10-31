@@ -9,11 +9,11 @@ import { Markdown } from '@/components/shared/Markdown'
 import { Tip } from '@/components/shared/Tip'
 import { formatRelativeTime, formatTimestamp } from '@/lib/utils'
 import { cn } from '@/lib/utils'
-import { verifyClaim } from '@/lib/nostr/trust'
+import { assessClaim } from '@/lib/nostr/trust'
 import { PowBadge } from '@/components/shared/PowBadge'
 
 /**
- * The whole adoption claim plus every verdict on it (legit / fake), opened
+ * The whole adoption claim plus every verdict on it (accurate / inaccurate), opened
  * from the verdict pills on a claim card. Verdicts are flat rows with a
  * coloured edge, deliberately unlike the claim card above them, newest first.
  */
@@ -35,13 +35,13 @@ export function ClaimDetailDialog({ open, onOpenChange, claim, reviews, mine, on
   const bucketOf = useLensStore((s) => s.bucketOf)
   const scores = useLensStore((s) => s.scores)
   const threshold = useLensStore((s) => s.threshold)
-  const verifyThreshold = useLensStore((s) => s.verifyThreshold)
+  const confirmThreshold = useLensStore((s) => s.confirmThreshold)
 
   const scoreOf = useLensStore((s) => s.scoreOf)
 
   const sorted = useMemo(() => [...reviews].sort((a, b) => b.createdAt - a.createdAt), [reviews])
-  const legit = sorted.filter((r) => r.verdict === 'legit')
-  const fake = sorted.filter((r) => r.verdict === 'fake')
+  const accurate = sorted.filter((r) => r.verdict === 'accurate')
+  const inaccurate = sorted.filter((r) => r.verdict === 'inaccurate')
   // Same §6.3 rule as the release page: rank/100 above threshold, else 0; 1 with the lens off.
   const stats = useMemo(() => {
     void scores; void threshold
@@ -52,8 +52,8 @@ export function ClaimDetailDialog({ open, onOpenChange, claim, reviews, mine, on
       if (b !== 'above') return 0
       return (scoreOf(pk)?.combined ?? 0) / 100
     }
-    return verifyClaim(reviews, weightOf, verifyThreshold)
-  }, [reviews, enabled, bucketOf, scoreOf, scores, threshold, verifyThreshold])
+    return assessClaim(reviews, weightOf, confirmThreshold)
+  }, [reviews, enabled, bucketOf, scoreOf, scores, threshold, confirmThreshold])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -72,12 +72,12 @@ export function ClaimDetailDialog({ open, onOpenChange, claim, reviews, mine, on
             <div className="flex flex-wrap items-center justify-between gap-2 px-1">
               <h3 className="text-xs font-medium uppercase tracking-wider text-neutral-500">Verdicts</h3>
               <div className="flex items-center gap-3 text-xs text-neutral-500">
-                <span className="flex items-center gap-1 text-emerald-400"><ShieldCheck className="h-3.5 w-3.5" /> {legit.length} legit</span>
-                <span className="flex items-center gap-1 text-red-400"><ShieldX className="h-3.5 w-3.5" /> {fake.length} fake</span>
+                <span className="flex items-center gap-1 text-emerald-400"><ShieldCheck className="h-3.5 w-3.5" /> {accurate.length} accurate</span>
+                <span className="flex items-center gap-1 text-red-400"><ShieldX className="h-3.5 w-3.5" /> {inaccurate.length} inaccurate</span>
                 {enabled && (
-                  <span>· weighted legit {stats.legitWeight.toFixed(2)} / {verifyThreshold.toFixed(1)}{stats.uncounted ? ` ·  below threshold` : ''}</span>
+                  <span>· weighted accurate {stats.accurateWeight.toFixed(2)} / {confirmThreshold.toFixed(1)}{stats.uncounted ? ` ·  below threshold` : ''}</span>
                 )}
-                <span className={stats.disputed ? 'text-red-300' : stats.verified ? 'text-emerald-300' : 'text-neutral-400'}>· {stats.disputed ? 'disputed' : stats.verified ? 'verified' : 'unverified'}</span>
+                <span className={stats.contested ? 'text-red-300' : stats.confirmed ? 'text-emerald-300' : 'text-neutral-400'}>· {stats.contested ? 'contested' : stats.confirmed ? 'confirmed' : 'unconfirmed'}</span>
               </div>
             </div>
             {sorted.length === 0 ? (
@@ -109,16 +109,16 @@ export function ClaimDetailDialog({ open, onOpenChange, claim, reviews, mine, on
  * tighter padding, while the claim itself sits on the raised "well" surface.
  */
 export function VerdictRow({ review, menu, label }: { review: Review; menu?: ReactNode; label?: ReactNode }) {
-  const legit = review.verdict === 'legit'
+  const accurate = review.verdict === 'accurate'
   return (
     <div className="rounded-lg border border-edge bg-panel p-3">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <AuthorLine pubkey={review.pubkey} at={review.createdAt} size="xs" suffix={<PowBadge id={review.event.id} />} />
         <div className="flex items-center gap-1.5">
           {label}
-          <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium', legit ? 'border-emerald-500/30 text-emerald-400' : 'border-red-500/30 text-red-400')}>
-            {legit ? <ShieldCheck className="h-3 w-3" /> : <ShieldX className="h-3 w-3" />}
-            {legit ? 'legit' : 'fake'}
+          <span className={cn('inline-flex items-center gap-1 rounded-full border px-2 py-0.5 text-[11px] font-medium', accurate ? 'border-emerald-500/30 text-emerald-400' : 'border-red-500/30 text-red-400')}>
+            {accurate ? <ShieldCheck className="h-3 w-3" /> : <ShieldX className="h-3 w-3" />}
+            {accurate ? 'accurate' : 'inaccurate'}
           </span>
           {menu}
         </div>
