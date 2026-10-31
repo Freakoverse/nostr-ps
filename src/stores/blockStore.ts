@@ -27,7 +27,10 @@ interface BlockState {
   loaded: boolean
   loading: boolean
 
-  loadBlockList: (force?: boolean) => Promise<boolean>
+  /** `includePrivate` decrypts the NIP-04 private section, which prompts the signer; default is the public tags only. */
+  loadBlockList: (force?: boolean, includePrivate?: boolean) => Promise<boolean>
+  /** True once the private section has been decrypted into state (needed before republishing, or private mutes would be dropped). */
+  privateLoaded: boolean
   isBlocked: (pubkey: string) => boolean
   getBlockType: (pubkey: string) => BlockType | undefined
   blockUser: (pubkey: string, blockType: BlockType, fromScratch?: boolean) => Promise<{ success: boolean; error?: string }>
@@ -77,14 +80,15 @@ export const useBlockStore = create<BlockState>((set, get) => ({
   otherTags: [],
   loaded: false,
   loading: false,
+  privateLoaded: false,
 
-  loadBlockList: async (force) => {
+  loadBlockList: async (force, includePrivate = false) => {
     const myPubkey = useAuthStore.getState().pubkey
     if (!myPubkey) return false
     if (get().owner !== myPubkey) {
-      set({ owner: myPubkey, loaded: false, blockedPubkeys: new Set(), blockTypes: new Map(), mutedWords: [], otherTags: [] })
+      set({ owner: myPubkey, loaded: false, privateLoaded: false, blockedPubkeys: new Set(), blockTypes: new Map(), mutedWords: [], otherTags: [] })
     }
-    if (get().owner === myPubkey && get().loaded && !force) return true
+    if (get().owner === myPubkey && get().loaded && !force && (!includePrivate || get().privateLoaded)) return true
 
     set({ loading: true, owner: myPubkey })
     try {
@@ -106,7 +110,10 @@ export const useBlockStore = create<BlockState>((set, get) => ({
         else if (tag.length >= 2) other.push(tag)
       }
 
-      if (event.content) {
+      // The private section is NIP-04 encrypted and decrypting it prompts the
+      // signer, so it is only read when a caller needs it (before a republish).
+      let privateLoaded = !event.content
+      if (event.content && includePrivate) {
         try {
           const decrypted = await guardedDecrypt(event.content, myPubkey, useAuthStore.getState().signer, null, 'nip04')
           const privateTags: string[][] = JSON.parse(decrypted)
@@ -115,12 +122,13 @@ export const useBlockStore = create<BlockState>((set, get) => ({
             else if (tag[0] === 'word' && tag[1]) words.push(tag[1].toLowerCase())
             else if (tag.length >= 2) other.push(tag)
           }
+          privateLoaded = true
         } catch {
-          // couldn't decrypt private portion — keep public-only view
+          // could not decrypt the private portion: keep the public-only view
         }
       }
 
-      set({ blockedPubkeys: blocked, blockTypes: types, mutedWords: words, otherTags: other, loaded: true, loading: false })
+      set({ blockedPubkeys: blocked, blockTypes: types, mutedWords: words, otherTags: other, loaded: true, privateLoaded, loading: false })
       return true
     } catch {
       set({ loading: false, loaded: false })
@@ -132,6 +140,9 @@ export const useBlockStore = create<BlockState>((set, get) => ({
   getBlockType: (pubkey) => get().blockTypes.get(pubkey),
 
   blockUser: async (pubkey, blockType, fromScratch = false) => {
+    // Republishing rebuilds the whole list, so the private section must be in
+    // state first; this is the one moment a decrypt prompt is justified.
+    if (!fromScratch && !get().privateLoaded) await get().loadBlockList(true, true)
     const prevBlocked = get().blockedPubkeys
     const prevTypes = get().blockTypes
     if (fromScratch) {
@@ -147,6 +158,7 @@ export const useBlockStore = create<BlockState>((set, get) => ({
   },
 
   unblockUser: async (pubkey) => {
+    if (!get().privateLoaded) await get().loadBlockList(true, true)
     const prevBlocked = get().blockedPubkeys
     const prevTypes = get().blockTypes
     const blocked = new Set(prevBlocked); blocked.delete(pubkey)
@@ -157,5 +169,5 @@ export const useBlockStore = create<BlockState>((set, get) => ({
     return res
   },
 
-  reset: () => set({ owner: null, blockedPubkeys: new Set(), blockTypes: new Map(), mutedWords: [], otherTags: [], loaded: false, loading: false }),
+  reset: () => set({ owner: null, blockedPubkeys: new Set(), blockTypes: new Map(), mutedWords: [], otherTags: [], loaded: false, privateLoaded: false, loading: false }),
 }))
