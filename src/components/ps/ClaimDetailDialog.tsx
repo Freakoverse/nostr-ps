@@ -1,6 +1,6 @@
 import { useMemo, type ReactNode } from 'react'
 import { ShieldCheck, ShieldX, ExternalLink } from 'lucide-react'
-import type { Claim, Review } from '@/lib/nostr/nipps'
+import { addressToNaddr, type Claim, type Review } from '@/lib/nostr/nipps'
 import { useLensStore } from '@/stores/lensStore'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
@@ -170,8 +170,8 @@ function ClaimFullView({ claim, menu }: { claim: Claim; menu?: ReactNode }) {
           </div>
         ))}
         {claim.relay && fact('Relay', <span className="font-mono text-xs break-all">{claim.relay}</span>)}
-        {claim.handler && fact('NIP-89 handler', <span className="font-mono text-xs break-all">{claim.handler}</span>)}
-        {claim.repo && fact('NIP-34 repo', <span className="font-mono text-xs break-all">{claim.repo}</span>)}
+        {claim.handler && fact('NIP-89 handler', <Tip label={claim.handler}><span className="font-mono text-xs break-all">{addressToNaddr(claim.handler)}</span></Tip>)}
+        {claim.repo && fact('NIP-34 repo', <Tip label={claim.repo}><span className="font-mono text-xs break-all">{addressToNaddr(claim.repo)}</span></Tip>)}
         {fact('Release', <span className="font-mono text-xs break-all">{claim.releaseId}</span>)}
         {claim.content && fact('Notes', <div className="whitespace-pre-wrap text-neutral-300">{claim.content}</div>)}
       </dl>

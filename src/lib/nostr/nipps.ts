@@ -91,6 +91,41 @@ export function draftNaddr(pubkey: string, uuid: string, relays?: string[]): str
   return nip19.naddrEncode({ kind: KINDS.PS_DRAFT, pubkey, identifier: uuid, relays })
 }
 
+/** The NIP-89 handler kind a client claim points at. */
+export const HANDLER_KIND = 31990
+/** The NIP-34 repository announcement kind a library claim points at. */
+export const REPO_KIND = 30617
+
+/**
+ * Turn what a developer pastes (an `naddr1…`, with or without `nostr:`, or a
+ * raw `kind:pubkey:d`) into the `kind:pubkey:d` form the claim tag carries.
+ * Returns null when it is neither, or when the kind is not the one expected.
+ */
+export function parseAddress(input: string, kind: number): string | null {
+  const s = input.trim().replace(/^nostr:/i, '')
+  if (!s) return null
+  const raw = s.match(/^(\d+):([0-9a-f]{64}):(.*)$/i)
+  if (raw) return Number(raw[1]) === kind ? `${kind}:${raw[2].toLowerCase()}:${raw[3]}` : null
+  try {
+    const d = nip19.decode(s)
+    if (d.type !== 'naddr' || d.data.kind !== kind) return null
+    return `${kind}:${d.data.pubkey}:${d.data.identifier}`
+  } catch {
+    return null
+  }
+}
+
+/** `kind:pubkey:d` back to an `naddr1…` for display; the input unchanged if it does not parse. */
+export function addressToNaddr(coord: string): string {
+  const m = coord.match(/^(\d+):([0-9a-f]{64}):(.*)$/i)
+  if (!m) return coord
+  try {
+    return nip19.naddrEncode({ kind: Number(m[1]), pubkey: m[2].toLowerCase(), identifier: m[3] })
+  } catch {
+    return coord
+  }
+}
+
 export function releaseNevent(id: string, author: string, relays?: string[]): string {
   return nip19.neventEncode({ id, author, kind: KINDS.PS_RELEASE, relays })
 }

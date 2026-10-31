@@ -332,7 +332,13 @@ Rules:
   NIP-11 document. Clients MAY cross-check.
 - For `role: client`, `handler` SHOULD point at the software's NIP-89
   event. This is what lets usage observation (§6.4) attribute traffic to
-  the claim.
+  the claim. For `role: library`, `repo` SHOULD point at the NIP-34
+  repository announcement. Both tags carry the `kind:pubkey:d` form;
+  clients SHOULD accept an `naddr` from the user and convert it, and
+  SHOULD reject an address whose kind is not 31990 or 30617 respectively.
+- `role: service` is for software that is none of the above but runs on
+  behalf of users: an indexer, bot, bridge, signer, media server, DVM,
+  trust provider, or hosted API.
 - A claim is a statement by its author and nothing more. Publishing one
   does not make it true.
 

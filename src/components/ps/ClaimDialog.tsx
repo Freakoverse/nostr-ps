@@ -3,7 +3,7 @@ import { Loader2 } from 'lucide-react'
 import { toast } from 'sonner'
 import { signAndPublish, type PublishStatus } from '@/lib/nostr/publish'
 import { PublishPhase } from '@/components/shared/PublishPhase'
-import { buildClaimEvent, CLAIM_ROLES, type Claim, type ClaimRole, type Release } from '@/lib/nostr/nipps'
+import { buildClaimEvent, parseAddress, CLAIM_ROLES, HANDLER_KIND, REPO_KIND, type Claim, type ClaimRole, type Release } from '@/lib/nostr/nipps'
 import { useAuthStore } from '@/stores/authStore'
 import { useLoginModalStore } from '@/stores/loginModalStore'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription, DialogFooter } from '@/components/ui/dialog'
@@ -14,6 +14,14 @@ import { Switch } from '@/components/ui/switch'
 import { cn } from '@/lib/utils'
 import { LIMITS } from '@/lib/limits'
 import { CharCounter, LimitCounter } from '@/components/shared/CharCounter'
+
+/** What each role means, shown under the picker so the choice is not a guess. */
+const ROLE_HINT: Record<ClaimRole, string> = {
+  client: 'An app people use directly: web, desktop, or mobile.',
+  relay: 'A relay that accepts, stores, or serves the events the spec defines.',
+  library: 'An SDK or package other software builds on.',
+  service: 'Anything else that runs on behalf of users: an indexer, bot, bridge, signer, media server, DVM, trust provider, or hosted API.',
+}
 
 /**
  * Publish or update an adoption claim (kind 30851). One live claim per
@@ -71,8 +79,16 @@ export function ClaimDialog({
     return null
   }
 
+  // The tag carries `kind:pubkey:d`; the field takes an naddr, which is what developers have on hand.
+  const handlerCoord = role === 'client' && handler.trim() ? parseAddress(handler, HANDLER_KIND) : null
+  const repoCoord = role === 'library' && repo.trim() ? parseAddress(repo, REPO_KIND) : null
+  const handlerBad = role === 'client' && !!handler.trim() && !handlerCoord
+  const repoBad = role === 'library' && !!repo.trim() && !repoCoord
+
   const publish = async (withdrawn: boolean) => {
     if (!name.trim()) { toast.error('Name the software'); return }
+    if (handlerBad) { toast.error(`The handler must be an naddr of a kind ${HANDLER_KIND} event`); return }
+    if (repoBad) { toast.error(`The repository must be an naddr of a kind ${REPO_KIND} event`); return }
     setBusy(withdrawn ? 'withdraw' : 'save')
     const event = buildClaimEvent({
       release: target,
@@ -80,9 +96,9 @@ export function ClaimDialog({
       name,
       implVersion: implVersion || undefined,
       urls: urls.split('\n').map((u) => u.trim()).filter(Boolean),
-      handler: role === 'client' ? handler || undefined : undefined,
+      handler: handlerCoord ?? undefined,
       relay: role === 'relay' ? relay || undefined : undefined,
-      repo: role === 'library' ? repo || undefined : undefined,
+      repo: repoCoord ?? undefined,
       scope: partial ? 'partial' : 'full',
       content: notes,
       withdrawn,
@@ -137,6 +153,7 @@ export function ClaimDialog({
                 <button key={r} type="button" onClick={() => setRole(r)} className={cn('rounded-md px-2 py-1.5 text-xs capitalize transition-colors', role === r ? 'bg-panel-3 text-purple-300' : 'text-neutral-400 hover:text-neutral-200')}>{r}</button>
               ))}
             </div>
+            <p className="text-[11px] text-neutral-600">{ROLE_HINT[role]}</p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">
@@ -160,9 +177,13 @@ export function ClaimDialog({
 
           {role === 'client' && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-neutral-300">NIP-89 handler address <span className="text-neutral-600">(optional, 31990:pubkey:d)</span></label>
-              <Input value={handler} onChange={(e) => setHandler(e.target.value)} placeholder="31990:…:…" className="border-edge bg-panel font-mono text-xs" />
-              <p className="text-[11px] text-neutral-600">Lets observed traffic be attributed to this client.</p>
+              <label className="text-xs font-medium text-neutral-300">NIP-89 handler naddr <span className="text-neutral-600">(optional)</span></label>
+              <Input value={handler} onChange={(e) => setHandler(e.target.value)} placeholder="naddr1…" className={cn('border-edge bg-panel font-mono text-xs', handlerBad && 'border-red-500/60')} />
+              <p className={cn('text-[11px]', handlerBad ? 'text-red-400' : 'text-neutral-600')}>
+                {handlerBad
+                  ? `Not an naddr of a kind ${HANDLER_KIND} event.`
+                  : `The naddr of your app's kind ${HANDLER_KIND} handler event, the one NIP-89 clients show "open in" links for. Lets observed traffic be attributed to this client.`}
+              </p>
             </div>
           )}
           {role === 'relay' && (
@@ -174,8 +195,13 @@ export function ClaimDialog({
           )}
           {role === 'library' && (
             <div className="space-y-1.5">
-              <label className="text-xs font-medium text-neutral-300">NIP-34 repository address <span className="text-neutral-600">(optional, 30617:pubkey:d)</span></label>
-              <Input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="30617:…:…" className="border-edge bg-panel font-mono text-xs" />
+              <label className="text-xs font-medium text-neutral-300">NIP-34 repository naddr <span className="text-neutral-600">(optional)</span></label>
+              <Input value={repo} onChange={(e) => setRepo(e.target.value)} placeholder="naddr1…" className={cn('border-edge bg-panel font-mono text-xs', repoBad && 'border-red-500/60')} />
+              <p className={cn('text-[11px]', repoBad ? 'text-red-400' : 'text-neutral-600')}>
+                {repoBad
+                  ? `Not an naddr of a kind ${REPO_KIND} event.`
+                  : `The naddr of the repository's kind ${REPO_KIND} announcement, as published by ngit or gitworkshop.dev. Names the exact codebase, not just a project name.`}
+              </p>
             </div>
           )}
 
