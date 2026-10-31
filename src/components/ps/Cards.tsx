@@ -92,7 +92,7 @@ export function DraftCard({ draft, released }: { draft: Draft; released?: boolea
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <AuthorLine pubkey={draft.pubkey} at={draft.publishedAt} size="xs" linked={false} suffix={draft.edited ? <span className="text-[11px] text-neutral-600">edited</span> : undefined} />
+        <AuthorLine pubkey={draft.pubkey} at={draft.publishedAt} size="xs" linked={false} suffix={<>{draft.edited && <span className="text-[11px] text-neutral-600">edited</span>}<PowBadge id={draft.event.id} /></>} />
         <KindChips kinds={draft.kinds} />
         <TopicChips topics={draft.topics} />
       </div>
@@ -126,7 +126,7 @@ export function ProposalCard({ p, verified }: { p: ProposalSummary; verified?: n
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <AuthorLine pubkey={r.pubkey} at={r.createdAt} size="xs" linked={false} />
+        <AuthorLine pubkey={r.pubkey} at={r.createdAt} size="xs" linked={false} suffix={<PowBadge id={r.id} />} />
         {p.releases.length > 1 && <Chip>{p.releases.length} versions</Chip>}
         <KindChips kinds={r.kinds} />
         <TopicChips topics={r.topics} />
