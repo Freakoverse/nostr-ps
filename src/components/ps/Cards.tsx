@@ -1,6 +1,6 @@
 import { useState, forwardRef } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, GitFork, Users, ShieldCheck, ShieldX, Ban } from 'lucide-react'
+import { FileText, GitFork, Users, ShieldCheck, ShieldX, ShieldQuestion, MonitorSmartphone, Server, Package, Cloud, ExternalLink } from 'lucide-react'
 import { cn, markdownToText } from '@/lib/utils'
 import { Tip } from '@/components/shared/Tip'
 import { PowBadge } from '@/components/shared/PowBadge'
@@ -152,76 +152,119 @@ export function ReleaseRow({ r, current }: { r: Release; current?: boolean }) {
 
 // ─── Claim ──────────────────────────────────────────────────────────
 
-/** A Chip that is a button when given an onClick, otherwise plain. */
-function Pill({ onClick, className, children }: { onClick?: () => void; className?: string; children: React.ReactNode }) {
-  if (!onClick) return <Chip className={className}>{children}</Chip>
-  return (
-    <button type="button" onClick={onClick} className="rounded-full transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50">
-      <Chip className={cn('cursor-pointer', className)}>{children}</Chip>
-    </button>
-  )
+const ROLE_ICON: Record<string, typeof MonitorSmartphone> = {
+  client: MonitorSmartphone,
+  relay: Server,
+  library: Package,
+  service: Cloud,
 }
 
+/**
+ * An adoption claim, laid out as a directory entry about a piece of software
+ * rather than a post: role icon tile, software name and version as the
+ * headline, what it implements, links as buttons, a verification status block
+ * on the right, and "claimed by" demoted to the footer.
+ */
 export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine, menu, className }: {
   className?: string
   claim: Claim
   legit?: number
   fake?: number
   onReview?: () => void
-  /** Opens the full claim with its verdicts; the verdict pills become buttons. */
+  /** Opens the full claim with its verdicts; the status block becomes a button. */
   onOpen?: () => void
   /** Viewer already left a verdict on this claim. */
   mine?: boolean
   /** Three-dot menu slot (ItemMenu). */
   menu?: React.ReactNode
 }) {
+  const Icon = ROLE_ICON[claim.role] ?? MonitorSmartphone
+  const status = fake > 0 ? 'disputed' : legit > 0 ? 'verified' : 'unverified'
+  const statusCls = status === 'verified'
+    ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300'
+    : status === 'disputed'
+      ? 'border-red-500/30 bg-red-500/5 text-red-300'
+      : 'border-edge bg-panel-2 text-neutral-400'
+  const StatusIcon = status === 'verified' ? ShieldCheck : status === 'disputed' ? ShieldX : ShieldQuestion
+  const statusTitle = status === 'verified' ? 'Verified' : status === 'disputed' ? 'Disputed' : 'Unverified'
+  const statusSub = status === 'verified'
+    ? `${legit} legit${fake ? ` · ${fake} fake` : ''}`
+    : status === 'disputed'
+      ? `${fake} fake${legit ? ` · ${legit} legit` : ''}`
+      : 'no verdicts yet'
+  const StatusBlock = (
+    <div className={cn('flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left', statusCls, onOpen && 'cursor-pointer transition-colors hover:border-purple-500/40')}>
+      <StatusIcon className="h-5 w-5 shrink-0" />
+      <span className="min-w-0">
+        <span className="block text-sm font-medium leading-tight">{statusTitle}</span>
+        <span className="block text-[11px] opacity-80">{statusSub}</span>
+      </span>
+    </div>
+  )
+
   return (
-    <div className={cn('rounded-lg border border-edge bg-panel p-4', claim.withdrawn && 'opacity-60', className)}>
-      <div className="flex items-start justify-between gap-3">
-        <div className="min-w-0">
-          <p className="truncate text-sm font-semibold text-neutral-100">
-            {claim.name}
-            {claim.implVersion && <span className="ml-1.5 font-mono text-xs font-normal text-neutral-500">{claim.implVersion}</span>}
-          </p>
-          <p className="mt-0.5 text-xs text-neutral-500">
+    <div className={cn('rounded-lg border border-edge bg-panel', claim.withdrawn && 'opacity-60', className)}>
+      <div className="flex gap-4 p-4">
+        {/* Role tile */}
+        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-edge bg-panel-2 text-purple-300">
+          <Icon className="h-6 w-6" />
+        </div>
+
+        {/* Identity */}
+        <div className="min-w-0 flex-1">
+          <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
+            <h3 className="truncate text-base font-semibold text-neutral-100">{claim.name}</h3>
+            {claim.implVersion && <span className="font-mono text-xs text-neutral-400">{claim.implVersion}</span>}
+          </div>
+          <p className="mt-0.5 flex flex-wrap items-center gap-x-1.5 text-xs text-neutral-500">
             <span className="capitalize text-neutral-300">{claim.role}</span>
-            {' · '}implements v{claim.version}
-            {claim.scope === 'partial' && <span className="text-yellow-500"> · partial</span>}
-            {claim.withdrawn && <span className="text-red-400"> · withdrawn</span>}
+            <span>·</span>
+            <span>implements <span className="font-mono text-neutral-300">v{claim.version}</span></span>
+            {claim.scope === 'partial' && <><span>·</span><span className="text-yellow-500">partial</span></>}
+            {claim.withdrawn && <><span>·</span><span className="text-red-400">withdrawn</span></>}
           </p>
+          {(claim.urls.length > 0 || claim.relay || claim.handler || claim.repo) && (
+            <div className="mt-2.5 flex flex-wrap items-center gap-1.5">
+              {claim.urls.map((u) => (
+                <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="inline-flex max-w-full items-center gap-1 rounded-md border border-edge bg-panel-2 px-2 py-1 text-xs text-neutral-200 transition-colors hover:border-purple-500/40 hover:text-purple-300">
+                  <ExternalLink className="h-3 w-3 shrink-0 text-neutral-500" /><span className="truncate">{u.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+                </a>
+              ))}
+              {claim.relay && <Chip className="font-mono">{claim.relay}</Chip>}
+              {claim.handler && <Tip label={claim.handler}><Chip>NIP-89 handler</Chip></Tip>}
+              {claim.repo && <Tip label={claim.repo}><Chip>NIP-34 repo</Chip></Tip>}
+            </div>
+          )}
+          {claim.content && (
+            <p className="mt-2.5 border-l-2 border-edge-2 pl-3 text-sm text-neutral-400">{claim.content}</p>
+          )}
         </div>
-        <div className="flex shrink-0 items-center gap-1.5">
-          {legit > 0 && (
-            <Pill onClick={onOpen} className="border-emerald-500/30 text-emerald-400"><ShieldCheck className="h-3 w-3" /> {legit} legit</Pill>
-          )}
-          {fake > 0 && (
-            <Pill onClick={onOpen} className="border-red-500/30 text-red-400"><ShieldX className="h-3 w-3" /> {fake} fake</Pill>
-          )}
-          {claim.withdrawn && <Ban className="h-4 w-4 text-neutral-600" />}
-          {menu}
+
+        {/* Verification + menu */}
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <div className="flex items-start gap-1">
+            {onOpen ? <button type="button" onClick={onOpen} className="rounded-lg focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-purple-500/50">{StatusBlock}</button> : StatusBlock}
+            {menu}
+          </div>
         </div>
       </div>
-      <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">
-        <AuthorLine pubkey={claim.pubkey} at={claim.createdAt} size="xs" suffix={<PowBadge id={claim.event.id} />} />
-        {claim.urls.map((u) => (
-          <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="truncate text-xs text-purple-400 hover:underline">{u.replace(/^https?:\/\//, '')}</a>
-        ))}
-        {claim.relay && <Chip>{claim.relay}</Chip>}
-      </div>
-      {claim.content && <p className="mt-2 text-sm text-neutral-400">{claim.content}</p>}
-      {(onReview || (mine && onOpen)) && (
-        <div className="mt-3 flex justify-end">
-          {mine && onOpen ? (
-            <button type="button" onClick={onOpen} className="flex items-center gap-1 text-xs text-neutral-400 hover:text-purple-400">
-              <ShieldCheck className="h-3 w-3" /> You&apos;ve given your verdict
-            </button>
-          ) : (
-            <button type="button" onClick={onReview} className="text-xs text-neutral-400 hover:text-purple-400">
-              Is this implementation real?
-            </button>
-          )}
+
+      {/* Footer: who claims it, and the verdict action */}
+      <div className="flex flex-wrap items-center justify-between gap-x-4 gap-y-2 border-t border-edge px-4 py-2.5">
+        <div className="flex min-w-0 items-center gap-2 text-xs text-neutral-500">
+          <span className="shrink-0">claimed by</span>
+          <AuthorLine pubkey={claim.pubkey} at={claim.createdAt} size="xs" suffix={<PowBadge id={claim.event.id} />} />
         </div>
-      )}
+        {mine && onOpen ? (
+          <button type="button" onClick={onOpen} className="flex items-center gap-1 text-xs text-neutral-400 hover:text-purple-400">
+            <ShieldCheck className="h-3 w-3" /> You&apos;ve given your verdict
+          </button>
+        ) : onReview ? (
+          <button type="button" onClick={onReview} className="text-xs text-neutral-400 hover:text-purple-400">
+            Is this implementation real?
+          </button>
+        ) : null}
+      </div>
     </div>
   )
 }
