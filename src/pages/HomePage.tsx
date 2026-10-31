@@ -69,7 +69,9 @@ export function HomePage() {
         <h1 className="text-3xl font-bold tracking-tight">Permissionless Standards</h1>
         <p className="max-w-3xl text-neutral-400 leading-relaxed">
           Anyone may propose a standard. Nothing is official and there are no gatekeepers,
-          neither a single maintainer nor a roundtable. What matters is adoption: who
+          neither a{' '}
+          <a href="https://github.com/nostr-protocol/nips" target="_blank" rel="noopener noreferrer" className="text-purple-400 hover:underline">single maintainer</a>
+          {' '}nor a roundtable. What matters is adoption: who
           implements it, read through the trust graph of whoever is looking.{' '}
           <Link to="/about" className="text-purple-400 hover:underline">How this works</Link>
         </p>
