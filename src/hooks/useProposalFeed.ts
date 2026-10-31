@@ -102,6 +102,12 @@ export function useProposalFeed(tick = 0, batch = BATCH) {
     return () => { cancelled = true }
   }, [tick, batch, ingest])
 
+  // The §6.5 floor changes which claims count: recompute the rollup when it flips.
+  useEffect(() => useSettingsStore.subscribe((s, prev) => {
+    if (s.rawPowFloor === prev.rawPowFloor && s.powFilterDifficulty === prev.powFilterDifficulty) return
+    if (releases.current.size) setItems(summarizeProposals([...releases.current.values()], claims.current, rawPowFloor()))
+  }), [])
+
   const loadMore = useCallback(async () => {
     if (inFlight.current || reachedEnd || oldest.current === undefined) return
     inFlight.current = true

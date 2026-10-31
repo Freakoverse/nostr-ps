@@ -53,6 +53,8 @@ export function ReleasePage() {
   const [claimReviews, setClaimReviews] = useState<Map<string, Review[]>>(new Map())
   const [reviews, setReviews] = useState<Review[]>([])
   const [backups, setBackups] = useState<Backup[]>([])
+  /** What the §6.5 floor excluded on the last fetch, so the switch visibly does something. */
+  const [belowFloor, setBelowFloor] = useState({ claims: 0, reviews: 0 })
   const [loading, setLoading] = useState(true)
   // Versions, claims and reviews paint from cache first; this flips once the
   // relays have answered, so "latest version" is only asserted on evidence.
@@ -118,10 +120,13 @@ export function ReleasePage() {
       ])
       if (cancelled) return
       const lineageIds = new Set(vs.map((v) => v.id))
-      const mine = cs.filter((c) => c.releaseAuthor === r.pubkey && lineageIds.has(c.releaseId) && passesRawPow(c.event))
+      const inLineage = cs.filter((c) => c.releaseAuthor === r.pubkey && lineageIds.has(c.releaseId))
+      const mine = inLineage.filter((c) => passesRawPow(c.event))
+      const rvKept = rv.filter((x) => passesRawPow(x.event))
+      setBelowFloor({ claims: inLineage.length - mine.length, reviews: rv.length - rvKept.length })
       setVersions(vs.length ? vs : [r])
       setClaims(mine)
-      setReviews(rv.filter((x) => passesRawPow(x.event)))
+      setReviews(rvKept)
       setBackups(bk)
       setChecked(true)
       const cr = await fetchClaimReviews(relays, mine.map((c) => c.coord)).catch(() => new Map<string, Review[]>())
@@ -318,7 +323,10 @@ export function ReleasePage() {
       <TabsContent value="adoption" className="space-y-3">
         <div className="flex items-baseline justify-between">
           <h2 className="text-lg font-semibold">Adoption claims</h2>
-          <span className="text-xs text-neutral-500">{liveClaims.length} live · {claims.length - liveClaims.length} withdrawn</span>
+          <span className="text-xs text-neutral-500">
+            {liveClaims.length} live · {claims.length - liveClaims.length} withdrawn
+            {rawFloorOn && <span className={belowFloor.claims ? 'text-amber-400' : ''}> · PoW floor: {belowFloor.claims ? `${belowFloor.claims} excluded` : 'nothing excluded'}</span>}
+          </span>
         </div>
         <TieredList
           items={claims}
@@ -347,7 +355,10 @@ export function ReleasePage() {
       {/* Reviews */}
       <TabsContent value="reviews" className="space-y-3">
         <div className="flex flex-wrap items-baseline justify-between gap-2">
-          <h2 className="text-lg font-semibold">Reviews</h2>
+          <h2 className="text-lg font-semibold">
+            Reviews
+            {rawFloorOn && <span className={cn('ml-2 text-xs font-normal', belowFloor.reviews ? 'text-amber-400' : 'text-neutral-500')}>PoW floor: {belowFloor.reviews ? `${belowFloor.reviews} excluded` : 'nothing excluded'}</span>}
+          </h2>
           <div className="flex items-center gap-1.5">
             {reviewTally.recommend > 0 && <VerdictChip verdict="recommend" />}{reviewTally.recommend > 0 && <span className="text-xs tabular-nums text-neutral-400">{reviewTally.recommend}</span>}
             {reviewTally['not-recommend'] > 0 && <VerdictChip verdict="not-recommend" />}{reviewTally['not-recommend'] > 0 && <span className="text-xs tabular-nums text-neutral-400">{reviewTally['not-recommend']}</span>}
