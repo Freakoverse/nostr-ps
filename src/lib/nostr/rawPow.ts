@@ -1,20 +1,16 @@
 /**
- * Spec §6.5: an optional proof-of-work floor for the raw view. When the lens
- * is off and the user switched the floor on, claims and reviews below the
- * content-filter difficulty are ignored. With a lens active the floor is 0,
- * since the providers do the work there. Off by default.
+ * Spec §6.5: an optional proof-of-work floor. When the user switches it on,
+ * claims and reviews below the content-filter difficulty are ignored, in the
+ * raw view and, if they keep it on, under a lens too. Off by default.
  */
 import type { Event as NostrEvent } from 'nostr-tools'
 import { countLeadingZeroBits } from '@/lib/pow/pow'
 import { useSettingsStore } from '@/stores/settingsStore'
-import { useLensStore } from '@/stores/lensStore'
 
-/** Current floor in bits: 0 unless the raw-view floor is on and the lens is off. */
+/** Current floor in bits: 0 unless the floor switch is on. */
 export function rawPowFloor(): number {
   const s = useSettingsStore.getState()
-  if (!s.rawPowFloor) return 0
-  if (useLensStore.getState().enabled) return 0
-  return s.powFilterDifficulty
+  return s.rawPowFloor ? s.powFilterDifficulty : 0
 }
 
 export function passesRawPow(ev: NostrEvent, floor = rawPowFloor()): boolean {

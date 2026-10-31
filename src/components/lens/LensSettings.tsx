@@ -66,7 +66,7 @@ export function LensSettings() {
         <Row label="Enable lens" description="Off means every claim counts equally and nothing is weighted.">
           <Switch checked={enabled} onCheckedChange={setEnabled} />
         </Row>
-        <Row label="Proof-of-work floor in the raw view" description={`With the lens off, ignore claims and reviews with less than ${powFilterDifficulty} bits of proof of work (the content-filter difficulty in Preferences). Raises the cost of volume spam; it is a floor, not a defense. Off by default.`}>
+        <Row label="Proof-of-work floor" description={`Ignore claims and reviews with less than ${powFilterDifficulty} bits of proof of work (the content-filter difficulty in Preferences), with or without the lens. Raises the cost of volume spam; it is a floor, not a defense. Off by default, also switchable from the lens bar.`}>
           <Switch checked={rawPowFloor} onCheckedChange={setRawPowFloor} />
         </Row>
         <div>

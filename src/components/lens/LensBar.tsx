@@ -1,5 +1,5 @@
 import { Link } from 'react-router-dom'
-import { Eye, EyeOff, SlidersHorizontal, RotateCcw, ChevronDown } from 'lucide-react'
+import { Eye, EyeOff, SlidersHorizontal, RotateCcw, ChevronDown, Pickaxe } from 'lucide-react'
 import { cn } from '@/lib/utils'
 import { Tip } from '@/components/shared/Tip'
 import { useLensStore, DEFAULT_THRESHOLD } from '@/stores/lensStore'
@@ -25,7 +25,7 @@ export function LensBar({ className }: { className?: string }) {
   const myPubkey = useAuthStore((s) => s.pubkey)
   const rawFloorOn = useSettingsStore((s) => s.rawPowFloor)
   const rawFloorBits = useSettingsStore((s) => s.powFilterDifficulty)
-  const rawFloor = rawFloorOn && !enabled ? rawFloorBits : 0
+  const setRawFloor = useSettingsStore((s) => s.setRawPowFloor)
   const active = sources.filter((s) => s.enabled)
 
   return (
@@ -100,6 +100,15 @@ export function LensBar({ className }: { className?: string }) {
               ))}</>
           : `Off: raw view. Every claim counts, nothing is weighted.`}
       </div>
+
+      {/* §6.5 floor: visible here so the raw view is one click from having a cost. */}
+      <Tip label={rawFloorOn ? `Claims and reviews under ${rawFloorBits} bits of proof of work are ignored. Change the bits in Settings › Preferences.` : `Off: every claim and review counts regardless of proof of work. On: ignore anything under ${rawFloorBits} bits.`}>
+        <label className="flex cursor-pointer items-center gap-2 text-neutral-500">
+          <Pickaxe className={cn('h-3.5 w-3.5', rawFloorOn ? 'text-purple-400' : 'text-neutral-600')} />
+          <span>PoW floor{rawFloorOn ? ` ${rawFloorBits}` : ''}</span>
+          <Switch checked={rawFloorOn} onCheckedChange={setRawFloor} aria-label="Proof-of-work floor" className="scale-90" />
+        </label>
+      </Tip>
 
       {enabled && active.length > 0 && (
         <div className="flex items-center gap-2">
