@@ -171,9 +171,11 @@ function ClaimLinks({ claim, onOpen, max = 2, className }: { claim: Claim; onOpe
   return (
     <div className={cn('flex flex-wrap items-center gap-1.5', className)}>
       {shown.map((u) => (
-        <a key={u} href={u} target="_blank" rel="noopener noreferrer" title={u} className="inline-flex max-w-[11rem] items-center gap-1 rounded-md border border-edge bg-panel-2 px-2 py-1 text-xs text-neutral-200 transition-colors hover:border-purple-500/40 hover:text-purple-300">
-          <ExternalLink className="h-3 w-3 shrink-0 text-neutral-500" /><span className="truncate">{u.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
-        </a>
+        <Tip key={u} label={u}>
+          <a href={u} target="_blank" rel="noopener noreferrer" className="inline-flex max-w-[11rem] items-center gap-1 rounded-md border border-edge bg-panel-2 px-2 py-1 text-xs text-neutral-200 transition-colors hover:border-purple-500/40 hover:text-purple-300">
+            <ExternalLink className="h-3 w-3 shrink-0 text-neutral-500" /><span className="truncate">{u.replace(/^https?:\/\//, '').replace(/\/$/, '')}</span>
+          </a>
+        </Tip>
       ))}
       {extra > 0 && (
         onOpen ? (
