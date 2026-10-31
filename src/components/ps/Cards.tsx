@@ -1,7 +1,7 @@
 import { useState, forwardRef } from 'react'
 import { Link } from 'react-router-dom'
 import { FileText, GitFork, Users, ShieldCheck, ShieldX, ShieldQuestion, ExternalLink } from 'lucide-react'
-import { cn, markdownToText } from '@/lib/utils'
+import { cn, markdownToText, formatRelativeTime, formatTimestamp } from '@/lib/utils'
 import { Tip } from '@/components/shared/Tip'
 import { PowBadge } from '@/components/shared/PowBadge'
 import { draftNaddr, releaseNevent, shortId, type Draft, type Release, type ProposalSummary, type Claim, type Review } from '@/lib/nostr/nipps'
@@ -343,16 +343,23 @@ export function ClaimTile({ claim, legit = 0, fake = 0, onReview, onOpen, mine, 
         </div>
       </div>
 
-      <div className="flex items-center justify-between gap-2 border-t border-edge px-4 py-2 text-[11px] text-neutral-500">
+      {/* Footer, two rows: who, then when / proof of work / the verdict action. */}
+      <div className="space-y-1.5 border-t border-edge px-4 py-2.5 text-[11px] text-neutral-500">
         <div className="flex min-w-0 items-center gap-1.5">
           <span className="shrink-0">by</span>
-          <AuthorLine pubkey={claim.pubkey} size="xs" suffix={<PowBadge id={claim.event.id} />} />
+          <AuthorLine pubkey={claim.pubkey} size="xs" />
         </div>
-        {mine && onOpen ? (
-          <Tip label="You've given your verdict"><button type="button" onClick={onOpen} className="shrink-0 text-neutral-400 hover:text-purple-400" aria-label="Your verdict"><ShieldCheck className="h-3.5 w-3.5" /></button></Tip>
-        ) : onReview ? (
-          <button type="button" onClick={onReview} className="shrink-0 text-neutral-400 hover:text-purple-400">Real?</button>
-        ) : null}
+        <div className="flex items-center justify-between gap-2">
+          <div className="flex items-center gap-2">
+            <Tip label={formatTimestamp(claim.createdAt)}><span>{formatRelativeTime(claim.createdAt)}</span></Tip>
+            <PowBadge id={claim.event.id} />
+          </div>
+          {mine && onOpen ? (
+            <button type="button" onClick={onOpen} className="flex shrink-0 items-center gap-1 text-neutral-400 hover:text-purple-400"><ShieldCheck className="h-3.5 w-3.5" /> Your verdict</button>
+          ) : onReview ? (
+            <button type="button" onClick={onReview} className="shrink-0 text-neutral-400 hover:text-purple-400">Is this real?</button>
+          ) : null}
+        </div>
       </div>
     </div>
   )
