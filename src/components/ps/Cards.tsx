@@ -1,6 +1,6 @@
 import { useState, forwardRef } from 'react'
 import { Link } from 'react-router-dom'
-import { FileText, GitFork, Users, ShieldCheck, ShieldX, ShieldQuestion, MonitorSmartphone, Server, Package, Cloud, ExternalLink } from 'lucide-react'
+import { FileText, GitFork, Users, ShieldCheck, ShieldX, ShieldQuestion, ExternalLink } from 'lucide-react'
 import { cn, markdownToText } from '@/lib/utils'
 import { Tip } from '@/components/shared/Tip'
 import { PowBadge } from '@/components/shared/PowBadge'
@@ -152,12 +152,6 @@ export function ReleaseRow({ r, current }: { r: Release; current?: boolean }) {
 
 // ─── Claim ──────────────────────────────────────────────────────────
 
-const ROLE_ICON: Record<string, typeof MonitorSmartphone> = {
-  client: MonitorSmartphone,
-  relay: Server,
-  library: Package,
-  service: Cloud,
-}
 
 /**
  * An adoption claim, laid out as a directory entry about a piece of software
@@ -178,7 +172,6 @@ export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine, 
   /** Three-dot menu slot (ItemMenu). */
   menu?: React.ReactNode
 }) {
-  const Icon = ROLE_ICON[claim.role] ?? MonitorSmartphone
   const status = fake > 0 ? 'disputed' : legit > 0 ? 'verified' : 'unverified'
   const statusCls = status === 'verified'
     ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300'
@@ -205,11 +198,6 @@ export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine, 
   return (
     <div className={cn('rounded-lg border border-edge bg-panel', claim.withdrawn && 'opacity-60', className)}>
       <div className="flex gap-4 p-4">
-        {/* Role tile */}
-        <div className="flex h-12 w-12 shrink-0 items-center justify-center rounded-lg border border-edge bg-panel-2 text-purple-300">
-          <Icon className="h-6 w-6" />
-        </div>
-
         {/* Identity */}
         <div className="min-w-0 flex-1">
           <div className="flex flex-wrap items-baseline gap-x-2 gap-y-0.5">
@@ -235,9 +223,11 @@ export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine, 
               {claim.repo && <Tip label={claim.repo}><Chip>NIP-34 repo</Chip></Tip>}
             </div>
           )}
-          {claim.content && (
+          {claim.content && (onOpen ? (
+            <button type="button" onClick={onOpen} className="mt-2.5 block w-full border-l-2 border-edge-2 pl-3 text-left text-sm text-neutral-400 transition-colors hover:border-purple-500/60 hover:text-neutral-200">{claim.content}</button>
+          ) : (
             <p className="mt-2.5 border-l-2 border-edge-2 pl-3 text-sm text-neutral-400">{claim.content}</p>
-          )}
+          ))}
         </div>
 
         {/* Verification + menu */}
@@ -284,7 +274,6 @@ export function ClaimTile({ claim, legit = 0, fake = 0, onReview, onOpen, mine, 
   mine?: boolean
   menu?: React.ReactNode
 }) {
-  const Icon = ROLE_ICON[claim.role] ?? MonitorSmartphone
   const status = fake > 0 ? 'disputed' : legit > 0 ? 'verified' : 'unverified'
   const statusCls = status === 'verified'
     ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300'
@@ -304,9 +293,6 @@ export function ClaimTile({ claim, legit = 0, fake = 0, onReview, onOpen, mine, 
     <div className={cn('flex h-full flex-col rounded-lg border border-edge bg-panel', claim.withdrawn && 'opacity-60', className)}>
       <div className="flex flex-1 flex-col gap-3 p-4">
         <div className="flex items-start gap-3">
-          <div className="flex h-10 w-10 shrink-0 items-center justify-center rounded-lg border border-edge bg-panel-2 text-purple-300">
-            <Icon className="h-5 w-5" />
-          </div>
           <div className="min-w-0 flex-1">
             <h3 className="truncate text-sm font-semibold text-neutral-100">{claim.name}</h3>
             <p className="truncate text-[11px] text-neutral-500">
@@ -333,7 +319,11 @@ export function ClaimTile({ claim, legit = 0, fake = 0, onReview, onOpen, mine, 
           </div>
         )}
 
-        {claim.content && <p className="line-clamp-2 border-l-2 border-edge-2 pl-2.5 text-xs text-neutral-400">{claim.content}</p>}
+        {claim.content && (onOpen ? (
+          <button type="button" onClick={onOpen} className="line-clamp-2 w-full border-l-2 border-edge-2 pl-2.5 text-left text-xs text-neutral-400 transition-colors hover:border-purple-500/60 hover:text-neutral-200">{claim.content}</button>
+        ) : (
+          <p className="line-clamp-2 border-l-2 border-edge-2 pl-2.5 text-xs text-neutral-400">{claim.content}</p>
+        ))}
 
         <div className="mt-auto">
           {onOpen ? (

@@ -1,12 +1,13 @@
 import { useMemo, type ReactNode } from 'react'
-import { ShieldCheck, ShieldX } from 'lucide-react'
+import { ShieldCheck, ShieldX, ShieldQuestion, ExternalLink } from 'lucide-react'
 import type { Claim, Review } from '@/lib/nostr/nipps'
 import { useLensStore } from '@/stores/lensStore'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { Button } from '@/components/ui/button'
 import { AuthorLine } from '@/components/social/AuthorLine'
 import { Markdown } from '@/components/shared/Markdown'
-import { ClaimCard } from './Cards'
+import { Tip } from '@/components/shared/Tip'
+import { formatRelativeTime, formatTimestamp } from '@/lib/utils'
 import { cn } from '@/lib/utils'
 import { PowBadge } from '@/components/shared/PowBadge'
 
@@ -46,7 +47,7 @@ export function ClaimDetailDialog({ open, onOpenChange, claim, reviews, mine, on
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="flex max-h-[85vh] flex-col gap-4 border-edge bg-dialog sm:max-w-2xl">
+      <DialogContent className="flex max-h-[85vh] flex-col gap-4 border-edge bg-dialog sm:max-w-3xl">
         <DialogHeader>
           <DialogTitle className="text-foreground">Adoption claim</DialogTitle>
           <DialogDescription className="text-neutral-400">
@@ -55,7 +56,7 @@ export function ClaimDetailDialog({ open, onOpenChange, claim, reviews, mine, on
         </DialogHeader>
 
         <div className="min-h-0 flex-1 space-y-5 overflow-y-auto pr-1">
-          <ClaimCard claim={claim} legit={trusted.legit} fake={trusted.fake} menu={claimMenu} className="bg-well" />
+          <ClaimFullView claim={claim} legit={trusted.legit} fake={trusted.fake} menu={claimMenu} />
 
           <section className="space-y-2">
             <div className="flex flex-wrap items-center justify-between gap-2 px-1">
@@ -112,6 +113,80 @@ export function VerdictRow({ review, menu, label }: { review: Review; menu?: Rea
         </div>
       </div>
       {review.content && <div className="mt-2 text-sm text-neutral-300"><Markdown content={review.content} /></div>}
+    </div>
+  )
+}
+
+/**
+ * The claim in full, for the dialog: everything the event carries, laid out
+ * as facts rather than a card, since here there is room for all of it.
+ */
+function ClaimFullView({ claim, legit, fake, menu }: { claim: Claim; legit: number; fake: number; menu?: ReactNode }) {
+  const status = fake > 0 ? 'disputed' : legit > 0 ? 'verified' : 'unverified'
+  const statusCls = status === 'verified'
+    ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300'
+    : status === 'disputed'
+      ? 'border-red-500/30 bg-red-500/5 text-red-300'
+      : 'border-edge bg-panel-2 text-neutral-400'
+  const StatusIcon = status === 'verified' ? ShieldCheck : status === 'disputed' ? ShieldX : ShieldQuestion
+  const statusTitle = status === 'verified' ? 'Verified' : status === 'disputed' ? 'Disputed' : 'Unverified'
+  const statusSub = status === 'verified'
+    ? `${legit} legit${fake ? ` · ${fake} fake` : ''} above your threshold`
+    : status === 'disputed'
+      ? `${fake} fake${legit ? ` · ${legit} legit` : ''} above your threshold`
+      : 'no verdicts above your threshold'
+
+  const fact = (label: string, value: ReactNode) => (
+    <div className="grid grid-cols-[8rem_1fr] gap-x-3 gap-y-0.5 py-1.5 text-sm">
+      <dt className="text-xs uppercase tracking-wider text-neutral-500 pt-0.5">{label}</dt>
+      <dd className="min-w-0 text-neutral-200">{value}</dd>
+    </div>
+  )
+
+  return (
+    <div className={cn('rounded-lg border border-edge bg-well', claim.withdrawn && 'opacity-70')}>
+      <div className="flex flex-wrap items-start justify-between gap-3 border-b border-edge p-4">
+        <div className="min-w-0">
+          <h3 className="text-lg font-semibold text-neutral-100">
+            {claim.name}
+            {claim.implVersion && <span className="ml-2 font-mono text-sm font-normal text-neutral-400">{claim.implVersion}</span>}
+          </h3>
+          <p className="text-xs text-neutral-500">
+            <span className="capitalize text-neutral-300">{claim.role}</span> · implements <span className="font-mono text-neutral-300">v{claim.version}</span>
+            {claim.scope === 'partial' && <span className="text-yellow-500"> · partial implementation</span>}
+            {claim.withdrawn && <span className="text-red-400"> · withdrawn</span>}
+          </p>
+        </div>
+        <div className="flex items-start gap-1">
+          <div className={cn('flex items-center gap-2.5 rounded-lg border px-3 py-2', statusCls)}>
+            <StatusIcon className="h-5 w-5 shrink-0" />
+            <span>
+              <span className="block text-sm font-medium leading-tight">{statusTitle}</span>
+              <span className="block text-[11px] opacity-80">{statusSub}</span>
+            </span>
+          </div>
+          {menu}
+        </div>
+      </div>
+
+      <dl className="divide-y divide-edge px-4">
+        {fact('Claimed by', <AuthorLine pubkey={claim.pubkey} size="xs" suffix={<PowBadge id={claim.event.id} />} />)}
+        {fact('Published', <Tip label={formatTimestamp(claim.createdAt)}><span>{formatRelativeTime(claim.createdAt)}</span></Tip>)}
+        {claim.urls.length > 0 && fact('Links', (
+          <div className="flex flex-col gap-1">
+            {claim.urls.map((u) => (
+              <a key={u} href={u} target="_blank" rel="noopener noreferrer" className="inline-flex max-w-full items-center gap-1.5 text-purple-400 hover:underline">
+                <ExternalLink className="h-3.5 w-3.5 shrink-0" /><span className="truncate">{u}</span>
+              </a>
+            ))}
+          </div>
+        ))}
+        {claim.relay && fact('Relay', <span className="font-mono text-xs break-all">{claim.relay}</span>)}
+        {claim.handler && fact('NIP-89 handler', <span className="font-mono text-xs break-all">{claim.handler}</span>)}
+        {claim.repo && fact('NIP-34 repo', <span className="font-mono text-xs break-all">{claim.repo}</span>)}
+        {fact('Release', <span className="font-mono text-xs break-all">{claim.releaseId}</span>)}
+        {claim.content && fact('Notes', <div className="whitespace-pre-wrap text-neutral-300">{claim.content}</div>)}
+      </dl>
     </div>
   )
 }
