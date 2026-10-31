@@ -34,6 +34,7 @@ import { ClaimDetailDialog } from '@/components/ps/ClaimDetailDialog'
 import { ItemMenu } from '@/components/ps/ItemMenu'
 import { assessClaim, tallyRelease, divergenceFlag } from '@/lib/nostr/trust'
 import { passesRawPow } from '@/lib/nostr/rawPow'
+import { ensureEventPresent } from '@/lib/nostr/eventRedundancy'
 import { AuthorCard, MetaCard, ReferenceCard } from '@/components/ps/SideCards'
 import { PowBadge } from '@/components/shared/PowBadge'
 import { Tip } from '@/components/shared/Tip'
@@ -113,6 +114,8 @@ export function ReleasePage() {
       setRelease(r)
       setLoading(false)
       if (!r) return
+      // Cooperative replication: every reader checks the release is on enough relays and rebroadcasts if not.
+      ensureEventPresent(r.event)
       // Instant paint of what the cache already knows around this release.
       {
         const cvs = getCachedVersions(r.pubkey, r.uuid)

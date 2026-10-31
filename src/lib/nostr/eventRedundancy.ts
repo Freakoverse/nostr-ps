@@ -9,10 +9,16 @@
  *
  * Policy: an event is safe once its latest revision is present on at least
  * MIN_REDUNDANCY relays. Below that we rebroadcast the latest to relays that
- * lack it. Presence is checked across all enabled relays, but we only *write* to
- * relays the user marked writable (respecting their read/write config). If that
- * still can't reach the threshold "with what it has", we fall back to the
- * author's own relay list (NIP-65) as extra sources/targets and try once more.
+ * lack it, then query those relays again to confirm it actually landed: a
+ * relay's OK is not taken at its word, the re-check is what counts. Presence is
+ * checked across all enabled relays, but we only *write* to relays the user
+ * marked writable (respecting their read/write config). If that still can't
+ * reach the threshold "with what it has", we fall back to the author's own
+ * relay list (NIP-65) as extra sources/targets and try once more.
+ *
+ * Replaceable and addressable events are identified by kind + author (+ d), so
+ * the newest revision wins. Regular events (a release, a claim) are identified
+ * by id: there is no "latest", only the one event.
  *
  * Two entry points:
  *   - ensureEventRedundancy(kind, pubkey, dTag?) — we don't hold the event, so
@@ -102,19 +108,21 @@ async function authorRelays(pubkey: string, from: string[]): Promise<{ all: stri
 /**
  * One coverage pass over `checkRelays`: find the latest revision, and if it's on
  * fewer than MIN_REDUNDANCY relays, rebroadcast it to the writable relays that
- * lack it. Returns the latest revision seen and how many relays now hold it.
+ * lack it, then ask those relays again. Returns the latest revision seen, how
+ * many relays were confirmed to hold it after the re-check, and how many
+ * accepted the rebroadcast (for the log; acceptance alone proves nothing).
  */
 async function coveragePass(
   filter: Filter,
   have: NostrEvent | null,
   checkRelays: string[],
   writable: Set<string>,
-): Promise<{ latest: NostrEvent | null; coverage: number }> {
+): Promise<{ latest: NostrEvent | null; coverage: number; accepted: number; confirmed: number }> {
   const found = await Promise.all(checkRelays.map((r) => queryOne(r, filter)))
 
   let latest = have
   for (const ev of found) if (ev && (!latest || ev.created_at > latest.created_at)) latest = ev
-  if (!latest) return { latest: null, coverage: 0 }
+  if (!latest) return { latest: null, coverage: 0, accepted: 0, confirmed: 0 }
 
   const lackingWritable: string[] = []
   let coverage = 0
@@ -123,10 +131,15 @@ async function coveragePass(
     if (ev && ev.id === latest!.id) coverage++
     else if (writable.has(norm(r))) lackingWritable.push(r)
   })
-  if (coverage >= MIN_REDUNDANCY || lackingWritable.length === 0) return { latest, coverage }
+  if (coverage >= MIN_REDUNDANCY || lackingWritable.length === 0) return { latest, coverage, accepted: 0, confirmed: 0 }
 
   const accepted = await publishToRelays(lackingWritable, latest)
-  return { latest, coverage: coverage + accepted.length }
+  if (accepted.length === 0) return { latest, coverage, accepted: 0, confirmed: 0 }
+
+  // Double-check: query the relays that took it and count only those that now serve it.
+  const again = await Promise.all(accepted.map((r) => queryOne(r, filter)))
+  const confirmed = again.filter((ev) => ev && ev.id === latest!.id).length
+  return { latest, coverage: coverage + confirmed, accepted: accepted.length, confirmed }
 }
 
 /**
@@ -139,7 +152,7 @@ async function checkAndRebroadcast(filter: Filter, key: string, author: string, 
   if (checkRelays.length === 0) return
   const writable = new Set(relaySet('write').map(norm))
 
-  let { latest, coverage } = await coveragePass(filter, have ?? null, checkRelays, writable)
+  let { latest, coverage, accepted, confirmed } = await coveragePass(filter, have ?? null, checkRelays, writable)
 
   // Fallback: couldn't reach the threshold with our own relays — widen to the
   // author's published relays (both as sources to find a copy and as targets).
@@ -150,11 +163,14 @@ async function checkAndRebroadcast(filter: Filter, key: string, author: string, 
     if (newCheck.length) {
       const expandedCheck = [...checkRelays, ...newCheck]
       const expandedWrite = new Set([...writable, ...extra.write.map(norm)])
-      ;({ latest, coverage } = await coveragePass(filter, latest ?? have ?? null, expandedCheck, expandedWrite))
+      const more = await coveragePass(filter, latest ?? have ?? null, expandedCheck, expandedWrite)
+      latest = more.latest; coverage = more.coverage; accepted += more.accepted; confirmed += more.confirmed
     }
   }
 
-  console.log(`[EventRedundancy] ${key}: latest revision on ${coverage} relay(s)` +
+  console.log(`[EventRedundancy] ${key}: on ${coverage} relay(s)` +
+    (accepted ? `, rebroadcast accepted by ${accepted}, confirmed on ${confirmed} after re-check` : '') +
+    (coverage < MIN_REDUNDANCY ? ` (below the floor of ${MIN_REDUNDANCY})` : '') +
     (latest ? '' : ' (not found anywhere)'))
 }
 
@@ -170,14 +186,24 @@ export function ensureEventRedundancy(kind: number, pubkey: string, dTag?: strin
   enqueue(() => checkAndRebroadcast(filter, key, pubkey, undefined))
 }
 
-/** Ensure a specific event we already hold (e.g. the draft being viewed) is replicated. */
+/** Replaceable (NIP-01: 0, 3, 10000-19999) or addressable (30000-39999): identified by author, not id. */
+function isRevisable(kind: number): boolean {
+  return kind === 0 || kind === 3 || (kind >= 10000 && kind < 20000) || (kind >= 30000 && kind < 40000)
+}
+
+/**
+ * Ensure a specific event we already hold is replicated: the draft or release
+ * being viewed. Revisable kinds are looked up by author (+ d) so a newer
+ * revision found on a relay wins; a regular event is looked up by its id.
+ */
 export function ensureEventPresent(event: NostrEvent) {
   const dTag = event.tags.find((t) => t[0] === 'd')?.[1]
-  const key = keyOf(event.kind, event.pubkey, dTag)
+  const revisable = isRevisable(event.kind)
+  const key = revisable ? keyOf(event.kind, event.pubkey, dTag) : event.id
   if (checkedThisSession.has(key)) return
   checkedThisSession.add(key)
-  const filter: Filter = { kinds: [event.kind], authors: [event.pubkey] }
-  if (dTag !== undefined) filter['#d'] = [dTag]
+  const filter: Filter = revisable ? { kinds: [event.kind], authors: [event.pubkey] } : { ids: [event.id] }
+  if (revisable && dTag !== undefined) filter['#d'] = [dTag]
   enqueue(() => checkAndRebroadcast(filter, key, event.pubkey, event))
 }
 
