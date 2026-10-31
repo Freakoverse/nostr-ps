@@ -61,13 +61,15 @@ export function EmptyFiltered({ filter }: { filter: ScoreFilter }) {
  * filter runs before the page slice.
  */
 export function TieredList<T extends { pubkey: string }>({
-  items, render, keyOf, empty, toolbar,
+  items, render, keyOf, empty, toolbar, layout = 'list',
 }: {
   items: T[]
   render: (item: T) => ReactNode
   keyOf: (item: T) => string
   empty?: ReactNode
   toolbar?: ReactNode
+  /** "grid" lays items out in up to four columns of equal-height cards. */
+  layout?: 'list' | 'grid'
 }) {
   const { main, counts, lensActive, filter, setFilter } = useLensFilter(items)
 
@@ -81,7 +83,13 @@ export function TieredList<T extends { pubkey: string }>({
           {lensActive && <ScoreFilterMenu value={filter} onChange={setFilter} counts={counts} />}
         </div>
       )}
-      {main.length === 0 ? <EmptyFiltered filter={filter} /> : main.map((it) => <div key={keyOf(it)}>{render(it)}</div>)}
+      {main.length === 0 ? (
+        <EmptyFiltered filter={filter} />
+      ) : (
+        <div className={layout === 'grid' ? 'grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4' : 'space-y-3'}>
+          {main.map((it) => <div key={keyOf(it)} className={layout === 'grid' ? 'min-w-0' : undefined}>{render(it)}</div>)}
+        </div>
+      )}
     </div>
   )
 }

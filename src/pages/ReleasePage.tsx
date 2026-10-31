@@ -25,7 +25,7 @@ import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { CommentSection } from '@/components/social/CommentSection'
 import { LensBar } from '@/components/lens/LensBar'
 import { TieredList } from '@/components/lens/TieredList'
-import { Chip, ClaimCard, ReviewCard, VerdictChip } from '@/components/ps/Cards'
+import { Chip, ClaimTile, ReviewCard, VerdictChip } from '@/components/ps/Cards'
 import { ClaimDialog } from '@/components/ps/ClaimDialog'
 import { ReviewDialog } from '@/components/ps/ReviewDialog'
 import { VersionList } from '@/components/ps/VersionDiff'
@@ -313,10 +313,11 @@ export function ReleasePage() {
         <TieredList
           items={claims}
           keyOf={(c) => c.coord}
+          layout="grid"
           render={(c) => {
             const st = claimStats.get(c.coord)
             return (
-              <ClaimCard
+              <ClaimTile
                 claim={c}
                 legit={st?.legit}
                 fake={st?.fake}
