@@ -1,5 +1,6 @@
 import { useEffect, useRef, useState, type ReactNode } from 'react'
 import { cn } from '@/lib/utils'
+import { REVEAL_EVENT } from './Markdown'
 
 /**
  * Long body text, cut at `maxHeight` with a divider and a "View full" button.
@@ -22,6 +23,15 @@ export function CollapsibleBody({ children, maxHeight = 560, className }: { chil
     ro.observe(el)
     return () => ro.disconnect()
   }, [maxHeight])
+
+  // An in-page anchor inside the clipped part asks the body to open first.
+  useEffect(() => {
+    const el = wrap.current
+    if (!el) return
+    const open = () => setExpanded(true)
+    el.addEventListener(REVEAL_EVENT, open)
+    return () => el.removeEventListener(REVEAL_EVENT, open)
+  }, [])
 
   const collapse = () => {
     setExpanded(false)

@@ -1,4 +1,4 @@
-import { useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import ReactMarkdown from 'react-markdown'
 import type { Components } from 'react-markdown'
 import remarkGfm from 'remark-gfm'
@@ -157,6 +157,46 @@ function MarkdownEmbed({ src, title }: { src?: string; title?: string }) {
   )
 }
 
+/** Plain text of a React subtree, for heading ids. */
+function textOf(children: React.ReactNode): string {
+  if (children == null || typeof children === 'boolean') return ''
+  if (typeof children === 'string' || typeof children === 'number') return String(children)
+  if (Array.isArray(children)) return children.map(textOf).join('')
+  if (typeof children === 'object' && 'props' in children) return textOf((children as { props: { children?: React.ReactNode } }).props.children)
+  return ''
+}
+
+/** GitHub-style heading slug: lowercase, drop punctuation, spaces to hyphens. */
+export function headingSlug(text: string): string {
+  return text.trim().toLowerCase().replace(/[^\p{L}\p{N}\s-]/gu, '').replace(/\s+/g, '-')
+}
+
+/** Fired on an in-page anchor target so a clipped CollapsibleBody above it can open. */
+export const REVEAL_EVENT = 'ps:reveal'
+
+/** Find the element a `#fragment` points at: our heading slug, or an author-written id (sanitize prefixes those). */
+function anchorTarget(hash: string, within?: HTMLElement | null): HTMLElement | null {
+  const id = decodeURIComponent(hash.replace(/^#/, ''))
+  if (!id) return null
+  const root: ParentNode = within ?? document
+  return root.querySelector<HTMLElement>(`#${CSS.escape(id)}`) ?? root.querySelector<HTMLElement>(`#${CSS.escape("user-content-" + id)}`)
+}
+
+/** Scroll to an in-page anchor, opening any collapsed body it sits in first. */
+export function scrollToAnchor(hash: string, within?: HTMLElement | null): boolean {
+  const el = anchorTarget(hash, within)
+  if (!el) return false
+  el.dispatchEvent(new CustomEvent(REVEAL_EVENT, { bubbles: true }))
+  // Let a collapsed body expand (React flushes the click's state update first) before measuring where the target is.
+  setTimeout(() => el.scrollIntoView({ block: 'start', behavior: 'smooth' }), 0)
+  return true
+}
+
+const heading = (Tag: 'h1' | 'h2' | 'h3' | 'h4' | 'h5' | 'h6', className: string) =>
+  ({ node, children, ...props }: React.ComponentProps<typeof Tag> & { node?: unknown }) => (
+    <Tag id={headingSlug(textOf(children)) || undefined} className={cn('scroll-mt-20', className)} {...props}>{children}</Tag>
+  )
+
 const components: Components = {
   p: ({ node, ...props }) => <p className="mb-3 leading-relaxed" {...props} />,
   iframe: ({ node, src, title }) => <MarkdownEmbed src={src as string} title={title as string} />,
@@ -172,21 +212,34 @@ const components: Components = {
     return url ? <MarkdownMedia src={url} kind="audio" /> : null
   },
   source: () => null,
-  a: ({ node, ...props }) => (
-    <a
-      target="_blank"
-      rel="noopener noreferrer nofollow"
-      className="text-purple-400 underline underline-offset-2 hover:text-purple-300"
-      {...props}
-    />
-  ),
+  a: ({ node, href, ...props }) => {
+    const linkClass = 'text-purple-400 underline underline-offset-2 hover:text-purple-300'
+    // A `#section` link scrolls within the document; everything else opens a new tab.
+    if (href?.startsWith('#')) {
+      return (
+        <a
+          href={href}
+          className={linkClass}
+          onClick={(e) => {
+            const within = (e.currentTarget as HTMLElement).closest<HTMLElement>('[data-markdown]')
+            if (scrollToAnchor(href, within) || scrollToAnchor(href)) {
+              e.preventDefault()
+              history.replaceState(history.state, "", href)
+            }
+          }}
+          {...props}
+        />
+      )
+    }
+    return <a href={href} target="_blank" rel="noopener noreferrer nofollow" className={linkClass} {...props} />
+  },
   img: ({ node, src, alt }) => <MarkdownImage src={src as string} alt={alt as string} />,
-  h1: ({ node, ...props }) => <h1 className="mt-6 mb-3 text-2xl font-bold text-neutral-100" {...props} />,
-  h2: ({ node, ...props }) => <h2 className="mt-5 mb-2.5 text-xl font-bold text-neutral-100" {...props} />,
-  h3: ({ node, ...props }) => <h3 className="mt-4 mb-2 text-lg font-semibold text-neutral-100" {...props} />,
-  h4: ({ node, ...props }) => <h4 className="mt-4 mb-2 text-base font-semibold text-neutral-200" {...props} />,
-  h5: ({ node, ...props }) => <h5 className="mt-3 mb-1.5 text-sm font-semibold text-neutral-200" {...props} />,
-  h6: ({ node, ...props }) => <h6 className="mt-3 mb-1.5 text-sm font-semibold text-neutral-400" {...props} />,
+  h1: heading('h1', 'mt-6 mb-3 text-2xl font-bold text-neutral-100'),
+  h2: heading('h2', 'mt-5 mb-2.5 text-xl font-bold text-neutral-100'),
+  h3: heading('h3', 'mt-4 mb-2 text-lg font-semibold text-neutral-100'),
+  h4: heading('h4', 'mt-4 mb-2 text-base font-semibold text-neutral-200'),
+  h5: heading('h5', 'mt-3 mb-1.5 text-sm font-semibold text-neutral-200'),
+  h6: heading('h6', 'mt-3 mb-1.5 text-sm font-semibold text-neutral-400'),
   ul: ({ node, ...props }) => <ul className="mb-3 list-disc space-y-1 pl-6" {...props} />,
   ol: ({ node, ...props }) => <ol className="mb-3 list-decimal space-y-1 pl-6" {...props} />,
   li: ({ node, ...props }) => <li className="leading-relaxed" {...props} />,
@@ -270,8 +323,16 @@ const sanitizeSchema = {
  * rehype-sanitize strips anything unsafe, so output stays XSS-safe.
  */
 export function Markdown({ content, className, softBreaks = false }: MarkdownProps) {
+  const root = useRef<HTMLDivElement>(null)
+
+  // Arriving with a `#section` in the URL: scroll once the headings exist.
+  useEffect(() => {
+    const hash = window.location.hash
+    if (hash && root.current) scrollToAnchor(hash, root.current)
+  }, [content])
+
   return (
-    <div className={cn('text-sm leading-relaxed text-neutral-300 break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0', className)}>
+    <div ref={root} data-markdown className={cn('text-sm leading-relaxed text-neutral-300 break-words [&>*:first-child]:mt-0 [&>*:last-child]:mb-0', className)}>
       <ReactMarkdown
         remarkPlugins={softBreaks ? [remarkGfm] : [remarkGfm, remarkBreaks]}
         rehypePlugins={[rehypeRaw, [rehypeSanitize, sanitizeSchema]]}
