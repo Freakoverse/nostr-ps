@@ -4,13 +4,13 @@ import { cn } from '@/lib/utils'
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem,
 } from '@/components/ui/dropdown-menu'
-import { useLensFilter, SCORE_FILTERS, type ScoreFilter } from './useLensFilter'
+import { useLensFilter, SCORE_FILTERS, type ScoreFilter, type LensCounts } from './useLensFilter'
 
-export interface BucketCounts { above: number; below: number; unknown: number }
+export type BucketCounts = LensCounts
 
 /** The "Scored / Low scored / Unscored / All" menu, with what each choice would show. */
 export function ScoreFilterMenu({ value, onChange, counts }: { value: ScoreFilter; onChange: (f: ScoreFilter) => void; counts: BucketCounts }) {
-  const total = counts.above + counts.below + counts.unknown
+  const total = counts.above + counts.below + counts.unknown + counts.belowPow
   const countFor = (id: ScoreFilter) => id === 'scored' ? counts.above : id === 'low' ? counts.below : id === 'unscored' ? counts.unknown : total
   const hiddenNote = value === 'scored'
     ? [counts.below && `${counts.below} low`, counts.unknown && `${counts.unknown} unscored`].filter(Boolean).join(' · ')
@@ -52,6 +52,7 @@ export function EmptyFiltered({ filter }: { filter: ScoreFilter }) {
     : filter === 'low' ? 'Nothing scored below your threshold.'
     : filter === 'unscored' ? 'Nothing unscored.'
     : 'Nothing here.'
+  // (With a proof-of-work floor on, "Show all" is the only filter that includes what it folds.)
   return <p className="py-6 text-center text-xs text-neutral-500">{text}</p>
 }
 
@@ -71,16 +72,16 @@ export function TieredList<T extends { pubkey: string }>({
   /** "grid" lays items out in up to four columns of equal-height cards. */
   layout?: 'list' | 'grid'
 }) {
-  const { main, counts, lensActive, filter, setFilter } = useLensFilter(items)
+  const { main, counts, filterActive, filter, setFilter } = useLensFilter(items)
 
   if (items.length === 0) return <>{empty ?? null}</>
 
   return (
     <div className="space-y-3">
-      {(lensActive || toolbar) && (
+      {(filterActive || toolbar) && (
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="min-w-0">{toolbar}</div>
-          {lensActive && <ScoreFilterMenu value={filter} onChange={setFilter} counts={counts} />}
+          {filterActive && <ScoreFilterMenu value={filter} onChange={setFilter} counts={counts} />}
         </div>
       )}
       {main.length === 0 ? (

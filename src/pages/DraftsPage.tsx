@@ -31,7 +31,7 @@ export function DraftsPage() {
     )
   }, [drafts, q])
 
-  const { main, counts, lensActive, filter, setFilter } = useLensFilter(visible)
+  const { main, counts, filterActive, filter, setFilter } = useLensFilter(visible)
   const { page, setPage, totalPages, paged } = usePaged(main, PER_PAGE, { loadMore, reachedEnd, loading: loading || loadingMore, resetKey: `${q}|${filter}` })
 
   return (
@@ -71,7 +71,7 @@ export function DraftsPage() {
                   {main.length}{reachedEnd ? '' : '+'} drafts · page {page} of {totalPages}{reachedEnd ? '' : '+'}
                   {refreshing && <span className="flex items-center gap-1 animate-pulse"><Loader2 className="h-3 w-3 animate-spin" /> refreshing</span>}
                 </span>
-                {lensActive && <ScoreFilterMenu value={filter} onChange={setFilter} counts={counts} />}
+                {filterActive && <ScoreFilterMenu value={filter} onChange={setFilter} counts={counts} />}
               </div>
               {paged.length === 0 ? <EmptyFiltered filter={filter} /> : paged.map((d) => <DraftCard key={d.coord} draft={d} released={released.has(d.coord)} />)}
               <Pagination page={page} totalPages={totalPages} onPage={setPage} reachedEnd={reachedEnd} loadingMore={loadingMore} />

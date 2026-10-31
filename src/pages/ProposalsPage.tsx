@@ -70,7 +70,7 @@ export function ProposalsPage() {
   }, [items, q, sort, verifiedCount])
 
   const withAuthor = useMemo(() => visible.map((p) => ({ ...p, pubkey: p.latest.pubkey })), [visible])
-  const { main, counts, lensActive, filter, setFilter } = useLensFilter(withAuthor)
+  const { main, counts, filterActive, filter, setFilter } = useLensFilter(withAuthor)
   const { page, setPage, totalPages, paged } = usePaged(main, PER_PAGE, { loadMore, reachedEnd, loading: loading || loadingMore, resetKey: `${q}|${sort}|${filter}` })
 
   return (
@@ -110,7 +110,7 @@ export function ProposalsPage() {
                   {main.length}{reachedEnd ? '' : '+'} proposals · page {page} of {totalPages}{reachedEnd ? '' : '+'}
                   {refreshing && <span className="flex items-center gap-1 animate-pulse"><Loader2 className="h-3 w-3 animate-spin" /> refreshing</span>}
                 </span>
-                {lensActive && <ScoreFilterMenu value={filter} onChange={setFilter} counts={counts} />}
+                {filterActive && <ScoreFilterMenu value={filter} onChange={setFilter} counts={counts} />}
               </div>
               {paged.length === 0 ? <EmptyFiltered filter={filter} /> : paged.map((p) => <ProposalCard key={p.key} p={p} verified={enabled ? verifiedCount.get(p.key) : undefined} />)}
               <Pagination page={page} totalPages={totalPages} onPage={setPage} reachedEnd={reachedEnd} loadingMore={loadingMore} />

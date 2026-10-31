@@ -88,7 +88,7 @@ export function HomePage() {
             more={!proposals.reachedEnd}
             refreshing={proposals.refreshing}
             viewAll="/proposals"
-            right={pf.lensActive ? <ScoreFilterMenu value={pf.filter} onChange={pf.setFilter} counts={pf.counts} /> : null}
+            right={pf.filterActive ? <ScoreFilterMenu value={pf.filter} onChange={pf.setFilter} counts={pf.counts} /> : null}
           />
           {proposals.loading ? (
             <Loading text="Loading releases and claims…" />
@@ -116,7 +116,7 @@ export function HomePage() {
             viewAll="/drafts"
             right={
               <div className="flex items-center gap-2">
-                {df.lensActive && <ScoreFilterMenu value={df.filter} onChange={df.setFilter} counts={df.counts} />}
+                {df.filterActive && <ScoreFilterMenu value={df.filter} onChange={df.setFilter} counts={df.counts} />}
                 <Button asChild size="sm" className="gap-1 bg-purple-600 text-white hover:bg-purple-700">
                   <Link to="/submit-draft"><Plus className="h-3.5 w-3.5" /> New</Link>
                 </Button>
