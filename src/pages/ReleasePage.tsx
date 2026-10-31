@@ -24,7 +24,7 @@ import { PostMenu } from '@/components/ps/PostMenu'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 import { CommentSection } from '@/components/social/CommentSection'
 import { LensBar } from '@/components/lens/LensBar'
-import { TieredList } from '@/components/lens/TieredList'
+import { TieredList, ChoiceMenu } from '@/components/lens/TieredList'
 import { Chip, ClaimTile, ReviewCard, VerdictChip } from '@/components/ps/Cards'
 import { ClaimDialog } from '@/components/ps/ClaimDialog'
 import { ReviewDialog } from '@/components/ps/ReviewDialog'
@@ -176,7 +176,7 @@ export function ReleasePage() {
 
   // §6.6 tiers. `all` keeps relay order for the raw view; `rest` is sorted by the
   // claimant's rank (usage would come first per spec, once observed), withdrawn last.
-  const [showUnverified, setShowUnverified] = useState(false)
+  const [tier, setTier] = useState<'verified' | 'unverified' | 'all'>('verified')
   const claimTiers = useMemo(() => {
     void scores; void threshold
     const verified: Claim[] = []
@@ -376,33 +376,34 @@ export function ReleasePage() {
             {claimTiers.all.map((c) => <div key={c.coord} className="min-w-0">{renderClaimTile(c)}</div>)}
           </div>
         ) : (
-          // §6.6 tiers: verified shown normally; everything else folded behind a count,
-          // sorted by the claimant's rank so a real newcomer sits at the top of the fold.
+          // §6.6 tiers as a filter menu, like the score menu on the lists: verified
+          // by default, the rest folded behind the count and one click away.
           <>
-            {claimTiers.verified.length === 0 ? (
-              <p className="rounded-lg border border-dashed border-edge py-6 text-center text-xs text-neutral-500">No claim is verified under your lens yet.</p>
-            ) : (
-              <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                {claimTiers.verified.map((c) => <div key={c.coord} className="min-w-0">{renderClaimTile(c)}</div>)}
-              </div>
-            )}
-            {claimTiers.rest.length > 0 && (
-              <div className="space-y-3">
-                <button
-                  type="button"
-                  onClick={() => setShowUnverified((v) => !v)}
-                  className="flex w-full items-center justify-between rounded-lg border border-dashed border-edge px-4 py-2.5 text-sm text-neutral-400 transition-colors hover:border-purple-500/40 hover:text-neutral-200"
-                >
-                  <span>{claimTiers.rest.length} unverified {claimTiers.rest.length === 1 ? 'claim' : 'claims'}{claimTiers.disputed ? ` · ${claimTiers.disputed} disputed` : ''}{claimTiers.withdrawn ? ` · ${claimTiers.withdrawn} withdrawn` : ''}</span>
-                  <span className="text-xs">{showUnverified ? 'Hide' : 'Show'}</span>
-                </button>
-                {showUnverified && (
-                  <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
-                    {claimTiers.rest.map((c) => <div key={c.coord} className="min-w-0">{renderClaimTile(c)}</div>)}
-                  </div>
-                )}
-              </div>
-            )}
+            <div className="flex justify-end">
+              <ChoiceMenu
+                value={tier}
+                onChange={setTier}
+                ariaLabel="Filter claims by verification"
+                options={[
+                  { id: 'verified', label: 'Verified only', hint: 'Enough trusted legit verdicts, nobody trusted said fake', count: claimTiers.verified.length },
+                  { id: 'unverified', label: 'Unverified only', hint: `Not yet verified${claimTiers.disputed ? `, including ${claimTiers.disputed} disputed` : ''}${claimTiers.withdrawn ? `, ${claimTiers.withdrawn} withdrawn` : ''}`, count: claimTiers.rest.length },
+                  { id: 'all', label: 'Show all', hint: 'Everything, verified first', count: claims.length },
+                ]}
+                hiddenNote={tier === 'verified' && claimTiers.rest.length ? `${claimTiers.rest.length} unverified` : tier === 'unverified' && claimTiers.verified.length ? `${claimTiers.verified.length} verified` : undefined}
+              />
+            </div>
+            {(() => {
+              const shown = tier === 'verified' ? claimTiers.verified : tier === 'unverified' ? claimTiers.rest : [...claimTiers.verified, ...claimTiers.rest]
+              return shown.length === 0 ? (
+                <p className="rounded-lg border border-dashed border-edge py-6 text-center text-xs text-neutral-500">
+                  {tier === 'verified' ? 'No claim is verified under your lens yet.' : 'Nothing unverified.'}
+                </p>
+              ) : (
+                <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+                  {shown.map((c) => <div key={c.coord} className="min-w-0">{renderClaimTile(c)}</div>)}
+                </div>
+              )
+            })()}
           </>
         )}
       </TabsContent>

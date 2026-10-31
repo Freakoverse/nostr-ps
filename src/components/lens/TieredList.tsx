@@ -8,6 +8,48 @@ import { useLensFilter, SCORE_FILTERS, type ScoreFilter, type LensCounts } from 
 
 export type BucketCounts = LensCounts
 
+export interface ChoiceOption<Id extends string> { id: Id; label: string; hint: string; count: number }
+
+/** A filter dropdown: the current choice on the trigger, each option with a hint and a count, and a "not shown" note. */
+export function ChoiceMenu<Id extends string>({ value, onChange, options, hiddenNote, ariaLabel = 'Filter' }: {
+  value: Id
+  onChange: (id: Id) => void
+  options: ChoiceOption<Id>[]
+  hiddenNote?: string
+  ariaLabel?: string
+}) {
+  return (
+    <div className="flex items-center gap-2 text-xs text-neutral-500">
+      {hiddenNote && <span>{hiddenNote} not shown</span>}
+      <DropdownMenu>
+        <DropdownMenuTrigger asChild>
+          <button
+            type="button"
+            className="inline-flex items-center gap-1.5 rounded-md border border-edge bg-panel px-2.5 py-1.5 text-xs font-medium text-neutral-200 transition-colors hover:border-edge-2 hover:bg-panel-2"
+            aria-label={ariaLabel}
+          >
+            <Filter className="h-3.5 w-3.5 text-purple-400" />
+            {options.find((f) => f.id === value)?.label}
+            <ChevronDown className="h-3.5 w-3.5 text-neutral-500" />
+          </button>
+        </DropdownMenuTrigger>
+        <DropdownMenuContent align="end" className="w-60 border-edge bg-panel">
+          {options.map((f) => (
+            <DropdownMenuItem key={f.id} onClick={() => onChange(f.id)} className="flex items-start gap-2 py-2">
+              <Check className={cn('mt-0.5 h-4 w-4', value === f.id ? 'text-purple-400' : 'invisible')} />
+              <span className="min-w-0 flex-1">
+                <span className="block text-sm text-neutral-100">{f.label}</span>
+                <span className="block text-[11px] text-neutral-500">{f.hint}</span>
+              </span>
+              <span className="mt-0.5 shrink-0 tabular-nums text-[11px] text-neutral-500">{f.count}</span>
+            </DropdownMenuItem>
+          ))}
+        </DropdownMenuContent>
+      </DropdownMenu>
+    </div>
+  )
+}
+
 /** The "Scored / Low scored / Unscored / All" menu, with what each choice would show. */
 export function ScoreFilterMenu({ value, onChange, counts }: { value: ScoreFilter; onChange: (f: ScoreFilter) => void; counts: BucketCounts }) {
   const total = counts.above + counts.below + counts.unknown + counts.belowPow
@@ -18,34 +60,13 @@ export function ScoreFilterMenu({ value, onChange, counts }: { value: ScoreFilte
     value !== 'all' && counts.belowPow ? `${counts.belowPow} below PoW floor` : '',
   ].filter(Boolean).join(' · ')
   return (
-    <div className="flex items-center gap-2 text-xs text-neutral-500">
-      {hiddenNote && <span>{hiddenNote} not shown</span>}
-      <DropdownMenu>
-        <DropdownMenuTrigger asChild>
-          <button
-            type="button"
-            className="inline-flex items-center gap-1.5 rounded-md border border-edge bg-panel px-2.5 py-1.5 text-xs font-medium text-neutral-200 transition-colors hover:border-edge-2 hover:bg-panel-2"
-            aria-label="Filter by score"
-          >
-            <Filter className="h-3.5 w-3.5 text-purple-400" />
-            {SCORE_FILTERS.find((f) => f.id === value)?.label}
-            <ChevronDown className="h-3.5 w-3.5 text-neutral-500" />
-          </button>
-        </DropdownMenuTrigger>
-        <DropdownMenuContent align="end" className="w-60 border-edge bg-panel">
-          {SCORE_FILTERS.map((f) => (
-            <DropdownMenuItem key={f.id} onClick={() => onChange(f.id)} className="flex items-start gap-2 py-2">
-              <Check className={cn('mt-0.5 h-4 w-4', value === f.id ? 'text-purple-400' : 'invisible')} />
-              <span className="min-w-0 flex-1">
-                <span className="block text-sm text-neutral-100">{f.label}</span>
-                <span className="block text-[11px] text-neutral-500">{f.hint}</span>
-              </span>
-              <span className="mt-0.5 shrink-0 tabular-nums text-[11px] text-neutral-500">{countFor(f.id)}</span>
-            </DropdownMenuItem>
-          ))}
-        </DropdownMenuContent>
-      </DropdownMenu>
-    </div>
+    <ChoiceMenu
+      value={value}
+      onChange={onChange}
+      options={SCORE_FILTERS.map((f) => ({ ...f, count: countFor(f.id) }))}
+      hiddenNote={hiddenNote || undefined}
+      ariaLabel="Filter by score"
+    />
   )
 }
 
