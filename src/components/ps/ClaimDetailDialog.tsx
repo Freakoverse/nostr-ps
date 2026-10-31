@@ -9,6 +9,7 @@ import { Markdown } from '@/components/shared/Markdown'
 import { Tip } from '@/components/shared/Tip'
 import { formatRelativeTime, formatTimestamp } from '@/lib/utils'
 import { cn } from '@/lib/utils'
+import { verifyClaim, VERIFY_SUM_THRESHOLD } from '@/lib/nostr/trust'
 import { PowBadge } from '@/components/shared/PowBadge'
 
 /**
@@ -35,15 +36,23 @@ export function ClaimDetailDialog({ open, onOpenChange, claim, reviews, mine, on
   const scores = useLensStore((s) => s.scores)
   const threshold = useLensStore((s) => s.threshold)
 
+  const scoreOf = useLensStore((s) => s.scoreOf)
+
   const sorted = useMemo(() => [...reviews].sort((a, b) => b.createdAt - a.createdAt), [reviews])
   const legit = sorted.filter((r) => r.verdict === 'legit')
   const fake = sorted.filter((r) => r.verdict === 'fake')
-  // Above-threshold counts, same rule as the release page's pills.
-  const trusted = useMemo(() => {
+  // Same §6.3 rule as the release page: rank/100 above threshold, else 0; 1 with the lens off.
+  const stats = useMemo(() => {
     void scores; void threshold
-    const count = (rs: Review[]) => rs.filter((r) => !enabled || bucketOf(r.pubkey) === 'above' || bucketOf(r.pubkey) === 'off').length
-    return { legit: count(legit), fake: count(fake) }
-  }, [legit, fake, enabled, bucketOf, scores, threshold])
+    const weightOf = (pk: string) => {
+      if (!enabled) return 1
+      const b = bucketOf(pk)
+      if (b === 'off') return 1
+      if (b !== 'above') return 0
+      return (scoreOf(pk)?.combined ?? 0) / 100
+    }
+    return verifyClaim(reviews, weightOf)
+  }, [reviews, enabled, bucketOf, scoreOf, scores, threshold])
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
@@ -64,9 +73,10 @@ export function ClaimDetailDialog({ open, onOpenChange, claim, reviews, mine, on
               <div className="flex items-center gap-3 text-xs text-neutral-500">
                 <span className="flex items-center gap-1 text-emerald-400"><ShieldCheck className="h-3.5 w-3.5" /> {legit.length} legit</span>
                 <span className="flex items-center gap-1 text-red-400"><ShieldX className="h-3.5 w-3.5" /> {fake.length} fake</span>
-                {enabled && (legit.length + fake.length > trusted.legit + trusted.fake) && (
-                  <span>· {trusted.legit + trusted.fake} above your threshold</span>
+                {enabled && (
+                  <span>· weighted legit {stats.legitWeight.toFixed(2)} / {VERIFY_SUM_THRESHOLD.toFixed(1)}{stats.uncounted ? ` ·  below threshold` : ''}</span>
                 )}
+                <span className={stats.disputed ? 'text-red-300' : stats.verified ? 'text-emerald-300' : 'text-neutral-400'}>· {stats.disputed ? 'disputed' : stats.verified ? 'verified' : 'unverified'}</span>
               </div>
             </div>
             {sorted.length === 0 ? (

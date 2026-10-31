@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BackButton } from '@/components/shared/BackButton'
+import { LensBar } from '@/components/lens/LensBar'
 import { AuthorCard, MetaCard } from '@/components/ps/SideCards'
 import { PowBadge } from '@/components/shared/PowBadge'
 import { Tip } from '@/components/shared/Tip'
@@ -132,6 +133,8 @@ export function DraftPage() {
         <h1 className="text-3xl font-bold tracking-tight">{draft.title}</h1>
         {draft.summary && <Markdown content={draft.summary} className="rounded-lg border border-edge bg-well px-4 py-3 text-[15px] text-neutral-300" />}
       </div>
+
+      <LensBar />
 
       {checking && !latest ? (
         <div className="flex items-center gap-3 rounded-lg border border-edge bg-panel px-4 py-3 text-sm text-neutral-500">

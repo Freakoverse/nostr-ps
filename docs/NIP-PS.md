@@ -497,9 +497,11 @@ it publishes to. How a client fills it:
 - **Logged in.** Read the user's `kind:10040` (NIP-85): the event the user
   signs to say "my ranks come from this provider, at this relay", as
   `["30382:rank", "<provider pubkey>", "<relay>"]`. Add that provider as
-  the user's own. A client MUST NOT publish a 10040 on the user's behalf;
-  choosing who computes your trust is the user's own act. When the user
-  has none, say so and point at where to get one.
+  the user's own. A client MUST NOT publish or change a 10040 except on
+  the user's explicit action, showing exactly what will be signed, and
+  MUST merge into the existing list rather than overwrite entries other
+  services wrote; choosing who computes your trust is the user's own act.
+  When the user has none, say so and point at where to get one.
 - **Anonymous.** A client-side default list of providers, shown on every
   listing and swappable without login.
 - **Anyone.** Any provider key can be added or switched off.

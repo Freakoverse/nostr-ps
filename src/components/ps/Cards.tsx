@@ -120,7 +120,7 @@ export function ProposalCard({ p, verified }: { p: ProposalSummary; verified?: n
             <span className="text-xs text-neutral-500">{p.implementers === 1 ? 'implementer' : 'implementers'}</span>
           </span>
           {verified !== undefined && verified !== p.implementers && (
-            <span className="text-[11px] text-neutral-500"><span className="tabular-nums text-emerald-400">{verified}</span> above threshold</span>
+            <span className="text-[11px] text-neutral-500"><span className="tabular-nums text-emerald-400">{verified}</span> scored</span>
           )}
           {r.forkOf && <Chip><GitFork className="h-3 w-3" /> fork</Chip>}
         </div>
@@ -188,11 +188,15 @@ function ClaimLinks({ claim, onOpen, max = 2, className }: { claim: Claim; onOpe
   )
 }
 
-export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine, menu, className }: {
+export function ClaimCard({ claim, legit = 0, fake = 0, verified = false, disputed = false, onReview, onOpen, mine, menu, className }: {
   className?: string
   claim: Claim
   legit?: number
   fake?: number
+  /** §6.3: weighted legit sum reached the threshold with no counted fake. */
+  verified?: boolean
+  /** A counted reviewer said fake. */
+  disputed?: boolean
   onReview?: () => void
   /** Opens the full claim with its verdicts; the status block becomes a button. */
   onOpen?: () => void
@@ -201,7 +205,7 @@ export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine, 
   /** Three-dot menu slot (ItemMenu). */
   menu?: React.ReactNode
 }) {
-  const status = fake > 0 ? 'disputed' : legit > 0 ? 'verified' : 'unverified'
+  const status = disputed ? 'disputed' : verified ? 'verified' : 'unverified'
   const statusCls = status === 'verified'
     ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300'
     : status === 'disputed'
@@ -282,17 +286,21 @@ export function ClaimCard({ claim, legit = 0, fake = 0, onReview, onOpen, mine, 
  * verification status, and "claimed by" in the footer. The wide ClaimCard
  * stays for the dialog and single-column places.
  */
-export function ClaimTile({ claim, legit = 0, fake = 0, onReview, onOpen, mine, menu, className }: {
+export function ClaimTile({ claim, legit = 0, fake = 0, verified = false, disputed = false, onReview, onOpen, mine, menu, className }: {
   className?: string
   claim: Claim
   legit?: number
   fake?: number
+  /** §6.3: weighted legit sum reached the threshold with no counted fake. */
+  verified?: boolean
+  /** A counted reviewer said fake. */
+  disputed?: boolean
   onReview?: () => void
   onOpen?: () => void
   mine?: boolean
   menu?: React.ReactNode
 }) {
-  const status = fake > 0 ? 'disputed' : legit > 0 ? 'verified' : 'unverified'
+  const status = disputed ? 'disputed' : verified ? 'verified' : 'unverified'
   const statusCls = status === 'verified'
     ? 'border-emerald-500/30 bg-emerald-500/5 text-emerald-300'
     : status === 'disputed'

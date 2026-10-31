@@ -31,6 +31,7 @@ import { ReviewDialog } from '@/components/ps/ReviewDialog'
 import { VersionList } from '@/components/ps/VersionDiff'
 import { ClaimDetailDialog } from '@/components/ps/ClaimDetailDialog'
 import { ItemMenu } from '@/components/ps/ItemMenu'
+import { verifyClaim, tallyRelease, divergenceFlag } from '@/lib/nostr/trust'
 import { AuthorCard, MetaCard, ReferenceCard } from '@/components/ps/SideCards'
 import { PowBadge } from '@/components/shared/PowBadge'
 import { Tip } from '@/components/shared/Tip'
@@ -68,6 +69,7 @@ export function ReleasePage() {
   const scores = useLensStore((s) => s.scores)
   const threshold = useLensStore((s) => s.threshold)
   const bucketOf = useLensStore((s) => s.bucketOf)
+  const scoreOf = useLensStore((s) => s.scoreOf)
   const sources = useLensStore((s) => s.sources)
 
   const id = useMemo(() => {
@@ -134,42 +136,36 @@ export function ReleasePage() {
 
   useSeoMeta(release ? { title: `${release.title} v${release.version}`, description: release.summary ?? release.content.slice(0, 160), type: 'article' } : null)
 
-  // Claim verification counts under the lens (§6.3, simplified: distinct
-  // above-threshold reviewers; any above-threshold "fake" wins).
+  // Reviewer weight under the lens (§6.3): rank/100 above threshold, 0 below
+  // or unknown, 1 for everyone when the lens is off (raw view).
+  const weightOf = useCallback((pk: string): number => {
+    if (!enabled) return 1
+    const b = bucketOf(pk)
+    if (b === 'off') return 1
+    if (b !== 'above') return 0
+    return (scoreOf(pk)?.combined ?? 0) / 100
+  }, [enabled, bucketOf, scoreOf, scores, threshold]) // eslint-disable-line react-hooks/exhaustive-deps
+
+  // Claim verification per §6.3: weighted legit sum reaches 1.0 and no counted fake.
   const claimStats = useMemo(() => {
-    void scores; void threshold
-    const out = new Map<string, { legit: number; fake: number; anyFakeTrusted: boolean }>()
-    for (const c of claims) {
-      let legit = 0; let fake = 0; let anyFakeTrusted = false
-      for (const r of claimReviews.get(c.coord) ?? []) {
-        if (r.target !== 'claim') continue
-        const trusted = !enabled || bucketOf(r.pubkey) === 'above' || bucketOf(r.pubkey) === 'off'
-        if (r.verdict === 'legit') legit++
-        else { fake++; if (trusted) anyFakeTrusted = true }
-      }
-      out.set(c.coord, { legit, fake, anyFakeTrusted })
-    }
+    const out = new Map<string, ReturnType<typeof verifyClaim>>()
+    for (const c of claims) out.set(c.coord, verifyClaim(claimReviews.get(c.coord) ?? [], weightOf))
     return out
-  }, [claims, claimReviews, enabled, bucketOf, scores, threshold])
+  }, [claims, claimReviews, weightOf])
 
   const liveClaims = useMemo(() => claims.filter((c) => !c.withdrawn), [claims])
   const thisVersionClaims = useMemo(() => liveClaims.filter((c) => c.releaseId === release?.id), [liveClaims, release])
+  const rawImplementers = useMemo(() => new Set(liveClaims.map((c) => c.pubkey)).size, [liveClaims])
   const verifiedImplementers = useMemo(() => {
-    void scores; void threshold
     const set = new Set<string>()
-    for (const c of liveClaims) {
-      const st = claimStats.get(c.coord)
-      if (st?.anyFakeTrusted) continue
-      if (!enabled || bucketOf(c.pubkey) === 'above' || bucketOf(c.pubkey) === 'off') set.add(c.pubkey)
-    }
+    for (const c of liveClaims) if (claimStats.get(c.coord)?.verified) set.add(c.pubkey)
     return set.size
-  }, [liveClaims, claimStats, enabled, bucketOf, scores, threshold])
+  }, [liveClaims, claimStats])
+  // §6.8: raw next to verified, flagged when the gap is large.
+  const diverging = enabled && divergenceFlag(rawImplementers, verifiedImplementers)
 
-  const reviewTally = useMemo(() => {
-    const t = { recommend: 0, unsure: 0, 'not-recommend': 0 }
-    for (const r of reviews) if (r.target === 'release') t[r.verdict]++
-    return t
-  }, [reviews])
+  // §6.3 item 4: distinct counted reviewers per verdict, rank-weighted.
+  const reviewTally = useMemo(() => tallyRelease(reviews, weightOf), [reviews, weightOf])
 
   const myClaim = useMemo(() => claims.find((c) => c.pubkey === myPubkey) ?? null, [claims, myPubkey])
   const myReview = useMemo(() => reviews.find((r) => r.pubkey === myPubkey) ?? null, [reviews, myPubkey])
@@ -236,8 +232,20 @@ export function ReleasePage() {
 
       {/* Stats + actions */}
       <div className="grid gap-3 sm:grid-cols-3">
-        <Stat icon={Users} label="Implementers" value={new Set(liveClaims.map((c) => c.pubkey)).size} sub={enabled ? `${verifiedImplementers} above threshold` : `${thisVersionClaims.length} on this version`} />
-        <Stat icon={MessageSquareText} label="Reviews" value={reviews.length} sub={`${reviewTally.recommend} recommend · ${reviewTally['not-recommend']} against · ${reviewTally.unsure} unsure`} />
+        <Stat
+          icon={Users}
+          label="Implementers"
+          value={rawImplementers}
+          sub={enabled
+            ? <span className={diverging ? 'text-amber-400' : undefined}>{verifiedImplementers} verified{diverging ? ' · large gap, treat with suspicion' : ''}</span>
+            : `${thisVersionClaims.length} on this version`}
+        />
+        <Stat
+          icon={MessageSquareText}
+          label="Reviews"
+          value={reviews.length}
+          sub={`${reviewTally.recommend} recommend · ${reviewTally['not-recommend']} against · ${reviewTally.unsure} unsure${enabled ? ` · weighted ${reviewTally.weight.recommend.toFixed(1)} / ${reviewTally.weight['not-recommend'].toFixed(1)} / ${reviewTally.weight.unsure.toFixed(1)}${reviewTally.uncounted ? ` · ${reviewTally.uncounted} below threshold` : ''}` : ''}`}
+        />
         <Stat icon={Archive} label="Backups" value={backups.length} sub={backups.filter((b) => b.release).length === backups.length ? 'all verified' : `${backups.filter((b) => b.release).length} verified`} />
       </div>
 
@@ -321,6 +329,8 @@ export function ReleasePage() {
                 claim={c}
                 legit={st?.legit}
                 fake={st?.fake}
+                verified={st?.verified}
+                disputed={st?.disputed}
                 mine={!!myPubkey && (claimReviews.get(c.coord) ?? []).some((r) => r.pubkey === myPubkey)}
                 onReview={() => (myPubkey ? setClaimReviewTarget(c) : useLoginModalStore.getState().open())}
                 onOpen={() => setClaimDetail(c)}
@@ -411,7 +421,7 @@ function draftHrefOf(coord: string): string | null {
   try { return `/draft/${draftNaddr(pk, rest.join(':'))}` } catch { return null }
 }
 
-function Stat({ icon: Icon, label, value, sub }: { icon: typeof Users; label: string; value: number; sub?: string }) {
+function Stat({ icon: Icon, label, value, sub }: { icon: typeof Users; label: string; value: number; sub?: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-edge bg-panel px-4 py-3">
       <p className="flex items-center gap-1.5 text-xs text-neutral-500"><Icon className="h-3.5 w-3.5 text-purple-400" /> {label}</p>
