@@ -217,7 +217,7 @@ export function ClaimCard({ claim, legit = 0, fake = 0, verified = false, disput
     ? `${legit} legit${fake ? ` · ${fake} fake` : ''}`
     : status === 'disputed'
       ? `${fake} fake${legit ? ` · ${legit} legit` : ''}`
-      : 'no verdicts yet'
+      : legit > 0 ? `${legit} legit, not enough weight yet` : 'no verdicts yet'
   const StatusBlock = (
     <div className={cn('flex items-center gap-2.5 rounded-lg border px-3 py-2 text-left', statusCls, onOpen && 'cursor-pointer transition-colors hover:border-purple-500/40')}>
       <StatusIcon className="h-5 w-5 shrink-0" />
@@ -311,7 +311,7 @@ export function ClaimTile({ claim, legit = 0, fake = 0, verified = false, disput
     ? `Verified · ${legit} legit${fake ? `, ${fake} fake` : ''}`
     : status === 'disputed'
       ? `Disputed · ${fake} fake${legit ? `, ${legit} legit` : ''}`
-      : 'Unverified · no verdicts'
+      : legit > 0 ? `Unverified · ${legit} legit, not enough weight yet` : 'Unverified · no verdicts'
 
   return (
     <div className={cn('flex h-full flex-col rounded-lg border border-edge bg-panel', claim.withdrawn && 'opacity-60', className)}>
