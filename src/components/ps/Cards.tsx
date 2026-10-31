@@ -122,7 +122,7 @@ export function ProposalCard({ p, verified }: { p: ProposalSummary; verified?: n
           {verified !== undefined && verified !== p.implementers && (
             <span className="text-[11px] text-neutral-500"><span className="tabular-nums text-emerald-400">{verified}</span> scored</span>
           )}
-          {r.forkOf && <Chip><GitFork className="h-3 w-3" /> fork</Chip>}
+          {p.releases.some((x) => x.forkOf) && <Tip label="Forked from another proposal"><Chip><GitFork className="h-3 w-3" /> fork</Chip></Tip>}
         </div>
       </div>
       <div className="mt-3 flex flex-wrap items-center gap-x-4 gap-y-2">

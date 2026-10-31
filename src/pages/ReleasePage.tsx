@@ -11,10 +11,10 @@ import { useLoginModalStore } from '@/stores/loginModalStore'
 import { useLensStore, requestScores } from '@/stores/lensStore'
 import { KINDS } from '@/lib/constants'
 import {
-  fetchRelease, fetchReleasesOf, fetchClaimsFor, fetchReleaseReviews, fetchClaimReviews, fetchBackups,
+  fetchRelease, fetchReleasesOf, fetchClaimsFor, fetchReleaseReviews, fetchClaimReviews, fetchBackups, fetchForksOf,
   getCachedRelease, getCachedVersions, getCachedClaimsFor, getCachedReleaseReviews, whenEventCacheReady, shortId,
   draftNaddr, releaseNevent, releaseLabel,
-  type Release, type Claim, type Review, type Backup,
+  type Release, type Claim, type Review, type Backup, type Fork,
 } from '@/lib/nostr/nipps'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
 import { cn } from '@/lib/utils'
@@ -39,6 +39,7 @@ import { Tip } from '@/components/shared/Tip'
 import { formatRelativeTime, formatTimestamp } from '@/lib/utils'
 import { BackupDialog } from '@/components/ps/BackupDialog'
 import { ForkDialog } from '@/components/ps/ForkDialog'
+import { ForkListDialog } from '@/components/ps/ForkListDialog'
 import { CollapsibleBody } from '@/components/shared/CollapsibleBody'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
@@ -53,6 +54,9 @@ export function ReleasePage() {
   const [claimReviews, setClaimReviews] = useState<Map<string, Review[]>>(new Map())
   const [reviews, setReviews] = useState<Review[]>([])
   const [backups, setBackups] = useState<Backup[]>([])
+  const [forks, setForks] = useState<Fork[]>([])
+  const [forksChecked, setForksChecked] = useState(false)
+  const [forkListOpen, setForkListOpen] = useState(false)
   /** What the §6.5 floor excluded on the last fetch, so the switch visibly does something. */
   const [belowFloor, setBelowFloor] = useState({ claims: 0, reviews: 0 })
   const [loading, setLoading] = useState(true)
@@ -92,6 +96,7 @@ export function ReleasePage() {
     let cancelled = false
     setLoading(true)
     setChecked(false)
+    setForks([])
     const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
     ;(async () => {
       // A release is immutable, so a cached copy is the release: paint it and
@@ -129,6 +134,11 @@ export function ReleasePage() {
       setReviews(rvKept)
       setBackups(bk)
       setChecked(true)
+      // Forks point at a parent version by id, so they can only be asked for once the versions are known.
+      setForksChecked(false)
+      fetchForksOf(relays, (vs.length ? vs : [r]).map((v) => v.id))
+        .catch(() => [] as Fork[])
+        .then((fk) => { if (!cancelled) { setForks(fk); setForksChecked(true) } })
       const cr = await fetchClaimReviews(relays, mine.map((c) => c.coord)).catch(() => new Map<string, Review[]>())
       if (!cancelled) setClaimReviews(cr)
     })()
@@ -342,6 +352,25 @@ export function ReleasePage() {
               ))}
             </div>
           )}
+          {/* Forks: a count that opens the list. Other proposals derived from this one, any version. */}
+          <div className={cn('rounded-lg border bg-panel p-3 text-xs transition-colors', forksChecked ? 'border-edge' : 'animate-pulse border-purple-500/30')}>
+            <p className="flex items-center justify-between font-medium uppercase tracking-wider text-neutral-500">
+              Forks
+              {!forksChecked && <span className="flex items-center gap-1 normal-case tracking-normal"><Loader2 className="h-3 w-3 animate-spin" /> checking</span>}
+            </p>
+            {forks.length > 0 ? (
+              <button
+                type="button"
+                onClick={() => setForkListOpen(true)}
+                className="mt-2 flex w-full items-center justify-between rounded-md border border-edge bg-panel-2 px-3 py-2 text-left text-sm text-neutral-200 transition-colors hover:border-purple-500/40 hover:text-purple-300"
+              >
+                <span className="flex items-center gap-2"><GitFork className="h-3.5 w-3.5 text-purple-400" /> {forks.length === 1 ? '1 fork' : `${forks.length} forks`}</span>
+                <span className="text-[11px] text-neutral-500">view</span>
+              </button>
+            ) : (
+              <p className="mt-2 text-neutral-600">{forksChecked ? 'none' : '…'}</p>
+            )}
+          </div>
           <ReferenceCard label={releaseLabel(release)} />
           <MetaCard kinds={release.kinds} topics={release.topics} />
         </aside>
@@ -442,6 +471,7 @@ export function ReleasePage() {
       <ClaimDialog open={claimOpen} onOpenChange={setClaimOpen} release={release} versions={versions} existing={myClaim} onPublished={reload} />
       <BackupDialog open={backupOpen} onOpenChange={setBackupOpen} release={release} existing={myBackup} onPublished={reload} onDeleted={reload} />
       <ForkDialog open={forkOpen} onOpenChange={setForkOpen} release={release} />
+      <ForkListDialog open={forkListOpen} onOpenChange={setForkListOpen} release={release} versions={versions} forks={forks} />
       <ReviewDialog open={reviewOpen} onOpenChange={setReviewOpen} target={{ kind: 'release', release }} existing={myReview} onPublished={reload} />
       {claimDetail && (
         <ClaimDetailDialog

@@ -690,6 +690,42 @@ export async function fetchReleasesOf(relays: string[], pubkey: string, uuid: st
   return all.filter((r) => r.uuid === uuid).sort((a, b) => compareVersions(b.version, a.version))
 }
 
+/** A fork of a proposal: its current release, and which parent version it branched from. */
+export interface Fork {
+  /** The fork's latest known version. */
+  latest: Release
+  /** The fork's first release, the one carrying the `fork` marker. */
+  first: Release
+  /** The parent release it was derived from. */
+  parentId: string
+}
+
+/**
+ * Forks of a proposal (§5): releases whose `e` tag with the `fork` marker
+ * points at any version of it. One bounded `#e` query over the parent's
+ * version ids finds each fork's first release; a limit-1 query per fork then
+ * finds its latest version, as the proposal list does.
+ */
+export async function fetchForksOf(relays: string[], parentIds: string[]): Promise<Fork[]> {
+  if (parentIds.length === 0) return []
+  const want = new Set(parentIds)
+  const evs = await fetchEvents(relays, { kinds: [KINDS.PS_RELEASE], '#e': parentIds, limit: 200 }, 8000)
+  const firsts = dedupeById(parseAll(evs, parseRelease)).filter((r) => r.forkOf && want.has(r.forkOf.id))
+  // One fork per proposal (author + uuid); a fork is a new uuid, so this only folds re-sent duplicates.
+  const byProposal = new Map<string, Release>()
+  for (const r of firsts) {
+    const k = `${r.pubkey}:${r.uuid}`
+    const prev = byProposal.get(k)
+    if (!prev || compareVersions(r.version, prev.version) < 0) byProposal.set(k, r)
+  }
+  const list = [...byProposal.values()]
+  const updates = await fetchLatestUpdates(relays, list).catch(() => [] as Release[])
+  const latestByCoord = new Map(updates.map((u) => [u.draftCoord, u]))
+  return list
+    .map((first) => ({ first, latest: (first.draftCoord && latestByCoord.get(first.draftCoord)) || first, parentId: first.forkOf!.id }))
+    .sort((a, b) => b.latest.createdAt - a.latest.createdAt)
+}
+
 export async function fetchClaimsFor(relays: string[], uuid: string): Promise<Claim[]> {
   const evs = await fetchEvents(relays, { kinds: [KINDS.PS_CLAIM], '#d': [uuid], limit: 500 }, 8000)
   return latestByCoord(parseAll(evs, parseClaim))
