@@ -3,8 +3,11 @@
  *
  * Relays commonly cap events at 64 KB. The largest things we publish are a
  * release body and a backup that wraps a whole release as JSON (so roughly
- * body + tags, escaped). 30,000 characters of body leaves comfortable room
- * for tags, a summary, and the JSON wrapping. Everything else is small.
+ * body + tags, escaped twice). Measured with every other field at its limit,
+ * a 45,000-character English body makes a 48 KB release and a 49 KB backup;
+ * a spec full of JSON examples reaches about 53 KB for the backup. The only
+ * body that still breaks 64 KB is one that is nearly all quotes or three-byte
+ * punctuation, which no real spec is. Everything else is small.
  */
 export const LIMITS = {
   /** Draft and release title. */
@@ -12,7 +15,7 @@ export const LIMITS = {
   /** Draft and release summary. */
   summary: 500,
   /** Draft and release markdown body. */
-  body: 30_000,
+  body: 45_000,
   /** Hashtag count and length (`t` tags). */
   topics: 20,
   topicLength: 40,
