@@ -41,6 +41,7 @@ export function useProposalFeed(tick = 0, batch = BATCH) {
   const ingest = useCallback(async (relays: string[], originals: Release[]): Promise<number> => {
     let fresh = 0
     const newUuids = new Set<string>()
+    const newProposals: { pubkey: string; uuid: string }[] = []
     const newOriginals: Release[] = []
     for (const r of originals) {
       // A cache-seeded release counts as fresh the first time a relay returns
@@ -49,6 +50,7 @@ export function useProposalFeed(tick = 0, batch = BATCH) {
       if (unseen) {
         fresh++
         newOriginals.push(r)
+        if (!newUuids.has(r.uuid)) newProposals.push({ pubkey: r.pubkey, uuid: r.uuid })
         newUuids.add(r.uuid)
       }
       releases.current.set(r.id, r)
@@ -56,7 +58,7 @@ export function useProposalFeed(tick = 0, batch = BATCH) {
     }
     const [updates, got] = await Promise.all([
       newOriginals.length ? fetchLatestUpdates(relays, newOriginals).catch(() => [] as Release[]) : Promise.resolve([] as Release[]),
-      newUuids.size ? fetchClaimsForMany(relays, [...newUuids]).catch(() => new Map<string, Claim[]>()) : Promise.resolve(new Map<string, Claim[]>()),
+      newUuids.size ? fetchClaimsForMany(relays, newProposals).catch(() => new Map<string, Claim[]>()) : Promise.resolve(new Map<string, Claim[]>()),
     ])
     for (const r of updates) releases.current.set(r.id, r)
     for (const u of newUuids) claims.current.set(u, got.get(u) ?? [])

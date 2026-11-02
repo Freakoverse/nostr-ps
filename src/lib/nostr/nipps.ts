@@ -199,6 +199,8 @@ export interface Claim {
   coord: string
   pubkey: string
   uuid: string
+  /** The part of `d` after the uuid: one per piece of software an implementer claims. '' on a claim from before that. */
+  claimId: string
   releaseId: string
   specId: string
   version: string
@@ -326,19 +328,23 @@ export function parseClaim(ev: NostrEvent): Claim | null {
 
 function parseClaimInner(ev: NostrEvent): Claim | null {
   if (ev.kind !== KINDS.PS_CLAIM) return null
-  const uuid = tag(ev, 'd')
+  const d = tag(ev, 'd')
   const releaseId = tag(ev, 'e')
   const v = tag(ev, PS_SPEC_ID_TAG)
   const sid = v ? parseSpecId(v) : null
   const releaseAuthor = tag(ev, 'p')
   const roleRaw = tag(ev, 'role') as ClaimRole | undefined
-  if (!uuid || !releaseId || !sid || !releaseAuthor || !roleRaw || !CLAIM_ROLES.includes(roleRaw)) return null
+  if (!d || !releaseId || !sid || !releaseAuthor || !roleRaw || !CLAIM_ROLES.includes(roleRaw)) return null
+  const uuid = sid.uuid
+  // `d` is `<uuid>:<claim id>`; a bare uuid is a claim from before an implementer could hold several.
+  const claimId = d === uuid ? '' : d.startsWith(`${uuid}:`) ? d.slice(uuid.length + 1) : d
   const scope = tag(ev, 'scope') === 'partial' ? 'partial' : 'full'
   return {
     event: ev,
-    coord: claimCoord(ev.pubkey, uuid),
+    coord: claimCoord(ev.pubkey, d),
     pubkey: ev.pubkey,
     uuid,
+    claimId,
     releaseId,
     specId: v!,
     version: sid.version,
@@ -489,6 +495,8 @@ export function buildBackupEvent(release: NostrEvent, relay?: string): UnsignedE
 export interface ClaimInput {
   release: Release
   releaseRelay?: string
+  /** Keep an existing claim's address: its claim id ('' for a claim that predates several per implementer). Omit for a new claim. */
+  claimId?: string
   role: ClaimRole
   name: string
   implVersion?: string
@@ -501,10 +509,21 @@ export interface ClaimInput {
   withdrawn?: boolean
 }
 
+/** 8 hex characters: enough to tell one implementer's claims on a proposal apart. */
+function randomClaimId(): string {
+  const b = new Uint8Array(4)
+  crypto.getRandomValues(b)
+  return Array.from(b, (x) => x.toString(16).padStart(2, '0')).join('')
+}
+
 export function buildClaimEvent(input: ClaimInput): UnsignedEvent {
   const r = input.release
+  // `d` is `<uuid>:<claim id>`, one per piece of software; a legacy claim keeps its bare-uuid address.
+  const d = input.claimId === undefined ? `${r.uuid}:${randomClaimId()}` : input.claimId === '' ? r.uuid : `${r.uuid}:${input.claimId}`
   const tags: string[][] = [
-    ['d', r.uuid],
+    ['d', d],
+    // The proposal address (§4.4): how claims for a proposal are queried, across all its versions.
+    ['a', draftCoord(r.pubkey, r.uuid)],
     input.releaseRelay ? ['e', r.id, input.releaseRelay] : ['e', r.id],
     [PS_SPEC_ID_TAG, r.specId],
     ['p', r.pubkey],
@@ -729,19 +748,30 @@ export async function fetchForksOf(relays: string[], parentIds: string[]): Promi
   return { forks, capped: evs.length >= FORKS_QUERY_LIMIT }
 }
 
-export async function fetchClaimsFor(relays: string[], uuid: string): Promise<Claim[]> {
-  const evs = await fetchEvents(relays, { kinds: [KINDS.PS_CLAIM], '#d': [uuid], limit: 500 }, 8000)
-  return latestByCoord(parseAll(evs, parseClaim))
+/**
+ * Claims on one proposal, every version: by the proposal address in `a`.
+ * Claims from before that tag carried the bare uuid in `d`, so that is asked
+ * for too until none are left in the wild.
+ */
+export async function fetchClaimsFor(relays: string[], author: string, uuid: string): Promise<Claim[]> {
+  const [byAddress, legacy] = await Promise.all([
+    fetchEvents(relays, { kinds: [KINDS.PS_CLAIM], '#a': [draftCoord(author, uuid)], limit: 500 }, 8000),
+    fetchEvents(relays, { kinds: [KINDS.PS_CLAIM], '#d': [uuid], limit: 500 }, 8000).catch(() => [] as NostrEvent[]),
+  ])
+  return latestByCoord(parseAll([...byAddress, ...legacy], parseClaim))
 }
 
-export async function fetchClaimsForMany(relays: string[], uuids: string[]): Promise<Map<string, Claim[]>> {
+export async function fetchClaimsForMany(relays: string[], proposals: { pubkey: string; uuid: string }[]): Promise<Map<string, Claim[]>> {
   const out = new Map<string, Claim[]>()
-  if (uuids.length === 0) return out
-  // Chunk the #d filter so no single REQ gets too big.
+  if (proposals.length === 0) return out
+  // Chunk the filters so no single REQ gets too big.
   const CHUNK = 50
   const batches: Promise<NostrEvent[]>[] = []
-  for (let i = 0; i < uuids.length; i += CHUNK) {
-    batches.push(fetchEvents(relays, { kinds: [KINDS.PS_CLAIM], '#d': uuids.slice(i, i + CHUNK), limit: 1000 }, 10000))
+  const coords = proposals.map((p) => draftCoord(p.pubkey, p.uuid))
+  const uuids = proposals.map((p) => p.uuid)
+  for (let i = 0; i < proposals.length; i += CHUNK) {
+    batches.push(fetchEvents(relays, { kinds: [KINDS.PS_CLAIM], '#a': coords.slice(i, i + CHUNK), limit: 1000 }, 10000))
+    batches.push(fetchEvents(relays, { kinds: [KINDS.PS_CLAIM], '#d': uuids.slice(i, i + CHUNK), limit: 1000 }, 10000).catch(() => [] as NostrEvent[]))
   }
   const evs = (await Promise.all(batches)).flat()
   for (const c of latestByCoord(parseAll(evs, parseClaim))) {

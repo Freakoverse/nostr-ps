@@ -1,5 +1,5 @@
 import { useEffect, useState } from 'react'
-import { Loader2 } from 'lucide-react'
+import { Loader2, ChevronLeft, Plus } from 'lucide-react'
 import { toast } from 'sonner'
 import { signAndPublish, type PublishStatus } from '@/lib/nostr/publish'
 import { PublishPhase } from '@/components/shared/PublishPhase'
@@ -24,12 +24,14 @@ const ROLE_HINT: Record<ClaimRole, string> = {
 }
 
 /**
- * Publish or update an adoption claim (kind 30851). One live claim per
- * implementer per proposal: saving replaces whatever this pubkey said before,
- * and "Withdraw" republishes it with a `withdrawn` tag rather than deleting.
+ * Publish or update an adoption claim (kind 30851). An implementer may hold
+ * several on one proposal, one per piece of software, each addressable on
+ * its own: with existing claims the dialog opens on a picker (update one, or
+ * add another), and the form keeps a back button to it. "Withdraw"
+ * republishes a claim with a `withdrawn` tag rather than deleting it.
  */
 export function ClaimDialog({
-  open, onOpenChange, release, versions, existing, onPublished,
+  open, onOpenChange, release, versions, mine = [], initial = null, onPublished,
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
@@ -37,10 +39,25 @@ export function ClaimDialog({
   release: Release
   /** Every version of the proposal, newest first; lets the claim point at any of them. */
   versions?: Release[]
-  existing?: Claim | null
+  /** The viewer's own claims on this proposal. */
+  mine?: Claim[]
+  /** A claim to open straight on, skipping the picker (a tile's Edit). */
+  initial?: Claim | null
   onPublished?: () => void
 }) {
   const pubkey = useAuthStore((s) => s.pubkey)
+  // Which claim the form edits (null: a new one), and whether the picker is showing.
+  const [existing, setExisting] = useState<Claim | null>(null)
+  const [stage, setStage] = useState<'pick' | 'form'>('form')
+  const canGoBack = mine.length > 0 && !initial
+  useEffect(() => {
+    if (!open) return
+    if (initial) { setExisting(initial); setStage('form') }
+    else if (mine.length > 0) { setExisting(null); setStage('pick') }
+    else { setExisting(null); setStage('form') }
+    // Decided once per opening; `mine` refreshing underneath must not bounce the user back.
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [open, initial])
   const [role, setRole] = useState<ClaimRole>('client')
   const [name, setName] = useState('')
   const [implVersion, setImplVersion] = useState('')
@@ -96,6 +113,7 @@ export function ClaimDialog({
       name,
       implVersion: implVersion || undefined,
       urls: urls.split('\n').map((u) => u.trim()).filter(Boolean),
+      claimId: existing?.claimId,
       handler: handlerCoord ?? undefined,
       relay: role === 'relay' ? relay || undefined : undefined,
       repo: repoCoord ?? undefined,
@@ -114,13 +132,56 @@ export function ClaimDialog({
   return (
     <Dialog open={open} onOpenChange={(v) => { if (!busy) onOpenChange(v) }}>
       <DialogContent className="border-edge bg-dialog sm:max-w-lg">
+        {stage === 'pick' ? (
+          <>
+            <DialogHeader>
+              <DialogTitle className="text-foreground">Your adoption claims</DialogTitle>
+              <DialogDescription className="text-neutral-400">
+                On <span className="text-neutral-200">{release.title}</span>. One claim per piece of software: pick one to update or withdraw, or add another.
+              </DialogDescription>
+            </DialogHeader>
+            <div className="space-y-2">
+              {mine.map((c) => (
+                <button
+                  key={c.coord}
+                  type="button"
+                  onClick={() => { setExisting(c); setStage('form') }}
+                  className={cn('flex w-full items-center justify-between gap-3 rounded-lg border border-edge bg-panel px-3 py-2.5 text-left transition-colors hover:border-purple-500/40', c.withdrawn && 'opacity-60')}
+                >
+                  <span className="min-w-0">
+                    <span className="block truncate text-sm font-medium text-neutral-100">{c.name}{c.implVersion && <span className="ml-1 font-mono text-xs font-normal text-neutral-500">{c.implVersion}</span>}</span>
+                    <span className="block text-[11px] text-neutral-500">
+                      <span className="capitalize">{c.role}</span> · implements <span className="font-mono">v{c.version}</span>{c.scope === 'partial' && ' · partial'}{c.withdrawn && <span className="text-red-400"> · withdrawn</span>}
+                    </span>
+                  </span>
+                  <span className="shrink-0 text-xs text-neutral-500">Edit</span>
+                </button>
+              ))}
+              <button
+                type="button"
+                onClick={() => { setExisting(null); setStage('form') }}
+                className="flex w-full items-center justify-center gap-1.5 rounded-lg border border-dashed border-edge px-3 py-2.5 text-sm text-neutral-300 transition-colors hover:border-purple-500/40 hover:text-purple-300"
+              >
+                <Plus className="h-4 w-4" /> New claim for other software
+              </button>
+            </div>
+          </>
+        ) : (
+        <>
         <DialogHeader>
-          <DialogTitle className="text-foreground">{existing ? 'Update adoption claim' : 'Claim adoption'}</DialogTitle>
+          <DialogTitle className="flex items-center gap-2 text-foreground">
+            {canGoBack && (
+              <button type="button" onClick={() => setStage('pick')} className="rounded-md p-1 text-neutral-400 hover:bg-edge hover:text-foreground" aria-label="Back to your claims">
+                <ChevronLeft className="h-4 w-4" />
+              </button>
+            )}
+            {existing ? 'Update adoption claim' : 'Claim adoption'}
+          </DialogTitle>
           <DialogDescription className="text-neutral-400">
             &quot;We implement <span className="text-neutral-200">{target.title} v{target.version}</span>.&quot; A claim is a statement by you. Publishing one does not make it true; others can review it.
             {existing && existing.version !== target.version && (
               <span className="mt-2 block rounded-md border border-purple-500/30 bg-purple-500/5 px-3 py-2 text-xs text-neutral-300">
-                Your current claim points at <span className="font-mono">v{existing.version}</span>. Saving moves it to <span className="font-mono">v{target.version}</span>: one claim per proposal, so the old one is replaced, not kept.
+                This claim points at <span className="font-mono">v{existing.version}</span>. Saving moves it to <span className="font-mono">v{target.version}</span>: the claim is replaced in place, not duplicated.
               </span>
             )}
           </DialogDescription>
@@ -143,7 +204,7 @@ export function ClaimDialog({
                   </button>
                 ))}
               </div>
-              <p className="text-[11px] text-neutral-600">One claim per proposal. Picking another version moves the claim; it does not add a second one.</p>
+              <p className="text-[11px] text-neutral-600">Picking another version moves this claim; it does not add a second one.</p>
             </div>
           )}
           <div className="space-y-1.5">
@@ -232,6 +293,8 @@ export function ClaimDialog({
             {existing ? 'Save' : 'Publish claim'}
           </Button>
         </DialogFooter>
+        </>
+        )}
       </DialogContent>
     </Dialog>
   )

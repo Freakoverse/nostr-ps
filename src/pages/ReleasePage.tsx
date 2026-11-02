@@ -74,7 +74,8 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
   const [checked, setChecked] = useState(false)
   const [tick, setTick] = useState(0)
 
-  const [claimOpen, setClaimOpen] = useState(false)
+  // The claim dialog: `initial` is the claim a tile's Edit chose; null opens the picker (or a blank form).
+  const [claimDialog, setClaimDialog] = useState<{ initial: Claim | null } | null>(null)
   const [reviewOpen, setReviewOpen] = useState(false)
   const [claimReviewTarget, setClaimReviewTarget] = useState<Claim | null>(null)
   const [claimDetail, setClaimDetail] = useState<Claim | null>(null)
@@ -133,7 +134,7 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
       }
       const [vs, cs, rv, bk] = await Promise.all([
         fetchReleasesOf(relays, r.pubkey, r.uuid).catch(() => [r]),
-        fetchClaimsFor(relays, r.uuid).catch(() => []),
+        fetchClaimsFor(relays, r.pubkey, r.uuid).catch(() => []),
         fetchReleaseReviews(relays, r.id).catch(() => []),
         fetchBackups(relays, r.id).catch(() => []),
       ])
@@ -229,12 +230,13 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
         mine={!!myPubkey && (claimReviews.get(c.coord) ?? []).some((r) => r.pubkey === myPubkey)}
         onReview={() => (myPubkey ? setClaimReviewTarget(c) : useLoginModalStore.getState().open())}
         onOpen={() => setClaimDetail(c)}
-        menu={<ItemMenu event={c.event} mine={c.pubkey === myPubkey} onEdit={() => setClaimOpen(true)} noun="claim" title={`your claim for ${c.name}`} onDeleted={reload} />}
+        menu={<ItemMenu event={c.event} mine={c.pubkey === myPubkey} onEdit={() => setClaimDialog({ initial: c })} noun="claim" title={`your claim for ${c.name}`} onDeleted={reload} />}
       />
     )
   }
 
-  const myClaim = useMemo(() => claims.find((c) => c.pubkey === myPubkey) ?? null, [claims, myPubkey])
+  // An implementer may hold several claims on one proposal, one per piece of software.
+  const myClaims = useMemo(() => claims.filter((c) => c.pubkey === myPubkey), [claims, myPubkey])
   const myReview = useMemo(() => reviews.find((r) => r.pubkey === myPubkey) ?? null, [reviews, myPubkey])
   const myClaimReview = useMemo(() => {
     if (!claimReviewTarget || !myPubkey) return null
@@ -317,8 +319,8 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
-        <Button size="sm" onClick={() => (myPubkey ? setClaimOpen(true) : useLoginModalStore.getState().open())} className="gap-1.5 bg-purple-600 text-white hover:bg-purple-700">
-          <ShieldCheck className="h-3.5 w-3.5" /> {myClaim && !myClaim.withdrawn ? 'Update my claim' : 'Claim adoption'}
+        <Button size="sm" onClick={() => (myPubkey ? setClaimDialog({ initial: null }) : useLoginModalStore.getState().open())} className="gap-1.5 bg-purple-600 text-white hover:bg-purple-700">
+          <ShieldCheck className="h-3.5 w-3.5" /> {myClaims.some((c) => !c.withdrawn) ? 'Manage my claims' : 'Claim adoption'}
         </Button>
         <Button size="sm" variant="outline" onClick={() => (myPubkey ? setReviewOpen(true) : useLoginModalStore.getState().open())} className="gap-1.5 border-edge">
           <MessageSquareText className="h-3.5 w-3.5" /> {myReview ? 'Edit my review' : 'Review'}
@@ -500,7 +502,7 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
       </TabsContent>
       </Tabs>
 
-      <ClaimDialog open={claimOpen} onOpenChange={setClaimOpen} release={release} versions={versions} existing={myClaim} onPublished={reload} />
+      <ClaimDialog open={!!claimDialog} onOpenChange={(v) => { if (!v) setClaimDialog(null) }} release={release} versions={versions} mine={myClaims} initial={claimDialog?.initial ?? null} onPublished={reload} />
       <BackupDialog open={backupOpen} onOpenChange={setBackupOpen} release={release} existing={myBackup} onPublished={reload} onDeleted={reload} />
       <ForkDialog open={forkOpen} onOpenChange={setForkOpen} release={release} />
       <ForkListDialog open={forkListOpen} onOpenChange={setForkListOpen} release={release} versions={versions} forks={forks} capped={forksCapped} />
@@ -518,7 +520,7 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
             setClaimDetail(null)
             setClaimReviewTarget(c)
           }}
-          claimMenu={<ItemMenu event={claimDetail.event} mine={claimDetail.pubkey === myPubkey} onEdit={() => { setClaimDetail(null); setClaimOpen(true) }} noun="claim" title={`your claim for ${claimDetail.name}`} onDeleted={() => { setClaimDetail(null); reload() }} />}
+          claimMenu={<ItemMenu event={claimDetail.event} mine={claimDetail.pubkey === myPubkey} onEdit={() => { const c = claimDetail; setClaimDetail(null); setClaimDialog({ initial: c }) }} noun="claim" title={`your claim for ${claimDetail.name}`} onDeleted={() => { setClaimDetail(null); reload() }} />}
           menuFor={(r) => (
             <ItemMenu
               event={r.event}

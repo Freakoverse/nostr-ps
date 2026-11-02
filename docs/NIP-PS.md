@@ -289,8 +289,9 @@ Rules:
 ### 4.4 Adoption claim (`kind:30851`)
 
 "We implement `<title>` v`<version>` by `<author>` (`<release id>`)."
-Published by the implementer. Addressable so the implementer can move to a
-newer version or withdraw.
+Published by the implementer, one claim per piece of software: a developer
+with a client and a relay publishes two. Addressable so each can be moved to
+a newer version or withdrawn on its own.
 
 ```jsonc
 {
@@ -298,7 +299,8 @@ newer version or withdraw.
   "pubkey": "<implementer>",
   "content": "<optional notes: scope, caveats, partial support>",
   "tags": [
-    ["d", "<uuid>"],                                  // REQUIRED, one claim per proposal
+    ["d", "<uuid>:<claim id>"],                       // REQUIRED, one per piece of software
+    ["a", "30817:<release author>:<uuid>"],           // REQUIRED, the proposal address
     ["e", "<release event id>", "<relay>"],           // REQUIRED, exact release implemented
     ["v", "<uuid>:<version>"],                        // REQUIRED, spec id of that release
     ["p", "<release author>", "<relay>"],             // REQUIRED
@@ -322,9 +324,15 @@ newer version or withdraw.
 
 Rules:
 
-- `d` is the proposal uuid, so each implementer has exactly one live claim
-  per proposal. Moving from v2 to v3 replaces the claim. A fork has its own
-  uuid and therefore its own claim.
+- `d` is the proposal uuid followed by `:` and a claim id the implementer
+  chooses, unique among their claims on that proposal (this client uses 8
+  random hex characters). One live claim per piece of software; moving one
+  from v2 to v3 replaces it in place. A claim whose `d` is the bare uuid
+  predates this rule and is read as one claim. A fork has its own uuid and
+  therefore its own claims.
+- `a` is the proposal address, `30817:<release author>:<uuid>`, whether or
+  not a draft event exists at it. Clients query the claims on a proposal by
+  `#a`, which spans every version, rather than by `d`.
 - `e` is REQUIRED and is the identity of what was implemented. `v` and `p`
   duplicate information derivable from the release so that claims can be
   queried by spec id and by author without fetching every release.

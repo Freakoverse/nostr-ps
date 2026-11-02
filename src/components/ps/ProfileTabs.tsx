@@ -106,7 +106,7 @@ export function ReleasesTab({ pubkey }: { pubkey: string }) {
       const originals = await fetchReleases(relays, { authors: [pubkey], [`#${PS_ORIGIN_TAG}`]: ['original'], limit: 500 })
       const [updates, claims] = await Promise.all([
         fetchLatestUpdates(relays, originals).catch(() => [] as Release[]),
-        fetchClaimsForMany(relays, [...new Set(originals.map((r) => r.uuid))]).catch(() => new Map<string, Claim[]>()),
+        fetchClaimsForMany(relays, [...new Map(originals.map((r) => [r.uuid, { pubkey, uuid: r.uuid }])).values()]).catch(() => new Map<string, Claim[]>()),
       ])
       return summarizeProposals([...originals, ...updates], claims, rawPowFloor()).sort((a, b) => b.latest.createdAt - a.latest.createdAt)
     },
