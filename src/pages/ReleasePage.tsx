@@ -5,7 +5,7 @@ import { nip19, type Event as NostrEvent } from 'nostr-tools'
 import { releaseLinks } from '@/lib/nostr/postLinks'
 import { useShortUrl } from '@/hooks/useShortUrl'
 import {
-  Loader2, GitFork, Archive, Users, MessageSquareText, ShieldCheck, FileText, Rocket, RotateCcw,
+  Loader2, GitFork, Archive, Users, MessageSquareText, ShieldCheck, FileText, Rocket, RotateCcw, Package,
 } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -196,6 +196,8 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
     for (const c of liveClaims) if (claimStats.get(c.coord)?.confirmed) set.add(c.pubkey)
     return set.size
   }, [liveClaims, claimStats])
+  // Implementers are distinct people; implementations are pieces of software (one per live claim), which is more when someone ships several.
+  const confirmedImplementations = useMemo(() => liveClaims.filter((c) => claimStats.get(c.coord)?.confirmed).length, [liveClaims, claimStats])
   // §6.8: raw next to confirmed, flagged when the gap is large.
   const diverging = enabled && divergenceFlag(rawImplementers, confirmedImplementers)
 
@@ -215,7 +217,7 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
 
   // §6.6 tiers. `all` keeps relay order for the raw view; `rest` is sorted by the
   // claimant's rank (usage would come first per spec, once observed), withdrawn last.
-  const [tier, setTier] = useState<'confirmed' | 'contested' | 'unconfirmed' | 'all'>('confirmed')
+  const [tier, setTier] = useState<'confirmed' | 'contested' | 'unconfirmed' | 'all'>('all')
   const claimsInView = useMemo(() => (claimVersion === ALL_VERSIONS ? claims : claims.filter((c) => c.releaseId === claimVersion)), [claims, claimVersion])
   const claimVersionCounts = useMemo(() => {
     const m = new Map<string, number>()
@@ -320,13 +322,21 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
       <LensBar />
 
       {/* Stats + actions */}
-      <div className="grid gap-3 sm:grid-cols-3">
+      <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat
           icon={Users}
           label="Implementers"
           value={rawImplementers}
           sub={enabled
             ? <span className={diverging ? 'text-amber-400' : undefined}>{confirmedImplementers} confirmed{diverging ? ' · large gap, treat with suspicion' : ''}</span>
+            : 'distinct people'}
+        />
+        <Stat
+          icon={Package}
+          label="Implementations"
+          value={liveClaims.length}
+          sub={enabled
+            ? `${confirmedImplementations} confirmed`
             : `${thisVersionClaims.length} on this version`}
         />
         <Stat
