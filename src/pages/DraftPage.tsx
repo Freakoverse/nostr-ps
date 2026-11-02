@@ -189,8 +189,8 @@ export function DraftPage({ resolved }: { resolved?: NostrEvent } = {}) {
         </article>
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
           <AuthorCard pubkey={draft.pubkey} />
-          {links && <ShareCard url={links.bestUrl} text={`${draft.title} (draft)`} isShort={!!links.shortUrl} />}
           <MetaCard kinds={draft.kinds} topics={draft.topics} />
+          {links && <ShareCard url={links.bestUrl} text={`${draft.title} (draft)`} isShort={!!links.shortUrl} />}
         </aside>
       </div>
 

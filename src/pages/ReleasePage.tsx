@@ -387,9 +387,9 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
               <p className="mt-2 text-neutral-600">{forksChecked ? 'none' : '…'}</p>
             )}
           </div>
-          {links && <ShareCard url={links.bestUrl} text={`${release.title} v${release.version}`} isShort={!!links.shortUrl} />}
           <ReferenceCard label={releaseLabel(release)} />
           <MetaCard kinds={release.kinds} topics={release.topics} />
+          {links && <ShareCard url={links.bestUrl} text={`${release.title} v${release.version}`} isShort={!!links.shortUrl} />}
         </aside>
       </div>
 

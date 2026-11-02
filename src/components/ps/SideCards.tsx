@@ -70,11 +70,9 @@ export function ReferenceCard({ label }: { label: string }) {
 // ─── Share ──────────────────────────────────────────────────────────
 
 const SHARE_TARGETS: { id: string; label: string; href: (url: string, text: string) => string }[] = [
-  { id: 'x', label: 'X', href: (url, text) => `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}` },
-  { id: 'bluesky', label: 'Bluesky', href: (url, text) => `https://bsky.app/intent/compose?text=${encodeURIComponent(`${text} ${url}`)}` },
-  { id: 'telegram', label: 'Telegram', href: (url, text) => `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}` },
+  { id: 'x', label: 'X/Twitter', href: (url, text) => `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}` },
+  { id: 'facebook', label: 'Facebook', href: (url) => `https://www.facebook.com/sharer/sharer.php?u=${encodeURIComponent(url)}` },
   { id: 'reddit', label: 'Reddit', href: (url, text) => `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}` },
-  { id: 'email', label: 'Email', href: (url, text) => `mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(url)}` },
 ]
 
 /**
