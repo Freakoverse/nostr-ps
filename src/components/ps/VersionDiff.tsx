@@ -30,24 +30,27 @@ function DiffBetween({ older, newer }: { older: Release; newer: Release }) {
   const lines = useMemo(() => diffLines(older.content, newer.content), [older.content, newer.content])
   const stats = useMemo(() => diffStats(lines), [lines])
   const metaChanged = older.title !== newer.title || (older.summary ?? '') !== (newer.summary ?? '')
+  // A version rebuilt from referencing events carries no signed body, so there
+  // is nothing to diff against; show that instead of a spurious mass deletion.
+  const unavailable = !older.event.sig || !newer.event.sig
   const nothing = stats.added === 0 && stats.removed === 0 && !metaChanged
 
   return (
     <>
       <div className="flex items-center gap-2 px-3 py-0.5">
         <span className="h-3 w-px bg-edge" />
-        <Tip label={nothing ? 'No text changes between these versions' : `Changes from v${older.version} to v${newer.version}`}>
+        <Tip label={unavailable ? 'One of these versions has no recoverable body, so there is nothing to diff' : nothing ? 'No text changes between these versions' : `Changes from v${older.version} to v${newer.version}`}>
         <button
           type="button"
           onClick={() => setOpen(true)}
-          disabled={nothing}
+          disabled={nothing || unavailable}
           className={cn(
             'flex items-center gap-1.5 rounded-md border px-1.5 py-0.5 font-mono text-[11px] transition-colors',
-            nothing ? 'cursor-default border-edge text-neutral-600' : 'border-edge text-neutral-400 hover:border-purple-500/40 hover:text-neutral-200',
+            nothing || unavailable ? 'cursor-default border-edge text-neutral-600' : 'border-edge text-neutral-400 hover:border-purple-500/40 hover:text-neutral-200',
           )}
         >
           <ChevronsUpDown className="h-3 w-3" />
-          {nothing ? 'no change' : (
+          {unavailable ? 'body unavailable' : nothing ? 'no change' : (
             <>
               <span className="text-emerald-400">+{stats.added}</span>
               <span className="text-red-400">−{stats.removed}</span>

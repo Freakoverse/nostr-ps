@@ -16,7 +16,7 @@ import { KINDS } from '@/lib/constants'
 import {
   fetchLiveRelease, fetchReleaseRefs, reconstructRelease, fetchReleasesOf, fetchClaimsFor, fetchReleaseReviews, fetchClaimReviews, fetchBackups, fetchForksOf,
   getCachedRelease, getCachedVersions, getCachedClaimsFor, getCachedReleaseReviews, whenEventCacheReady, shortId,
-  draftNaddr, releaseNevent, releaseLabel, parseRelease,
+  draftNaddr, releaseNevent, releaseLabel, parseRelease, compareVersions,
   type Release, type Claim, type Review, type Backup, type Fork,
 } from '@/lib/nostr/nipps'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
@@ -160,27 +160,28 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
       if (src === 'live') ensureEventPresent(r.event)
       // Instant paint of what the cache already knows around this release.
       {
-        const cvs = getCachedVersions(r.pubkey, r.uuid)
-        const lineage = new Set((cvs.length ? cvs : [r]).map((v) => v.id))
-        setVersions(cvs.length ? cvs : [r])
+        const cvs = mergeCurrentVersion(getCachedVersions(r.pubkey, r.uuid), r, simulate)
+        const lineage = new Set(cvs.map((v) => v.id))
+        setVersions(cvs)
         setClaims(getCachedClaimsFor(r.uuid).filter((c) => c.releaseAuthor === r.pubkey && lineage.has(c.releaseId) && passesRawPow(c.event)))
         setReviews(getCachedReleaseReviews(r.uuid).filter((x) => passesRawPow(x.event)))
       }
       // Versions first: a release review on an older version is found by that version's id, so the ids are needed to query.
-      const [vs, cs, bk] = await Promise.all([
-        fetchReleasesOf(relays, r.pubkey, r.uuid).catch(() => [r]),
+      const [vsFetched, cs, bk] = await Promise.all([
+        fetchReleasesOf(relays, r.pubkey, r.uuid).catch(() => []),
         fetchClaimsFor(relays, r.pubkey, r.uuid).catch(() => []),
         fetchBackups(relays, r.id).catch(() => []),
       ])
       if (cancelled) return
+      const vs = mergeCurrentVersion(vsFetched, r, simulate)
       const lineageIds = new Set(vs.map((v) => v.id))
-      const rv = await fetchReleaseReviews(relays, r.pubkey, r.uuid, (vs.length ? vs : [r]).map((v) => v.id)).catch(() => [] as Review[])
+      const rv = await fetchReleaseReviews(relays, r.pubkey, r.uuid, vs.map((v) => v.id)).catch(() => [] as Review[])
       if (cancelled) return
       const inLineage = cs.filter((c) => c.releaseAuthor === r.pubkey && lineageIds.has(c.releaseId))
       const mine = inLineage.filter((c) => passesRawPow(c.event))
       const rvKept = rv.filter((x) => passesRawPow(x.event))
       setBelowFloor({ claims: inLineage.length - mine.length, reviews: rv.length - rvKept.length })
-      setVersions(vs.length ? vs : [r])
+      setVersions(vs)
       setClaims(mine)
       setReviews(rvKept)
       setBackups(bk)
@@ -638,6 +639,17 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
       )}
     </div>
   )
+}
+
+/**
+ * Keep the current release in its own version list. When its live event is
+ * missing — really deleted, or simulated missing — the fetch does not return
+ * it (and in the simulated case still does, so `simulate` drops it first), so
+ * the recovered copy (backup body or reconstructed shell) stands in its place.
+ */
+function mergeCurrentVersion(list: Release[], current: Release, simulate: boolean): Release[] {
+  const base = simulate ? list.filter((v) => v.id !== current.id) : list
+  return base.some((v) => v.id === current.id) ? base : [...base, current].sort((a, b) => compareVersions(b.version, a.version))
 }
 
 function perVersion(claims: Claim[]): Record<string, number> {
