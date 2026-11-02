@@ -14,7 +14,7 @@ import { useLensStore, requestScores, DEFAULT_CONFIRM_THRESHOLD } from '@/stores
 import { Slider } from '@/components/ui/slider'
 import { KINDS } from '@/lib/constants'
 import {
-  fetchLiveRelease, fetchReleaseRefs, reconstructRelease, fetchReleasesOf, fetchClaimsFor, fetchReleaseReviews, fetchClaimReviews, fetchBackups, fetchForksOf,
+  fetchLiveRelease, fetchReleaseRefs, reconstructRelease, fetchReleasesOf, fetchClaimsFor, fetchReleaseReviews, fetchClaimReviews, fetchBackups, fetchBackupsForMany, fetchForksOf,
   getCachedRelease, getCachedVersions, getCachedClaimsFor, getCachedReleaseReviews, whenEventCacheReady, shortId,
   draftNaddr, releaseNevent, releaseLabel, parseRelease, compareVersions,
   type Release, type Claim, type Review, type Backup, type Fork,
@@ -43,6 +43,7 @@ import { PowBadge } from '@/components/shared/PowBadge'
 import { Tip } from '@/components/shared/Tip'
 import { formatRelativeTime, formatTimestamp } from '@/lib/utils'
 import { BackupDialog } from '@/components/ps/BackupDialog'
+import { BackupListDialog } from '@/components/ps/BackupListDialog'
 import { ForkDialog } from '@/components/ps/ForkDialog'
 import { ForkListDialog } from '@/components/ps/ForkListDialog'
 import { CollapsibleBody } from '@/components/shared/CollapsibleBody'
@@ -69,6 +70,10 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
   const [claimReviews, setClaimReviews] = useState<Map<string, Review[]>>(new Map())
   const [reviews, setReviews] = useState<Review[]>([])
   const [backups, setBackups] = useState<Backup[]>([])
+  // Backups across every version, for the informative backups modal.
+  const [allBackups, setAllBackups] = useState<Backup[]>([])
+  const [backupsChecked, setBackupsChecked] = useState(false)
+  const [backupListOpen, setBackupListOpen] = useState(false)
   const [forks, setForks] = useState<Fork[]>([])
   const [forksCapped, setForksCapped] = useState(false)
   const [forksChecked, setForksChecked] = useState(false)
@@ -121,6 +126,8 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
     setLoading(true)
     setChecked(false)
     setForks([])
+    setAllBackups([])
+    setBackupsChecked(false)
     setRendered(false)
     setSource('live')
     const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
@@ -191,6 +198,10 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
       fetchForksOf(relays, (vs.length ? vs : [r]).map((v) => v.id))
         .catch(() => ({ forks: [] as Fork[], capped: false }))
         .then((fk) => { if (!cancelled) { setForks(fk.forks); setForksCapped(fk.capped); setForksChecked(true) } })
+      // Backups across every version, for the informative modal (the stat tile still counts this version's).
+      fetchBackupsForMany(relays, vs.map((v) => v.id))
+        .catch(() => [] as Backup[])
+        .then((all) => { if (!cancelled) { setAllBackups(all); setBackupsChecked(true) } })
       const cr = await fetchClaimReviews(relays, mine.map((c) => c.coord)).catch(() => new Map<string, Review[]>())
       if (!cancelled) setClaimReviews(cr)
     })()
@@ -385,7 +396,7 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
       <div className="grid grid-cols-2 gap-3 lg:grid-cols-4">
         <Stat
           icon={Users}
-          label="Implementers"
+          label="Implementers (Claimants)"
           value={rawImplementers}
           sub={enabled
             ? <span className={diverging ? 'text-amber-400' : undefined}>{confirmedImplementers} confirmed{diverging ? ' · large gap, treat with suspicion' : ''}</span>
@@ -393,7 +404,7 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
         />
         <Stat
           icon={Package}
-          label="Implementations"
+          label="Implementations (Claims)"
           value={liveClaims.length}
           sub={enabled
             ? `${confirmedImplementations} confirmed`
@@ -405,7 +416,7 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
           value={reviews.length}
           sub={`${reviewTally.recommend} recommend · ${reviewTally['not-recommend']} against · ${reviewTally.unsure} unsure${enabled ? ` · weighted ${reviewTally.weight.recommend.toFixed(1)} / ${reviewTally.weight['not-recommend'].toFixed(1)} / ${reviewTally.weight.unsure.toFixed(1)}${reviewTally.uncounted ? ` · ${reviewTally.uncounted} below threshold` : ''}` : ''}`}
         />
-        <Stat icon={Archive} label="Backups" value={backups.length} sub={backups.filter((b) => b.release).length === backups.length ? 'all verified' : `${backups.filter((b) => b.release).length} verified`} />
+        <Stat icon={Archive} label="Backups" value={backups.length} sub={backups.filter((b) => b.release).length === backups.length ? 'all verified' : `${backups.filter((b) => b.release).length} verified`} onClick={() => setBackupListOpen(true)} hint="See all versions" />
       </div>
 
       <div className="flex flex-wrap items-center gap-2">
@@ -617,6 +628,7 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
       <BackupDialog open={backupOpen} onOpenChange={setBackupOpen} release={release} existing={myBackup} onPublished={reload} onDeleted={reload} />
       <ForkDialog open={forkOpen} onOpenChange={setForkOpen} release={release} />
       <ForkListDialog open={forkListOpen} onOpenChange={setForkListOpen} release={release} versions={versions} forks={forks} capped={forksCapped} />
+      <BackupListDialog open={backupListOpen} onOpenChange={setBackupListOpen} release={release} versions={versions} backups={allBackups} checked={backupsChecked} />
       <ReviewDialog open={reviewOpen} onOpenChange={setReviewOpen} target={{ kind: 'release', release }} versions={versions} existing={myReview} onPublished={reload} />
       {claimDetail && (
         <ClaimDetailDialog
@@ -674,13 +686,21 @@ function draftHrefOf(coord: string): string | null {
   try { return `/draft/${draftNaddr(pk, rest.join(':'))}` } catch { return null }
 }
 
-function Stat({ icon: Icon, label, value, sub }: { icon: typeof Users; label: string; value: number; sub?: React.ReactNode }) {
-  return (
-    <div className="rounded-lg border border-edge bg-panel px-4 py-3">
+function Stat({ icon: Icon, label, value, sub, onClick, hint }: { icon: typeof Users; label: string; value: number; sub?: React.ReactNode; onClick?: () => void; hint?: string }) {
+  const inner = (
+    <>
       <p className="flex items-center gap-1.5 text-xs text-neutral-500"><Icon className="h-3.5 w-3.5 text-purple-400" /> {label}</p>
       <p className="mt-1 text-2xl font-semibold tabular-nums text-neutral-100">{value}</p>
       {sub && <p className="text-[11px] text-neutral-500">{sub}</p>}
-    </div>
+    </>
+  )
+  const base = 'rounded-lg border border-edge bg-panel px-4 py-3'
+  if (!onClick) return <div className={base}>{inner}</div>
+  return (
+    <button type="button" onClick={onClick} className={cn(base, 'group relative w-full text-left transition-colors hover:border-purple-500/40')}>
+      {inner}
+      {hint && <span className="pointer-events-none absolute right-3 top-3 text-[10px] text-neutral-600 opacity-0 transition-opacity group-hover:opacity-100">{hint}</span>}
+    </button>
   )
 }
 

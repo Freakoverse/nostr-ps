@@ -883,6 +883,13 @@ export async function fetchBackups(relays: string[], releaseId: string): Promise
   return dedupeById(parseAll(evs, parseBackup))
 }
 
+/** Backups for several release ids (every version of a proposal) in one query. */
+export async function fetchBackupsForMany(relays: string[], releaseIds: string[]): Promise<Backup[]> {
+  if (!releaseIds.length) return []
+  const evs = await fetchEvents(relays, { kinds: [KINDS.PS_BACKUP], '#e': releaseIds, limit: 200 }, 8000)
+  return dedupeById(parseAll(evs, parseBackup))
+}
+
 /** Releases that reference a draft, by address or by uuid prefix (§6.1). */
 export async function fetchReleasesForDraft(relays: string[], draft: Draft): Promise<Release[]> {
   const [byAddr, byAuthor] = await Promise.all([
