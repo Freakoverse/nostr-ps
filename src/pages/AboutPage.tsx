@@ -36,8 +36,9 @@ export function AboutPage() {
 
       <Section title="Adoption claims">
         <p>
-          An implementer publishes a claim: "we implement this release." One live claim per
-          implementer per proposal, replaced when they move to a newer version. A claim is a
+          An implementer publishes a claim: "we implement this release." One claim per piece of
+          software, so a developer with a client and a relay publishes two, each replaced in place
+          when it moves to a newer version. A claim is a
           statement, not a fact. Publishing one does not make it true.
         </p>
         <p>
