@@ -5,7 +5,7 @@ import { nip19, type Event as NostrEvent } from 'nostr-tools'
 import { releaseLinks } from '@/lib/nostr/postLinks'
 import { useShortUrl } from '@/hooks/useShortUrl'
 import {
-  Loader2, GitFork, Archive, Users, MessageSquareText, ShieldCheck, FileText, Rocket, RotateCcw, Package,
+  Loader2, GitFork, Archive, Users, MessageSquareText, ShieldCheck, FileText, Rocket, RotateCcw, Package, AlertCircle,
 } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
@@ -14,7 +14,7 @@ import { useLensStore, requestScores, DEFAULT_CONFIRM_THRESHOLD } from '@/stores
 import { Slider } from '@/components/ui/slider'
 import { KINDS } from '@/lib/constants'
 import {
-  fetchRelease, fetchReleasesOf, fetchClaimsFor, fetchReleaseReviews, fetchClaimReviews, fetchBackups, fetchForksOf,
+  fetchLiveRelease, fetchReleaseRefs, reconstructRelease, fetchReleasesOf, fetchClaimsFor, fetchReleaseReviews, fetchClaimReviews, fetchBackups, fetchForksOf,
   getCachedRelease, getCachedVersions, getCachedClaimsFor, getCachedReleaseReviews, whenEventCacheReady, shortId,
   draftNaddr, releaseNevent, releaseLabel, parseRelease,
   type Release, type Claim, type Review, type Backup, type Fork,
@@ -55,6 +55,10 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
   const { nevent } = useParams<{ nevent: string }>()
   const myPubkey = useAuthStore((s) => s.pubkey)
   const [release, setRelease] = useState<Release | null>(null)
+  // Where the release came from: a live event, a backup's signed copy, or a stub rebuilt from referencing events.
+  const [source, setSource] = useState<'live' | 'backup' | 'reconstructed'>('live')
+  // Whether the viewer chose to render a non-live body (from a backup).
+  const [rendered, setRendered] = useState(false)
   const [versions, setVersions] = useState<Release[]>([])
   const [claims, setClaims] = useState<Claim[]>([])
   const [claimReviews, setClaimReviews] = useState<Map<string, Review[]>>(new Map())
@@ -65,7 +69,7 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
   const [forksChecked, setForksChecked] = useState(false)
   const [forkListOpen, setForkListOpen] = useState(false)
   // Every address of this release; the short one goes into the address bar and the share controls.
-  const links = useMemo(() => (release ? releaseLinks(release) : null), [release])
+  const links = useMemo(() => (release && source !== "reconstructed" ? releaseLinks(release) : null), [release, source])
   useShortUrl(links)
   /** What the §6.5 floor excluded on the last fetch, so the switch visibly does something. */
   const [belowFloor, setBelowFloor] = useState({ claims: 0, reviews: 0 })
@@ -111,20 +115,41 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
     setLoading(true)
     setChecked(false)
     setForks([])
+    setRendered(false)
+    setSource('live')
     const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
     ;(async () => {
-      // A release is immutable, so a cached copy is the release: paint it and
-      // skip the fetch. Only the data around it (versions, claims, reviews,
-      // backups) is loaded from relays.
+      // A release is immutable, so a cached copy paints instantly. Only the data
+      // around it (versions, claims, reviews, backups) is loaded from relays.
       await whenEventCacheReady
       if (cancelled) return
-      const r = getCachedRelease(id) ?? (resolved?.id === id ? parseRelease(resolved) : null) ?? await fetchRelease(relays, id)
+      const cached = getCachedRelease(id) ?? (resolved?.id === id ? parseRelease(resolved) : null)
+      if (cached) { setRelease(cached); setLoading(false) }
+      // Authoritative: is the live event actually there? If not, recover from a
+      // backup, or rebuild a shell from events that still reference it.
+      const live = await fetchLiveRelease(relays, id)
       if (cancelled) return
+      let r = live
+      let src: 'live' | 'backup' | 'reconstructed' = 'live'
+      if (!live) {
+        const [bks, refs] = await Promise.all([
+          fetchBackups(relays, id).catch(() => [] as Backup[]),
+          fetchReleaseRefs(relays, id).catch(() => null),
+        ])
+        if (cancelled) return
+        setBackups(bks)
+        const fromBackup = bks.find((b) => b.release)?.release ?? null
+        if (fromBackup) { r = fromBackup; src = 'backup' }
+        else if (refs) { r = reconstructRelease(id, refs.author, refs.uuid, refs.version); src = 'reconstructed' }
+        else r = null
+      }
+      if (cancelled) return
+      setSource(src)
       setRelease(r)
       setLoading(false)
       if (!r) return
-      // Cooperative replication: every reader checks the release is on enough relays and rebroadcasts if not.
-      ensureEventPresent(r.event)
+      // Cooperative replication only for a live event: never rebroadcast a deleted release or a stub.
+      if (src === 'live') ensureEventPresent(r.event)
       // Instant paint of what the cache already knows around this release.
       {
         const cvs = getCachedVersions(r.pubkey, r.uuid)
@@ -267,8 +292,11 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
 
   if (!id) return <Missing text="That is not a release address." />
   if (loading) return <div className="flex items-center justify-center gap-2 py-24 text-sm text-neutral-500"><Loader2 className="h-5 w-5 animate-spin" /> Loading release…</div>
-  if (!release) return <Missing text="Release not found on your relays, and no verified backup either." />
+  if (!release) return <Missing text="This release was not found on your relays, and nothing references it (no backup, claim, review, or comment)." />
 
+  const isLive = source === "live"
+  const hasEvent = source !== "reconstructed"
+  const showBody = isLive || rendered
   const isLatest = versions[0]?.id === release.id
   const draftHref = release.draftCoord ? draftHrefOf(release.draftCoord) : null
   const myBackup = backups.find((b) => b.pubkey === myPubkey) ?? null
@@ -292,7 +320,12 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
           <div className="flex flex-wrap items-center gap-2">
-          <Chip className="border-emerald-500/30 text-emerald-400">release</Chip>
+          <Chip className={isLive ? 'border-emerald-500/30 text-emerald-400' : 'border-amber-500/30 text-amber-400'}>release</Chip>
+          {!isLive && (
+            <Tip label={source === 'backup' ? 'The live event was not found. Details come from a verified backup.' : 'The live event was not found and has no backup. Details are rebuilt from events that reference it.'}>
+              <Chip className="border-amber-500/30 text-amber-400">{source === 'backup' ? 'from backup' : 'event not found'}</Chip>
+            </Tip>
+          )}
           <Chip className="font-mono">v{release.version}</Chip>
           <PowBadge id={release.id} />
           <Tip label={formatTimestamp(release.createdAt)}><Chip className="text-neutral-400">published {formatRelativeTime(release.createdAt)}</Chip></Tip>
@@ -307,15 +340,17 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
             </Link>
           )}
           </div>
-          <PostMenu event={release.event} share={links ? { links, title: `${release.title} v${release.version}` } : undefined}>
-            {draftHref && (
-              <DropdownMenuItem asChild className="cursor-pointer">
-                <Link to={draftHref}><FileText className="h-4 w-4 mr-2" /> Open draft</Link>
-              </DropdownMenuItem>
-            )}
-          </PostMenu>
+          {hasEvent && (
+            <PostMenu event={release.event} share={links ? { links, title: `${release.title} v${release.version}` } : undefined}>
+              {draftHref && (
+                <DropdownMenuItem asChild className="cursor-pointer">
+                  <Link to={draftHref}><FileText className="h-4 w-4 mr-2" /> Open draft</Link>
+                </DropdownMenuItem>
+              )}
+            </PostMenu>
+          )}
         </div>
-        <h1 className="text-3xl font-bold tracking-tight">{release.title}</h1>
+        <h1 className="text-3xl font-bold tracking-tight">{release.title || (isLive ? '' : `Release ${shortId(release.id)}`)}{!release.title && !isLive && <span className="ml-2 text-base font-normal text-neutral-500">title unavailable</span>}</h1>
         {release.summary && <Markdown content={release.summary} className="rounded-lg border border-edge bg-well px-4 py-3 text-[15px] text-neutral-300" />}
       </div>
 
@@ -355,23 +390,39 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
         <Button size="sm" variant="outline" onClick={() => (myPubkey ? setReviewOpen(true) : useLoginModalStore.getState().open())} className="gap-1.5 border-edge">
           <MessageSquareText className="h-3.5 w-3.5" /> {myReview ? 'Edit my review' : 'Review'}
         </Button>
-        <Button size="sm" variant="outline" onClick={backup} className="gap-1.5 border-edge">
-          <Archive className="h-3.5 w-3.5" /> {myBackup ? 'Backed up' : 'Back up'}
-        </Button>
+        {hasEvent && (
+          <Button size="sm" variant="outline" onClick={backup} className="gap-1.5 border-edge">
+            <Archive className="h-3.5 w-3.5" /> {myBackup ? 'Backed up' : 'Back up'}
+          </Button>
+        )}
         {myPubkey === release.pubkey && draftHref && (
           <Button asChild size="sm" variant="outline" className="gap-1.5 border-purple-500/40 text-purple-300 hover:text-purple-200">
             <Link to={`${draftHref}/release`}><Rocket className="h-3.5 w-3.5" /> New version</Link>
           </Button>
         )}
-        <Button size="sm" variant="outline" onClick={fork} className="gap-1.5 border-edge"><GitFork className="h-3.5 w-3.5" /> Fork</Button>
+        {hasEvent && <Button size="sm" variant="outline" onClick={fork} className="gap-1.5 border-edge"><GitFork className="h-3.5 w-3.5" /> Fork</Button>}
       </div>
 
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
         {/* Body */}
         <article className="min-w-0 self-start rounded-lg border border-edge bg-panel p-6">
-          <CollapsibleBody>
-            <Markdown content={release.content} className="text-[15px]" />
-          </CollapsibleBody>
+          {showBody ? (
+            <CollapsibleBody>
+              <Markdown content={release.content} className="text-[15px]" />
+            </CollapsibleBody>
+          ) : (
+            <div className="space-y-3 text-sm text-neutral-400">
+              <p className="flex items-center gap-2 font-medium text-amber-400"><AlertCircle className="h-4 w-4" /> This release event was not found on your relays.</p>
+              {source === 'backup' ? (
+                <>
+                  <p>The author may have deleted it, or no relay you read from still carries it. The details above come from events that reference it. {backups.filter((b) => b.release).length} verified backup{backups.filter((b) => b.release).length === 1 ? '' : 's'} preserve a signed copy of the full release, which you can render below.</p>
+                  <Button size="sm" onClick={() => setRendered(true)} className="gap-1.5 bg-purple-600 text-white hover:bg-purple-700"><Archive className="h-3.5 w-3.5" /> Render from backup</Button>
+                </>
+              ) : (
+                <p>It has no backup either, so the body cannot be recovered. Everything below is rebuilt from events that still reference this release: adoption claims, reviews, and discussion.</p>
+              )}
+            </div>
+          )}
         </article>
 
         {/* Versions */}

@@ -710,6 +710,53 @@ export async function fetchRelease(relays: string[], id: string): Promise<Releas
   return backups.find((b) => b.release)?.release ?? null
 }
 
+/** The live release event only, no backup fallback: null tells a deleted release apart from a recovered one. */
+export async function fetchLiveRelease(relays: string[], id: string): Promise<Release | null> {
+  const ev = await fetchEvent(relays, { ids: [id] }, 8000)
+  return ev ? parseRelease(ev) : null
+}
+
+/**
+ * Enough to identify a deleted release from the events that still point at it:
+ * a claim or review carries the release author (`p`) and spec id (`v`). Lets the
+ * page show the proposal's surroundings even when the release and any backup are
+ * gone.
+ */
+export async function fetchReleaseRefs(relays: string[], id: string): Promise<{ author: string; uuid: string; version: string } | null> {
+  const evs = await fetchEvents(relays, { kinds: [KINDS.PS_CLAIM, KINDS.PS_REVIEW], '#e': [id], limit: 50 }, 8000).catch(() => [] as NostrEvent[])
+  for (const ev of evs) {
+    if (tag(ev, 'e') !== id) continue
+    const author = tag(ev, 'p')
+    const v = tag(ev, PS_SPEC_ID_TAG)
+    const sid = v ? parseSpecId(v) : null
+    if (author && sid) return { author, uuid: sid.uuid, version: sid.version }
+  }
+  return null
+}
+
+/**
+ * A stand-in for a release whose event is gone and has no backup, built from
+ * what referencing events know: author, uuid, version. Its `event` is a
+ * placeholder with no signature, so callers MUST NOT rebroadcast, back up, or
+ * show it as raw; it exists only to drive the page shell around real claims,
+ * reviews and comments. The title and body are empty by necessity.
+ */
+export function reconstructRelease(id: string, author: string, uuid: string, version: string): Release {
+  return {
+    event: { id, pubkey: author, kind: KINDS.PS_RELEASE, created_at: 0, content: '', sig: '', tags: [] } as NostrEvent,
+    id,
+    pubkey: author,
+    uuid,
+    version,
+    specId: specId(uuid, version),
+    title: '',
+    kinds: [],
+    topics: [],
+    content: '',
+    createdAt: 0,
+  }
+}
+
 /** Every release of one proposal (author + uuid), newest version first. */
 export async function fetchReleasesOf(relays: string[], pubkey: string, uuid: string): Promise<Release[]> {
   // The `v` tag is indexed but prefix queries aren't; ask by author and filter.
