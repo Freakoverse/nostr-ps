@@ -32,11 +32,7 @@ type State =
  * visit never looks stuck.
  */
 export function ShortAddressPage() {
-  const { short: shortParam = '' } = useParams<{ short: string }>()
-  // A `NOTFOUND` prefix is a demo switch: resolve the address as usual, then
-  // render its release as if the live event were gone (see ReleasePage).
-  const simulateNotFound = /^NOTFOUND/i.test(shortParam)
-  const short = shortParam.replace(/^NOTFOUND/i, '')
+  const { short = '' } = useParams<{ short: string }>()
   const [state, setState] = useState<State>({ status: 'working', step: 'parsing', startedAt: { parsing: Date.now() } })
   const [now, setNow] = useState(Date.now())
   const timer = useRef<number | null>(null)
@@ -71,7 +67,7 @@ export function ShortAddressPage() {
   if (state.status === 'resolved') {
     const ev = state.event
     if (ev.kind === KINDS.PS_DRAFT) return <DraftPage resolved={ev} />
-    if (ev.kind === KINDS.PS_RELEASE) return <ReleasePage resolved={ev} simulateNotFound={simulateNotFound} />
+    if (ev.kind === KINDS.PS_RELEASE) return <ReleasePage resolved={ev} />
     return (
       <Shell title="Not a draft or release">
         <p className="text-sm text-neutral-400">The address resolves to a kind {ev.kind} event, which this site does not display.</p>

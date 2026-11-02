@@ -15,7 +15,7 @@ const ALL = 'all'
  * left selects one version (or all); the right lists who backed it up and
  * whether their copy verifies. Purely read-only: nothing here acts.
  */
-export function BackupListDialog({ open, onOpenChange, release, versions, backups, checked }: {
+export function BackupListDialog({ open, onOpenChange, release, versions, backups, checked, cap = 5 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
   /** The release the page is showing; names the proposal in the header. */
@@ -26,6 +26,8 @@ export function BackupListDialog({ open, onOpenChange, release, versions, backup
   backups: Backup[]
   /** Whether the across-versions fetch has answered, so "none" is not asserted early. */
   checked?: boolean
+  /** How many backups are fetched per version; a version at this count may have more. */
+  cap?: number
 }) {
   const [selected, setSelected] = useState<string>(ALL)
 
@@ -44,6 +46,8 @@ export function BackupListDialog({ open, onOpenChange, release, versions, backup
 
   const shown = useMemo(() => selected === ALL ? backups : backups.filter((b) => b.releaseId === selected), [backups, selected])
   const versionOf = (id: string) => versions.find((v) => v.id === id)?.version ?? '?'
+  // A version at the fetch cap may have more backups than are shown.
+  const atCap = useMemo(() => [...countOf.values()].some((c) => c >= cap), [countOf, cap])
 
   const tab = (id: string, label: string, count: number) => (
     <button
@@ -110,6 +114,9 @@ export function BackupListDialog({ open, onOpenChange, release, versions, backup
                   </div>
                 </div>
               ))
+            )}
+            {checked && atCap && (
+              <p className="pt-1 text-center text-[11px] text-neutral-600">Up to {cap} shown per version; a version at that count may have more.</p>
             )}
           </div>
         </div>

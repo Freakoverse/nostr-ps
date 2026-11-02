@@ -883,11 +883,18 @@ export async function fetchBackups(relays: string[], releaseId: string): Promise
   return dedupeById(parseAll(evs, parseBackup))
 }
 
-/** Backups for several release ids (every version of a proposal) in one query. */
-export async function fetchBackupsForMany(relays: string[], releaseIds: string[]): Promise<Backup[]> {
+/**
+ * Backups for several release ids (every version of a proposal), capped per
+ * version. A popular release can be backed up by hundreds of people; the list
+ * is only informative, so each version is asked for at most `perVersion` so a
+ * flood of near-duplicate copies is never pulled down.
+ */
+export async function fetchBackupsForMany(relays: string[], releaseIds: string[], perVersion = 5): Promise<Backup[]> {
   if (!releaseIds.length) return []
-  const evs = await fetchEvents(relays, { kinds: [KINDS.PS_BACKUP], '#e': releaseIds, limit: 200 }, 8000)
-  return dedupeById(parseAll(evs, parseBackup))
+  const lists = await Promise.all(
+    releaseIds.map((id) => fetchEvents(relays, { kinds: [KINDS.PS_BACKUP], '#e': [id], limit: perVersion }, 8000).catch(() => [] as NostrEvent[])),
+  )
+  return dedupeById(parseAll(lists.flat(), parseBackup))
 }
 
 /** Releases that reference a draft, by address or by uuid prefix (§6.1). */

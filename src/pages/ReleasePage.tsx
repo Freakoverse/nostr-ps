@@ -52,13 +52,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 const tabTrigger = 'py-1.5 data-[state=active]:bg-edge data-[state=active]:text-purple-400'
 
 /** `resolved` is the release event when the page was reached through a short address. */
-export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEvent; simulateNotFound?: boolean } = {}) {
+export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
   const { nevent } = useParams<{ nevent: string }>()
-  // Demo switch: a `NOTFOUND` prefix on the address (or the prop, set by the
-  // short-address route) makes the page act as if the live event were gone, so
-  // the deleted-release rendering can be previewed against a real release.
-  const neventClean = useMemo(() => (nevent ?? '').replace(/^NOTFOUND/i, ''), [nevent])
-  const simulate = Boolean(simulateNotFound) || (!!nevent && neventClean !== nevent)
   const myPubkey = useAuthStore((s) => s.pubkey)
   const [release, setRelease] = useState<Release | null>(null)
   // Where the release came from: a live event, a backup's signed copy, or a stub rebuilt from referencing events.
@@ -79,8 +74,7 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
   const [forksChecked, setForksChecked] = useState(false)
   const [forkListOpen, setForkListOpen] = useState(false)
   // Every address of this release; the short one goes into the address bar and the share controls.
-  // A simulated-missing page keeps the NOTFOUND address in the bar (no rewrite) and hides share, like a reconstructed shell.
-  const links = useMemo(() => (release && source !== "reconstructed" && !simulate ? releaseLinks(release) : null), [release, source, simulate])
+  const links = useMemo(() => (release && source !== "reconstructed" ? releaseLinks(release) : null), [release, source])
   useShortUrl(links)
   /** What the §6.5 floor excluded on the last fetch, so the switch visibly does something. */
   const [belowFloor, setBelowFloor] = useState({ claims: 0, reviews: 0 })
@@ -111,12 +105,12 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
   const id = useMemo(() => {
     if (resolved && resolved.kind === KINDS.PS_RELEASE) return resolved.id
     try {
-      const d = nip19.decode(neventClean ?? '')
+      const d = nip19.decode(nevent ?? '')
       if (d.type === 'nevent') return d.data.id
       if (d.type === 'note') return d.data
     } catch { /* fallthrough */ }
-    return /^[0-9a-f]{64}$/i.test(neventClean ?? '') ? neventClean!.toLowerCase() : null
-  }, [neventClean, resolved])
+    return /^[0-9a-f]{64}$/i.test(nevent ?? '') ? nevent!.toLowerCase() : null
+  }, [nevent, resolved])
 
   const reload = useCallback(() => setTick((t) => t + 1), [])
 
@@ -136,13 +130,11 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
       // around it (versions, claims, reviews, backups) is loaded from relays.
       await whenEventCacheReady
       if (cancelled) return
-      // Simulation paints nothing from cache, so the page shows only what the
-      // recovery path recovers, exactly as a real deletion would.
-      const cached = simulate ? null : (getCachedRelease(id) ?? (resolved?.id === id ? parseRelease(resolved) : null))
+      const cached = getCachedRelease(id) ?? (resolved?.id === id ? parseRelease(resolved) : null)
       if (cached) { setRelease(cached); setLoading(false) }
       // Authoritative: is the live event actually there? If not, recover from a
       // backup, or rebuild a shell from events that still reference it.
-      const live = simulate ? null : await fetchLiveRelease(relays, id)
+      const live = await fetchLiveRelease(relays, id)
       if (cancelled) return
       let r = live
       let src: 'live' | 'backup' | 'reconstructed' = 'live'
@@ -167,7 +159,7 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
       if (src === 'live') ensureEventPresent(r.event)
       // Instant paint of what the cache already knows around this release.
       {
-        const cvs = mergeCurrentVersion(getCachedVersions(r.pubkey, r.uuid), r, simulate)
+        const cvs = mergeCurrentVersion(getCachedVersions(r.pubkey, r.uuid), r)
         const lineage = new Set(cvs.map((v) => v.id))
         setVersions(cvs)
         setClaims(getCachedClaimsFor(r.uuid).filter((c) => c.releaseAuthor === r.pubkey && lineage.has(c.releaseId) && passesRawPow(c.event)))
@@ -180,7 +172,7 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
         fetchBackups(relays, r.id).catch(() => []),
       ])
       if (cancelled) return
-      const vs = mergeCurrentVersion(vsFetched, r, simulate)
+      const vs = mergeCurrentVersion(vsFetched, r)
       const lineageIds = new Set(vs.map((v) => v.id))
       const rv = await fetchReleaseReviews(relays, r.pubkey, r.uuid, vs.map((v) => v.id)).catch(() => [] as Review[])
       if (cancelled) return
@@ -206,7 +198,7 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
       if (!cancelled) setClaimReviews(cr)
     })()
     return () => { cancelled = true }
-  }, [id, tick, rawFloorOn, enabled, simulate]) // the raw-view floor changes what counts, so refetch when it or the lens flips
+  }, [id, tick, rawFloorOn, enabled]) // the raw-view floor changes what counts, so refetch when it or the lens flips
 
   useEffect(() => {
     if (!enabled) return
@@ -346,12 +338,6 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
   return (
     <div className="space-y-6 py-6">
       <BackButton fallback="/proposals" />
-      {simulate && (
-        <div className="flex items-start gap-2 rounded-lg border border-dashed border-amber-500/40 bg-amber-500/5 px-3 py-2 text-xs text-amber-300">
-          <AlertCircle className="mt-0.5 h-3.5 w-3.5 shrink-0" />
-          <span>Simulating a missing event (<span className="font-mono">NOTFOUND</span> prefix in the URL). The live release is ignored so the deleted-release rendering can be previewed; drop the prefix to see the real page.</span>
-        </div>
-      )}
       {/* Header */}
       <div className="space-y-3">
         <div className="flex flex-wrap items-center justify-between gap-2">
@@ -628,7 +614,7 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
       <BackupDialog open={backupOpen} onOpenChange={setBackupOpen} release={release} existing={myBackup} onPublished={reload} onDeleted={reload} />
       <ForkDialog open={forkOpen} onOpenChange={setForkOpen} release={release} />
       <ForkListDialog open={forkListOpen} onOpenChange={setForkListOpen} release={release} versions={versions} forks={forks} capped={forksCapped} />
-      <BackupListDialog open={backupListOpen} onOpenChange={setBackupListOpen} release={release} versions={versions} backups={allBackups} checked={backupsChecked} />
+      <BackupListDialog open={backupListOpen} onOpenChange={setBackupListOpen} release={release} versions={versions} backups={allBackups} checked={backupsChecked} cap={5} />
       <ReviewDialog open={reviewOpen} onOpenChange={setReviewOpen} target={{ kind: 'release', release }} versions={versions} existing={myReview} onPublished={reload} />
       {claimDetail && (
         <ClaimDetailDialog
@@ -665,13 +651,11 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
 
 /**
  * Keep the current release in its own version list. When its live event is
- * missing — really deleted, or simulated missing — the fetch does not return
- * it (and in the simulated case still does, so `simulate` drops it first), so
- * the recovered copy (backup body or reconstructed shell) stands in its place.
+ * missing (deleted), the version fetch does not return it, so the recovered
+ * copy — a backup's body or a reconstructed shell — stands in its place.
  */
-function mergeCurrentVersion(list: Release[], current: Release, simulate: boolean): Release[] {
-  const base = simulate ? list.filter((v) => v.id !== current.id) : list
-  return base.some((v) => v.id === current.id) ? base : [...base, current].sort((a, b) => compareVersions(b.version, a.version))
+function mergeCurrentVersion(list: Release[], current: Release): Release[] {
+  return list.some((v) => v.id === current.id) ? list : [...list, current].sort((a, b) => compareVersions(b.version, a.version))
 }
 
 function perVersion(claims: Claim[]): Record<string, number> {
