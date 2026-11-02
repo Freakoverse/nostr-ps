@@ -215,6 +215,7 @@ export function ClaimDialog({
               ))}
             </div>
             <p className="text-[11px] text-neutral-600">{ROLE_HINT[role]}</p>
+            <p className="text-[11px] text-neutral-600">Best published by the software&apos;s maintainer. You may claim software you don&apos;t maintain, but say how you checked in the notes; a claim whose handler, repo, or relay your own key signs carries more weight.</p>
           </div>
 
           <div className="grid gap-3 sm:grid-cols-2">

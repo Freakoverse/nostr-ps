@@ -350,6 +350,17 @@ Rules:
 - `role: service` is for software that is none of the above but runs on
   behalf of users: an indexer, bot, bridge, signer, media server, DVM,
   trust provider, or hosted API.
+- The software's maintainer SHOULD be the one to publish its claim. Anyone
+  MAY publish a claim about software they do not maintain, but such a claim
+  carries no special standing: there is no self-asserted "owner" flag,
+  because a flag anyone can set proves nothing. Ownership that matters is
+  shown, not declared. A claim whose `handler`, `repo`, or `relay` names an
+  event or endpoint controlled by the claimant's own key is the strongest
+  form, since a client can check the key match itself; a claim naming
+  software signed by someone else is weaker and SHOULD be weighed as a
+  third-party report. Clients that count adoption SHOULD fold claims that
+  name the same `handler`, `repo`, or `relay` into one, preferring the one
+  the named key signs.
 - A claim is a statement by its author and nothing more. Publishing one
   does not make it true.
 
