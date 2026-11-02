@@ -285,6 +285,17 @@ Rules:
   not appear in social feeds.
 - Any party MAY publish backups. Indexers and implementers SHOULD back up
   every release they rely on.
+- When a release event is not found, a client SHOULD still show the
+  proposal's surroundings, the versions, claims, reviews and discussion that
+  reference it, rather than only a "not found" page. If a verified backup
+  exists, the client SHOULD surface that the live event is missing and let
+  the viewer choose to render the body from the backup, rather than
+  presenting backed-up content as if it were live. If no backup exists but
+  referencing events do, the client MAY rebuild a shell from them (the
+  author, uuid and version are carried in a claim's or review's `p` and `v`
+  tags) and show that the body is unrecoverable. A client MUST NOT
+  rebroadcast (§6, cooperative replication) an event it could not find live,
+  so a deletion is not undone against the author's wish.
 
 ### 4.4 Adoption claim (`kind:30851`)
 

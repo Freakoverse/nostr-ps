@@ -187,7 +187,7 @@ export function DraftPage({ resolved }: { resolved?: NostrEvent } = {}) {
             <Markdown content={draft.content} className="text-[15px]" />
           </CollapsibleBody>
         </article>
-        <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
+        <aside className="space-y-4">
           <AuthorCard pubkey={draft.pubkey} />
           <MetaCard kinds={draft.kinds} topics={draft.topics} />
           {links && <ShareCard url={links.bestUrl} text={`${draft.title} (draft)`} isShort={!!links.shortUrl} />}

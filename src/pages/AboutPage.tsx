@@ -32,6 +32,9 @@ export function AboutPage() {
         version. Only the first release of a proposal is marked as the original, so listings ask
         relays for one event per proposal and a long version history costs nobody else anything.
         Anyone can publish a backup of a release so it survives relay loss and deletion requests.
+        If a release event is gone, the page still shows its versions, claims, reviews and
+        discussion, and offers to render the body from a backup when one exists rather than
+        passing backed-up content off as live.
       </Section>
 
       <Section title="Adoption claims">
