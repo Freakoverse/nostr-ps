@@ -24,7 +24,7 @@ const RELEASE_OPTS: { v: ReleaseVerdict; label: string; hint: string; cls: strin
   { v: 'not-recommend', label: "Don't recommend", hint: 'This spec has problems.', cls: 'data-[on=true]:border-red-500/60 data-[on=true]:text-red-300' },
 ]
 const CLAIM_OPTS: { v: ClaimVerdict; label: string; hint: string; cls: string }[] = [
-  { v: 'accurate', label: 'Accurate', hint: 'I checked: the software implements it as claimed.', cls: 'data-[on=true]:border-emerald-500/60 data-[on=true]:text-emerald-300' },
+  { v: 'accurate', label: 'Accurate', hint: 'I checked: the software implements it as claimed, and the claimant is its owner or creator.', cls: 'data-[on=true]:border-emerald-500/60 data-[on=true]:text-emerald-300' },
   { v: 'inaccurate', label: 'Inaccurate', hint: 'I checked: it does not, or not as claimed.', cls: 'data-[on=true]:border-red-500/60 data-[on=true]:text-red-300' },
 ]
 
