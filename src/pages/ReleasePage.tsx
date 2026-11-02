@@ -240,6 +240,16 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
   const [reviewVersion, setReviewVersion] = useState<string>(ALL_VERSIONS)
   const versionLabelOf = useCallback((id: string) => versions.find((v) => v.id === id)?.version, [versions])
 
+  // The versions as drawn in the sidebar. While the current version's body is
+  // withheld — a reconstructed shell, or a backup the viewer has not chosen to
+  // render — its body is stripped here too, so its diff reads "body unavailable"
+  // instead of exposing the very content the "Render from backup" gate holds.
+  const displayVersions = useMemo(() => {
+    const show = source === 'live' || rendered
+    if (show || !release) return versions
+    return versions.map((v) => (v.id === release.id ? { ...v, content: '', event: { ...v.event, sig: '' } } : v))
+  }, [versions, source, rendered, release])
+
   const reviewsInView = useMemo(() => (reviewVersion === ALL_VERSIONS ? reviews : reviews.filter((r) => r.target === 'release' && r.releaseId === reviewVersion)), [reviews, reviewVersion])
   const reviewVersionCounts = useMemo(() => {
     const m = new Map<string, number>()
@@ -448,7 +458,7 @@ export function ReleasePage({ resolved, simulateNotFound }: { resolved?: NostrEv
               Versions
               {!checked && <span className="flex items-center gap-1 normal-case tracking-normal text-neutral-500"><Loader2 className="h-3 w-3 animate-spin" /> checking</span>}
             </p>
-            <VersionList versions={versions} currentId={release.id} />
+            <VersionList versions={displayVersions} currentId={release.id} />
             {!checked && versions.length <= 1 && (
               <div className="space-y-1 px-2 pb-1 pt-1">
                 <div className="h-7 rounded-md bg-panel-2" />
