@@ -366,10 +366,12 @@ Rules:
 
 ### 4.5 Review (`kind:30852`)
 
-One person's opinion about one target. Addressable so there is exactly one
-opinion per reviewer per target, revisable in place. The target is either a
-release or an adoption claim, and the vocabulary differs by target so that
-the two meanings never blur.
+One person's opinion about one target, revisable in place. The target is
+either a release or an adoption claim, and the vocabulary differs by target
+so that the two meanings never blur. A reviewer holds one release review per
+proposal and one claim review per claim: both move with their subject, a
+release review to a newer version when the reviewer re-reviews, a claim
+review staying with the claim (whose address is already version-stable).
 
 **Reviewing a release:** "Is this spec good?"
 
@@ -379,10 +381,11 @@ the two meanings never blur.
   "pubkey": "<reviewer>",
   "content": "<reasoning, review, test notes>",
   "tags": [
-    ["d", "<release event id>"],                      // REQUIRED, the target
-    ["e", "<release event id>", "<relay>"],           // REQUIRED
+    ["d", "<uuid>"],                                  // REQUIRED, one review per proposal
+    ["a", "30817:<release author>:<uuid>"],           // REQUIRED, the proposal address
+    ["e", "<release event id>", "<relay>"],           // REQUIRED, the exact version reviewed
     ["k", "8201"],                                    // REQUIRED, target kind
-    ["v", "<uuid>:<version>"],                        // RECOMMENDED
+    ["v", "<uuid>:<version>"],                        // REQUIRED, the version reviewed
     ["p", "<release author>", "<relay>"],             // RECOMMENDED
     ["verdict", "recommend"],                         // REQUIRED: recommend | not-recommend | unsure
     ["nonce", "<n>", "<difficulty>"]                  // RECOMMENDED, NIP-13
@@ -410,9 +413,13 @@ the two meanings never blur.
 
 Rules:
 
-- `d` is the target's identifier, so a reviewer's opinion on a given target
-  is a single replaceable event. Changing your mind is a republish, not a
-  deletion.
+- For a release review, `d` is the proposal uuid, so a reviewer has one
+  review per proposal; `e` and `v` name the version reviewed, and moving the
+  review to a newer version is a republish that replaces it in place. A
+  review whose `d` is a release event id predates this and is read as a
+  review of that one version. For a claim review, `d` is the claim
+  coordinate, already stable across versions. Either way, changing your mind
+  is a republish, not a deletion.
 - Release verdicts are `recommend`, `not-recommend`, `unsure`. `unsure`
   distinguishes "reviewed, no verdict" from silence.
 - Claim verdicts are `accurate` (the reviewer checked, and the software
@@ -424,8 +431,10 @@ Rules:
 - Clients MUST NOT infer a claim verdict from a release verdict or vice
   versa. Disliking a spec says nothing about whether an implementer exists.
   Verifying an implementer says nothing about whether the spec is good.
-- A review targets a specific release. Clients MAY roll release reviews up
-  per proposal for display, but the underlying data stays per version.
+- A release review names the version it was made against (`e`, `v`), so a
+  client can show "reviewed v1.2" and roll reviews up across a proposal's
+  versions. A reviewer who upgrades SHOULD move their review to the version
+  they re-checked rather than leave a verdict about an older one.
 
 ---
 

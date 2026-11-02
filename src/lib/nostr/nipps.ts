@@ -226,7 +226,7 @@ export const CLAIM_VERDICTS: ClaimVerdict[] = ['accurate', 'inaccurate']
 const CLAIM_VERDICT_ALIASES: Record<string, ClaimVerdict> = { legit: 'accurate', fake: 'inaccurate' }
 
 export type Review =
-  | { event: NostrEvent; pubkey: string; target: 'release'; releaseId: string; verdict: ReleaseVerdict; content: string; createdAt: number }
+  | { event: NostrEvent; pubkey: string; target: 'release'; releaseId: string; uuid: string; reviewVersion: string; verdict: ReleaseVerdict; content: string; createdAt: number }
   | { event: NostrEvent; pubkey: string; target: 'claim'; claimCoord: string; verdict: ClaimVerdict; content: string; createdAt: number }
 
 export interface Backup {
@@ -376,8 +376,10 @@ function parseReviewInner(ev: NostrEvent): Review | null {
   const verdict = tag(ev, 'verdict')
   if (k === KINDS.PS_RELEASE) {
     const releaseId = tag(ev, 'e')
-    if (!releaseId || !RELEASE_VERDICTS.includes(verdict as ReleaseVerdict)) return null
-    return { event: ev, pubkey: ev.pubkey, target: 'release', releaseId, verdict: verdict as ReleaseVerdict, content: ev.content, createdAt: ev.created_at }
+    const v = tag(ev, PS_SPEC_ID_TAG)
+    const sid = v ? parseSpecId(v) : null
+    if (!releaseId || !sid || !RELEASE_VERDICTS.includes(verdict as ReleaseVerdict)) return null
+    return { event: ev, pubkey: ev.pubkey, target: 'release', releaseId, uuid: sid.uuid, reviewVersion: sid.version, verdict: verdict as ReleaseVerdict, content: ev.content, createdAt: ev.created_at }
   }
   if (k === KINDS.PS_CLAIM) {
     const coord = tag(ev, 'a')
@@ -542,8 +544,11 @@ export function buildClaimEvent(input: ClaimInput): UnsignedEvent {
 }
 
 export function buildReleaseReviewEvent(release: Release, verdict: ReleaseVerdict, content: string, relay?: string): UnsignedEvent {
+  // `d` is the proposal uuid, so a reviewer holds one review per proposal, moved in place
+  // when they re-review; `e` names the exact version reviewed, `a` is the proposal address.
   const tags: string[][] = [
-    ['d', release.id],
+    ['d', release.uuid],
+    ['a', draftCoord(release.pubkey, release.uuid)],
     relay ? ['e', release.id, relay] : ['e', release.id],
     ['k', String(KINDS.PS_RELEASE)],
     [PS_SPEC_ID_TAG, release.specId],
@@ -620,9 +625,9 @@ export function getCachedClaimsFor(uuid: string): Claim[] {
 }
 
 /** Cached reviews of one release, one per reviewer. */
-export function getCachedReleaseReviews(releaseId: string): Review[] {
+export function getCachedReleaseReviews(uuid: string): Review[] {
   const all = parseAll(getCachedEventsOfKind(KINDS.PS_REVIEW), parseReview)
-  return latestPerAuthor(all.filter((r) => r.target === 'release' && r.releaseId === releaseId))
+  return latestPerAuthor(all.filter((r) => r.target === 'release' && r.uuid === uuid))
 }
 
 /** All cached, non-deleted drafts, newest first. Seeds listings before relays answer. */
@@ -787,9 +792,12 @@ export async function fetchClaimsBy(relays: string[], pubkey: string): Promise<C
   return latestByCoord(parseAll(evs, parseClaim)).sort((a, b) => b.createdAt - a.createdAt)
 }
 
-export async function fetchReleaseReviews(relays: string[], releaseId: string): Promise<Review[]> {
-  const evs = await fetchEvents(relays, { kinds: [KINDS.PS_REVIEW], '#e': [releaseId], limit: 500 }, 8000)
-  const parsed = parseAll(evs, parseReview).filter((r) => r.target === 'release')
+export async function fetchReleaseReviews(relays: string[], author: string, uuid: string, versionIds: string[]): Promise<Review[]> {
+  const [byAddress, legacy] = await Promise.all([
+    fetchEvents(relays, { kinds: [KINDS.PS_REVIEW], '#a': [draftCoord(author, uuid)], limit: 1000 }, 8000),
+    versionIds.length ? fetchEvents(relays, { kinds: [KINDS.PS_REVIEW], '#e': versionIds, limit: 1000 }, 8000).catch(() => [] as NostrEvent[]) : Promise.resolve([] as NostrEvent[]),
+  ])
+  const parsed = parseAll([...byAddress, ...legacy], parseReview).filter((r) => r.target === 'release' && r.uuid === uuid)
   return latestPerAuthor(parsed)
 }
 
@@ -816,7 +824,7 @@ export async function fetchReviewsBy(relays: string[], pubkey: string): Promise<
 function latestPerAuthor(reviews: Review[]): Review[] {
   const by = new Map<string, Review>()
   for (const r of reviews) {
-    const key = `${r.pubkey}:${r.target === 'release' ? r.releaseId : r.claimCoord}`
+    const key = `${r.pubkey}:${r.target === 'release' ? r.uuid : r.claimCoord}`
     const cur = by.get(key)
     if (!cur || r.createdAt > cur.createdAt) by.set(key, r)
   }

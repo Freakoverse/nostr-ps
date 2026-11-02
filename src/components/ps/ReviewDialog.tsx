@@ -34,11 +34,13 @@ const CLAIM_OPTS: { v: ClaimVerdict; label: string; hint: string; cls: string }[
  * accurate / inaccurate.
  */
 export function ReviewDialog({
-  open, onOpenChange, target, existing, onPublished,
+  open, onOpenChange, target, versions, existing, onPublished,
 }: {
   open: boolean
   onOpenChange: (v: boolean) => void
   target: Target
+  /** Every version of the proposal (release target only); lets a review point at, or move to, any version. */
+  versions?: Release[]
   existing?: Review | null
   onPublished?: () => void
 }) {
@@ -48,10 +50,20 @@ export function ReviewDialog({
   const [busy, setBusy] = useState(false)
   const [phase, setPhase] = useState<PublishStatus | null>(null)
 
+  // Which version the review is about. New: the page's release. Editing: the version it reviewed.
+  const choices = target.kind === 'release' && versions && versions.length ? versions : target.kind === 'release' ? [target.release] : []
+  const defaultVersionId = target.kind === 'release'
+    ? (existing && existing.target === 'release' && choices.some((v) => v.id === existing.releaseId) ? existing.releaseId : target.release.id)
+    : ''
+  const [targetId, setTargetId] = useState(defaultVersionId)
+  const reviewed = choices.find((v) => v.id === targetId) ?? (target.kind === 'release' ? target.release : null)
+
   useEffect(() => {
     if (!open) return
     setVerdict(existing?.verdict ?? '')
     setContent(existing?.content ?? '')
+    setTargetId(defaultVersionId)
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [open, existing])
 
   if (open && !pubkey) {
@@ -67,7 +79,7 @@ export function ReviewDialog({
     if (target.kind === 'claim' && verdict === 'inaccurate' && !content.trim()) { toast.error('Say what you checked. An inaccurate verdict needs evidence.'); return }
     setBusy(true)
     const event = target.kind === 'release'
-      ? buildReleaseReviewEvent(target.release, verdict as ReleaseVerdict, content)
+      ? buildReleaseReviewEvent(reviewed ?? target.release, verdict as ReleaseVerdict, content)
       : buildClaimReviewEvent(target.claim, verdict as ClaimVerdict, content)
     const res = await signAndPublish(event, setPhase)
     setBusy(false); setPhase(null)
@@ -78,7 +90,7 @@ export function ReviewDialog({
   }
 
   const title = target.kind === 'release'
-    ? `${target.release.title} v${target.release.version}`
+    ? `${target.release.title} v${reviewed?.version ?? target.release.version}`
     : `${target.claim.name} (${target.claim.role})`
 
   return (
@@ -94,6 +106,27 @@ export function ReviewDialog({
         </DialogHeader>
 
         <div className="space-y-4">
+          {target.kind === 'release' && choices.length > 1 && (
+            <div className="space-y-1.5">
+              <label className="text-xs font-medium text-neutral-300">Version you reviewed</label>
+              <div className="flex flex-wrap gap-1 rounded-lg border border-edge bg-panel p-1">
+                {choices.map((v) => (
+                  <button
+                    key={v.id}
+                    type="button"
+                    onClick={() => setTargetId(v.id)}
+                    className={cn('rounded-md px-2.5 py-1.5 font-mono text-xs transition-colors', (reviewed?.id === v.id) ? 'bg-panel-3 text-purple-300' : 'text-neutral-400 hover:text-neutral-200')}
+                  >
+                    v{v.version}
+                    {existing?.target === 'release' && existing.releaseId === v.id && <span className="ml-1 font-sans text-[10px] text-neutral-500">current</span>}
+                  </button>
+                ))}
+              </div>
+              {existing?.target === 'release' && reviewed && existing.releaseId !== reviewed.id && (
+                <p className="text-[11px] text-purple-300/80">Moving your review from v{existing.reviewVersion} to v{reviewed.version}. One review per proposal, so it is replaced, not duplicated.</p>
+              )}
+            </div>
+          )}
           <div className={cn('grid gap-2', opts.length === 3 ? 'sm:grid-cols-3' : 'sm:grid-cols-2')}>
             {opts.map((o) => (
               <button

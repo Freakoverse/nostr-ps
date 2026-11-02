@@ -130,16 +130,18 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
         const lineage = new Set((cvs.length ? cvs : [r]).map((v) => v.id))
         setVersions(cvs.length ? cvs : [r])
         setClaims(getCachedClaimsFor(r.uuid).filter((c) => c.releaseAuthor === r.pubkey && lineage.has(c.releaseId) && passesRawPow(c.event)))
-        setReviews(getCachedReleaseReviews(r.id).filter((x) => passesRawPow(x.event)))
+        setReviews(getCachedReleaseReviews(r.uuid).filter((x) => passesRawPow(x.event)))
       }
-      const [vs, cs, rv, bk] = await Promise.all([
+      // Versions first: a release review on an older version is found by that version's id, so the ids are needed to query.
+      const [vs, cs, bk] = await Promise.all([
         fetchReleasesOf(relays, r.pubkey, r.uuid).catch(() => [r]),
         fetchClaimsFor(relays, r.pubkey, r.uuid).catch(() => []),
-        fetchReleaseReviews(relays, r.id).catch(() => []),
         fetchBackups(relays, r.id).catch(() => []),
       ])
       if (cancelled) return
       const lineageIds = new Set(vs.map((v) => v.id))
+      const rv = await fetchReleaseReviews(relays, r.pubkey, r.uuid, (vs.length ? vs : [r]).map((v) => v.id)).catch(() => [] as Review[])
+      if (cancelled) return
       const inLineage = cs.filter((c) => c.releaseAuthor === r.pubkey && lineageIds.has(c.releaseId))
       const mine = inLineage.filter((c) => passesRawPow(c.event))
       const rvKept = rv.filter((x) => passesRawPow(x.event))
@@ -506,7 +508,7 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
       <BackupDialog open={backupOpen} onOpenChange={setBackupOpen} release={release} existing={myBackup} onPublished={reload} onDeleted={reload} />
       <ForkDialog open={forkOpen} onOpenChange={setForkOpen} release={release} />
       <ForkListDialog open={forkListOpen} onOpenChange={setForkListOpen} release={release} versions={versions} forks={forks} capped={forksCapped} />
-      <ReviewDialog open={reviewOpen} onOpenChange={setReviewOpen} target={{ kind: 'release', release }} existing={myReview} onPublished={reload} />
+      <ReviewDialog open={reviewOpen} onOpenChange={setReviewOpen} target={{ kind: 'release', release }} versions={versions} existing={myReview} onPublished={reload} />
       {claimDetail && (
         <ClaimDetailDialog
           open
