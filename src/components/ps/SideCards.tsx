@@ -66,3 +66,55 @@ export function ReferenceCard({ label }: { label: string }) {
     </Card>
   )
 }
+
+// ─── Share ──────────────────────────────────────────────────────────
+
+const SHARE_TARGETS: { id: string; label: string; href: (url: string, text: string) => string }[] = [
+  { id: 'x', label: 'X', href: (url, text) => `https://x.com/intent/post?text=${encodeURIComponent(text)}&url=${encodeURIComponent(url)}` },
+  { id: 'bluesky', label: 'Bluesky', href: (url, text) => `https://bsky.app/intent/compose?text=${encodeURIComponent(`${text} ${url}`)}` },
+  { id: 'telegram', label: 'Telegram', href: (url, text) => `https://t.me/share/url?url=${encodeURIComponent(url)}&text=${encodeURIComponent(text)}` },
+  { id: 'reddit', label: 'Reddit', href: (url, text) => `https://www.reddit.com/submit?url=${encodeURIComponent(url)}&title=${encodeURIComponent(text)}` },
+  { id: 'email', label: 'Email', href: (url, text) => `mailto:?subject=${encodeURIComponent(text)}&body=${encodeURIComponent(url)}` },
+]
+
+/**
+ * Share buttons for a post, all built on its short link when it has one (the
+ * NIP-19 link otherwise). The link itself is shown underneath with a copy
+ * button, so the reader sees exactly what the buttons will send.
+ */
+export function ShareCard({ url, text, isShort }: { url: string; text: string; isShort: boolean }) {
+  const [copied, setCopied] = useState(false)
+  const copy = () => {
+    void navigator.clipboard.writeText(url)
+    setCopied(true)
+    setTimeout(() => setCopied(false), 1500)
+  }
+  return (
+    <Card
+      title="Share"
+      right={
+        <Tip label={copied ? 'Copied' : 'Copy link'}>
+          <button type="button" onClick={copy} aria-label="Copy link" className="rounded p-1 normal-case text-neutral-500 hover:text-neutral-200">
+            {copied ? <Check className="h-3.5 w-3.5 text-emerald-400" /> : <Copy className="h-3.5 w-3.5" />}
+          </button>
+        </Tip>
+      }
+    >
+      <div className="flex flex-wrap gap-1.5">
+        {SHARE_TARGETS.map((t) => (
+          <a
+            key={t.id}
+            href={t.href(url, text)}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="rounded-md border border-edge bg-panel-2 px-2.5 py-1 text-xs text-neutral-300 transition-colors hover:border-purple-500/40 hover:text-purple-300"
+          >
+            {t.label}
+          </a>
+        ))}
+      </div>
+      <p className="mt-2 break-all font-mono text-[11px] text-neutral-500">{url}</p>
+      <p className="mt-1 text-[11px] text-neutral-600">{isShort ? 'The short link, a NIP-SHORT address on this site.' : 'The NIP-19 link; this post has no short address.'}</p>
+    </Card>
+  )
+}

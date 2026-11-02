@@ -21,6 +21,7 @@ import { NotificationsPage } from '@/pages/NotificationsPage'
 import SettingsPage from '@/pages/SettingsPage'
 import { AboutPage } from '@/pages/AboutPage'
 import { NotFoundPage } from '@/pages/NotFoundPage'
+import { ShortAddressPage } from '@/pages/ShortAddressPage'
 import { DraftsPage } from '@/pages/DraftsPage'
 import { DraftPage } from '@/pages/DraftPage'
 import { DraftEditPage } from '@/pages/DraftEditPage'
@@ -128,6 +129,8 @@ export default function App() {
           <Route path="/notifications" element={<NotificationsPage />} />
           <Route path="/settings" element={<SettingsPage />} />
           <Route path="/about" element={<AboutPage />} />
+          {/* NIP-SHORT: `/s<key36><code>` resolves to the draft or release it names. */}
+          <Route path="/:short" element={<ShortAddressPage />} />
           <Route path="*" element={<NotFoundPage />} />
         </Route>
       </Routes>

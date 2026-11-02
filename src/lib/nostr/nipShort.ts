@@ -1,29 +1,52 @@
 /**
- * NIP-SHORT — short, human-readable addresses for events.
+ * NIP-SHORT — short, compact addresses for events.
  *
- *   s<authority><code>[-<selector>]
+ *   s<key36><code>[-<selector>]
  *
- * `authority` is the author (an `npub1…`, or a DNN ID which resolves to one),
- * `code` is the first 6 hex characters of SHA-256 over a canonical input, and
- * the optional `-selector` continues that same hash to break a collision.
+ * `key36` is the author's public key written in base 36, always exactly 50
+ * characters; `code` is the first 6 hex characters of SHA-256 over a canonical
+ * input; the optional `-selector` continues that same hash to break a
+ * collision. Fixed widths are what let an address be parsed by position.
  *
  * The code lives in the event as a single-letter `["s", code]` tag, so it is
- * relay-indexed and signed — there is no side mapping to publish or keep alive.
- * The canonical input deliberately excludes tags, which is what lets the code be
- * one of them.
- *
- * See docs: git.nostrdev.com/freakoverse/DNN → docs/NIPS/NIP-SHORT.md
+ * relay-indexed and signed: there is no side mapping to publish or keep alive.
+ * The canonical input deliberately excludes tags, which is what lets the code
+ * be one of them and keeps it independent of proof-of-work nonces.
  */
 import { sha256 } from '@noble/hashes/sha256'
 import { bytesToHex } from '@noble/hashes/utils'
-import { nip19, verifyEvent, type Event as NostrEvent } from 'nostr-tools'
+import { verifyEvent, type Event as NostrEvent } from 'nostr-tools'
 import { KINDS } from '@/lib/constants'
 import { fetchEvents } from '@/lib/nostr/relay-pool'
 
 export const SHORT_CODE_LENGTH = 6
+export const KEY36_LENGTH = 50
+/** Marker + key36 + code, with no selector. */
+export const SHORT_ADDRESS_LENGTH = 1 + KEY36_LENGTH + SHORT_CODE_LENGTH
 
 const CODE_RE = /^[0-9a-f]{6}$/
-const SUFFIX_RE = /^[0-9a-f]+$/
+/** The whole shape: marker, 50 base-36 digits, 6 hex, optional `-hex` selector. */
+const ADDRESS_RE = /^s([0-9a-z]{50})([0-9a-f]{6})(?:-([0-9a-f]+))?$/
+const PUBKEY_LIMIT = 1n << 256n
+
+// ─── Author key encoding ────────────────────────────────────────────
+
+/** 64-char hex pubkey → 50-char lowercase base-36 key. */
+export function toKey36(pubkeyHex: string): string {
+  return BigInt('0x' + pubkeyHex).toString(36).padStart(KEY36_LENGTH, '0')
+}
+
+/** 50-char base-36 key → 64-char lowercase hex pubkey, or null when it encodes no pubkey (2^256 or more). */
+export function fromKey36(key36: string): string | null {
+  const k = key36.toLowerCase()
+  if (!/^[0-9a-z]{50}$/.test(k)) return null
+  let n = 0n
+  for (const c of k) n = n * 36n + BigInt(parseInt(c, 36))
+  if (n >= PUBKEY_LIMIT) return null
+  return n.toString(16).padStart(64, '0')
+}
+
+// ─── Derivation ─────────────────────────────────────────────────────
 
 /** The identity-determining fields a code is derived from. Never tags. */
 export interface CodeSource {
@@ -42,15 +65,22 @@ export function isCoordinateKind(kind: number): boolean {
   return kind === 0 || kind === 3 || (kind >= 10000 && kind < 20000) || (kind >= 30000 && kind < 40000)
 }
 
+/** Ephemeral kinds are never stored, so a short address for one can never resolve. */
+export function isEphemeralKind(kind: number): boolean {
+  return kind >= 20000 && kind < 30000
+}
+
 export function canonicalInput(source: CodeSource): string {
   if (isCoordinateKind(source.kind)) {
+    // The trailing colon on a replaceable event is the empty `d` slot of the
+    // standard coordinate string; it is not stripped.
     const d = source.tags.find((t) => t[0] === 'd')?.[1] ?? ''
     return `a:${source.kind}:${source.pubkey}:${d}`
   }
   return `e:${source.kind}:${source.pubkey}:${source.created_at}:${source.content}`
 }
 
-/** Full digest — the code is its head, collision selectors continue from there. */
+/** Full digest: the code is its head, collision selectors continue from there. */
 export function computeFullHash(source: CodeSource): string {
   return bytesToHex(sha256(new TextEncoder().encode(canonicalInput(source))))
 }
@@ -76,56 +106,35 @@ export const SHORT_KINDS: ReadonlySet<number> = new Set<number>([
 // ─── Addresses ──────────────────────────────────────────────────────
 
 export interface ShortAddress {
-  authority: string // npub1… or a DNN ID
+  /** 64-char hex, decoded from the key36. */
+  pubkey: string
+  key36: string
   code: string
-  suffix: string // '' when absent
+  /** '' when absent. */
+  suffix: string
 }
 
-export function formatShortAddress(authority: string, code: string, suffix = ''): string {
-  return `s${authority}${code}${suffix ? `-${suffix}` : ''}`
+export function formatShortAddress(pubkeyHex: string, code: string, suffix = ''): string {
+  return `s${toKey36(pubkeyHex)}${code}${suffix ? `-${suffix}` : ''}`
 }
 
 /**
- * Parse `s<authority><code>[-selector]`.
- *
- * The authority is variable-length and the code is fixed, so the code is peeled
- * off the *end* — there is no delimiter between them to split on.
+ * Parse `s<key36><code>[-selector]`. Uppercase is accepted and lowercased; a
+ * `nostr:` prefix is tolerated. Null unless the shape is exact and the key36
+ * decodes to a pubkey.
  */
 export function parseShortAddress(input: string): ShortAddress | null {
-  const raw = input.trim().replace(/^nostr:/i, '')
-  if (!raw.startsWith('s') || raw.length < 2 + SHORT_CODE_LENGTH) return null
-  const body = raw.slice(1)
-
-  const dash = body.indexOf('-')
-  const head = dash === -1 ? body : body.slice(0, dash)
-  const suffix = dash === -1 ? '' : body.slice(dash + 1).toLowerCase()
-  if (suffix && !SUFFIX_RE.test(suffix)) return null
-
-  const code = head.slice(-SHORT_CODE_LENGTH).toLowerCase()
-  const authority = head.slice(0, -SHORT_CODE_LENGTH)
-  if (!CODE_RE.test(code) || !authority) return null
-  return { authority, code, suffix }
+  const raw = input.trim().replace(/^nostr:/i, '').toLowerCase()
+  const m = ADDRESS_RE.exec(raw)
+  if (!m) return null
+  const pubkey = fromKey36(m[1])
+  if (!pubkey) return null
+  return { pubkey, key36: m[1], code: m[2], suffix: m[3] ?? '' }
 }
 
-/**
- * Does this look like a short address rather than a bare npub or DNN ID?
- *
- * `snpub1…` and `sn…` are short addresses; `npub1…` and `n…` are not. The `s`
- * marker is the whole distinction.
- */
+/** Is this a NIP-SHORT address, as opposed to an npub, naddr, nevent, or anything else? */
 export function looksLikeShortAddress(input: string): boolean {
   return parseShortAddress(input) !== null
-}
-
-/** Hex pubkey for an authority, or null when it isn't an npub we can decode. */
-export function authorityToPubkey(authority: string): string | null {
-  if (/^npub1/i.test(authority)) {
-    try {
-      const d = nip19.decode(authority)
-      return d.type === 'npub' ? (d.data as string) : null
-    } catch { return null }
-  }
-  return null
 }
 
 // ─── Sharing ────────────────────────────────────────────────────────
@@ -133,164 +142,61 @@ export function authorityToPubkey(authority: string): string | null {
 /**
  * The short address derivable with no network at all.
  *
- * The code is a signed field of the event, so it can be checked against what the
- * event's own contents hash to — a purely local test. Only *uniqueness* needs
- * relays, and a collision is rare enough that it's better to show the short
- * address at once and append a selector in the unlikely case one is needed than
- * to sit on a round trip every time.
+ * The code is a signed field of the event, so it can be checked against what
+ * the event's own contents hash to, a purely local test. Only *uniqueness*
+ * needs relays, and a collision is rare enough that it is better to show the
+ * short address at once and append a selector in the unlikely case one is
+ * needed than to sit on a round trip every time.
  *
- * Null when the event carries no code, or carries one that doesn't verify.
+ * Null when the event carries no code, carries one that does not verify, or is
+ * of a kind relays never store.
  */
-export function verifiedShortAddress(event: NostrEvent, authority?: string): string | null {
+export function verifiedShortAddress(event: NostrEvent): string | null {
+  if (isEphemeralKind(event.kind)) return null
   const stored = shortCodeOf(event)
   if (!stored || stored !== computeShortCode(event)) return null
-  return formatShortAddress(authority || nip19.npubEncode(event.pubkey), stored)
+  return formatShortAddress(event.pubkey, stored)
 }
 
 /**
  * The address to share for an event, adding a collision selector only when the
  * author actually has another event on the same code.
  *
- * The stored tag never changes — disambiguation lives in the address alone, by
+ * The stored tag never changes; disambiguation lives in the address alone, by
  * reading further along the same hash.
  */
-export async function shareableShortAddress(
-  relays: string[],
-  event: NostrEvent,
-  authority?: string,
-): Promise<string | null> {
-  const code = shortCodeOf(event) ?? computeShortCode(event)
-  if (!CODE_RE.test(code)) return null
-  const auth = authority || nip19.npubEncode(event.pubkey)
+export async function shareableShortAddress(relays: string[], event: NostrEvent): Promise<string | null> {
+  const base = verifiedShortAddress(event)
+  if (!base) return null
+  const code = shortCodeOf(event)!
 
   let others: NostrEvent[] = []
   try {
     others = await fetchEvents(relays, { authors: [event.pubkey], '#s': [code] }, 2000)
   } catch {
-    // Can't check — share the base address rather than nothing. A collision
+    // Cannot check: share the base address rather than nothing. A collision
     // would show a disambiguation prompt on resolve, not a wrong event.
-    return formatShortAddress(auth, code)
+    return base
   }
 
-  const rivals = others.filter((e) => e.id !== event.id && verifyShortCode(e))
-  if (rivals.length === 0) return formatShortAddress(auth, code)
+  const rivals = others.filter((e) => !sameEvent(e, event) && verifyShortCode(e))
+  if (rivals.length === 0) return base
+  return formatShortAddress(event.pubkey, code, selectorFor(event, rivals))
+}
 
-  // Grow the selector one hex character at a time until this event's hash is
-  // distinguishable from every rival's.
-  const mine = computeFullHash(event)
-  const theirs = rivals.map(computeFullHash)
-  for (let n = SHORT_CODE_LENGTH + 1; n <= mine.length; n++) {
-    const prefix = mine.slice(0, n)
-    if (theirs.every((h) => !h.startsWith(prefix))) {
-      return formatShortAddress(auth, code, mine.slice(SHORT_CODE_LENGTH, n))
-    }
-  }
-  return formatShortAddress(auth, code)
+/** Same event, where a coordinate kind's revisions count as one. */
+function sameEvent(a: NostrEvent, b: NostrEvent): boolean {
+  if (a.id === b.id) return true
+  return isCoordinateKind(a.kind) && isCoordinateKind(b.kind) && canonicalInput(a) === canonicalInput(b)
 }
 
 /**
- * Decode a post route param, which may be an `naddr1…` or a short address.
- *
- * A short address resolves to a real event, so the coordinate comes back the
- * same shape either way and callers keep their existing cache/refresh flow. The
- * resolved event is returned too, so the caller doesn't refetch what we just had
- * in hand.
- */
-export interface PostCoordinate { kind: number; pubkey: string; identifier: string; event?: NostrEvent }
-
-/** The coordinate of a resolved event, in the shape callers already use. */
-export function coordinateOf(ev: NostrEvent): PostCoordinate {
-  return {
-    kind: ev.kind,
-    pubkey: ev.pubkey,
-    identifier: ev.tags.find((t) => t[0] === 'd')?.[1] ?? '',
-    event: ev,
-  }
-}
-
-export async function decodePostParam(
-  param: string,
-  relays: string[],
-): Promise<PostCoordinate | { candidates: NostrEvent[] } | null> {
-  if (looksLikeShortAddress(param)) {
-    const res = await resolveShortAddress(relays, param)
-    // Ambiguity is handed back rather than swallowed — the link points at
-    // something real, and only the reader can say which one.
-    if (res.status === 'ambiguous') return { candidates: res.candidates }
-    if (res.status !== 'resolved') return null
-    return coordinateOf(res.event)
-  }
-  try {
-    const d = nip19.decode(param)
-    if (d.type !== 'naddr') return null
-    return {
-      kind: d.data.kind,
-      pubkey: d.data.pubkey,
-      identifier: stripSelfCoordPrefix(d.data.kind, d.data.pubkey, d.data.identifier),
-    }
-  } catch {
-    return null
-  }
-}
-
-/**
- * Undo an address whose identifier is its own full coordinate.
- *
- * Some links minted by the old site put `<kind>:<pubkey>:<d>` in the naddr's
- * identifier slot, where the event's actual `d` tag is only `<d>`. Filtering on
- * the doubled value matches nothing, so the post reads as deleted or missing —
- * while the same link still resolves on the old site. These addresses are out in
- * the world (shared, bookmarked, indexed) and can't be recalled, so they're
- * repaired on read.
- *
- * Anchored to *this* address's own kind and pubkey rather than a general
- * `<digits>:<hex>:` pattern, so a legitimate d-tag that merely contains colons
- * is left alone. Looped because the prefix was occasionally doubled twice.
- */
-function stripSelfCoordPrefix(kind: number, pubkey: string, identifier: string): string {
-  const prefix = `${kind}:${pubkey}:`.toLowerCase()
-  let id = identifier
-  while (id.toLowerCase().startsWith(prefix)) id = id.slice(prefix.length)
-  return id
-}
-
-/**
- * Decode a note route param — a short address, or an `nevent1…`/`note1…`.
- *
- * Returns the event itself, since a note has no coordinate to look it up by
- * later: unlike a draft it's a regular event, identified only by its id.
- */
-export async function decodeNoteParam(
-  param: string,
-  relays: string[],
-  fetchById: (id: string) => Promise<NostrEvent | null>,
-): Promise<{ event: NostrEvent } | { candidates: NostrEvent[] } | null> {
-  if (looksLikeShortAddress(param)) {
-    const res = await resolveShortAddress(relays, param)
-    // Ambiguity is surfaced rather than swallowed: two of an author's events
-    // share a code and the address carried no selector, so only the reader can
-    // say which one was meant.
-    if (res.status === 'resolved') return { event: res.event }
-    if (res.status === 'ambiguous') return { candidates: res.candidates }
-    return null
-  }
-  try {
-    const d = nip19.decode(param.replace(/^nostr:/i, ''))
-    const id = d.type === 'nevent' ? d.data.id : d.type === 'note' ? (d.data as string) : null
-    const ev = id ? await fetchById(id) : null
-    return ev ? { event: ev } : null
-  } catch {
-    return null
-  }
-}
-
-/**
- * The selector that distinguishes one candidate from the others — the next hex
+ * The selector that distinguishes one candidate from the others: the next hex
  * characters of its hash, appended to an ambiguous address to make it exact.
  */
 export function selectorFor(chosen: NostrEvent, others: NostrEvent[]): string {
   const mine = computeFullHash(chosen)
-  const theirs = others.filter((e) => e.id !== chosen.id).map(computeFullHash)
+  const theirs = others.filter((e) => !sameEvent(e, chosen)).map(computeFullHash)
   for (let n = SHORT_CODE_LENGTH + 1; n <= mine.length; n++) {
     const prefix = mine.slice(0, n)
     if (theirs.every((h) => !h.startsWith(prefix))) return mine.slice(SHORT_CODE_LENGTH, n)
@@ -313,70 +219,74 @@ export type ShortResolution =
   | { status: 'not-found' }
   | { status: 'bad-address' }
 
+/** The resolver's stages, for a step-by-step indicator. */
+export type ShortStep = 'parsing' | 'querying' | 'verifying' | 'rendering'
+
 /**
  * Resolve a short address to its event.
  *
- * Verification is not optional: the `s` tag is self-asserted, so every candidate
- * is re-hashed from its own fields and signature-checked before it counts.
- * Without that, anyone could tag an event with someone else's code.
+ * Verification is not optional: the `s` tag is self-asserted, so every
+ * candidate is re-hashed from its own fields and signature-checked before it
+ * counts. Without that, anyone could tag an event with someone else's code.
  */
 export async function resolveShortAddress(
   relays: string[],
   address: string,
-  resolveAuthority?: (authority: string) => Promise<string | null>,
+  onStep?: (step: ShortStep) => void,
 ): Promise<ShortResolution> {
+  onStep?.('parsing')
   const parsed = parseShortAddress(address)
   if (!parsed) return { status: 'bad-address' }
 
-  let pubkey = authorityToPubkey(parsed.authority)
-  if (!pubkey && resolveAuthority) pubkey = await resolveAuthority(parsed.authority)
-  if (!pubkey) return { status: 'bad-address' }
+  const filter = { authors: [parsed.pubkey], '#s': [parsed.code] }
 
-  const filter = { authors: [pubkey], '#s': [parsed.code] }
-
-  // Queried in small groups rather than all relays at once.
-  //
-  // One pooled subscription across every relay resolves as soon as all of them
-  // have EOSE'd — and a relay that closes, never connects, or drops the request
-  // counts as having answered. Typically a single relay holds the event, so
-  // while the app is opening its other subscriptions that one relay's failure is
-  // indistinguishable from "nobody has it", and the lookup reports not-found.
-  // Small groups keep one relay's failure from speaking for the rest, and the
-  // search stops at the first verified hit.
+  // Queried in small groups rather than all relays at once. One pooled
+  // subscription across every relay resolves as soon as all of them have
+  // EOSE'd, and a relay that closes or never connects counts as having
+  // answered; typically a single relay holds the event, so one relay's failure
+  // must not speak for the rest. The search stops at the first verified hit.
+  onStep?.('querying')
   const GROUP = 3
   let verified: NostrEvent[] = []
   for (let round = 0; round < 2 && verified.length === 0; round++) {
     for (let i = 0; i < relays.length; i += GROUP) {
       try {
         const events = await fetchEvents(relays.slice(i, i + GROUP), filter, 4000)
+        onStep?.('verifying')
         const hits = events.filter(verifyShortCode)
         if (hits.length > 0) { verified = hits; break }
+        onStep?.('querying')
       } catch {
         // try the next group
       }
     }
   }
   if (verified.length === 0) return { status: 'not-found' }
+  onStep?.('verifying')
 
   if (parsed.suffix) {
     const want = parsed.code + parsed.suffix
     const matches = verified.filter((e) => computeFullHash(e).startsWith(want))
     if (matches.length === 1) return { status: 'resolved', event: matches[0] }
     if (matches.length === 0) return { status: 'not-found' }
-    return { status: 'ambiguous', candidates: matches }
+    return { status: 'ambiguous', candidates: newestPerCoordinate(matches) }
   }
 
-  // A replaceable/addressable coordinate legitimately returns several revisions
-  // of one event — that's not ambiguity, it's history. Keep the newest.
-  const byCoord = new Map<string, NostrEvent>()
-  for (const e of verified) {
-    const key = isCoordinateKind(e.kind)
-      ? `${e.kind}:${e.pubkey}:${e.tags.find((t) => t[0] === 'd')?.[1] ?? ''}`
-      : e.id
-    const cur = byCoord.get(key)
-    if (!cur || e.created_at > cur.created_at) byCoord.set(key, e)
-  }
-  const candidates = [...byCoord.values()]
+  const candidates = newestPerCoordinate(verified)
   if (candidates.length === 1) return { status: 'resolved', event: candidates[0] }
   return { status: 'ambiguous', candidates }
+}
+
+/**
+ * A replaceable or addressable coordinate legitimately returns several
+ * revisions of one event. That is history, not ambiguity: keep the newest.
+ */
+function newestPerCoordinate(events: NostrEvent[]): NostrEvent[] {
+  const byKey = new Map<string, NostrEvent>()
+  for (const e of events) {
+    const key = isCoordinateKind(e.kind) ? canonicalInput(e) : e.id
+    const cur = byKey.get(key)
+    if (!cur || e.created_at > cur.created_at) byKey.set(key, e)
+  }
+  return [...byKey.values()]
 }

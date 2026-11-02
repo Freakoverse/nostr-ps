@@ -1,7 +1,9 @@
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { BackButton } from '@/components/shared/BackButton'
 import { Link, useParams } from 'react-router-dom'
-import { nip19 } from 'nostr-tools'
+import { nip19, type Event as NostrEvent } from 'nostr-tools'
+import { releaseLinks } from '@/lib/nostr/postLinks'
+import { useShortUrl } from '@/hooks/useShortUrl'
 import {
   Loader2, GitFork, Archive, Users, MessageSquareText, ShieldCheck, FileText, Rocket, RotateCcw,
 } from 'lucide-react'
@@ -14,7 +16,7 @@ import { KINDS } from '@/lib/constants'
 import {
   fetchRelease, fetchReleasesOf, fetchClaimsFor, fetchReleaseReviews, fetchClaimReviews, fetchBackups, fetchForksOf,
   getCachedRelease, getCachedVersions, getCachedClaimsFor, getCachedReleaseReviews, whenEventCacheReady, shortId,
-  draftNaddr, releaseNevent, releaseLabel,
+  draftNaddr, releaseNevent, releaseLabel, parseRelease,
   type Release, type Claim, type Review, type Backup, type Fork,
 } from '@/lib/nostr/nipps'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
@@ -35,7 +37,7 @@ import { ItemMenu } from '@/components/ps/ItemMenu'
 import { assessClaim, tallyRelease, divergenceFlag } from '@/lib/nostr/trust'
 import { passesRawPow } from '@/lib/nostr/rawPow'
 import { ensureEventPresent } from '@/lib/nostr/eventRedundancy'
-import { AuthorCard, MetaCard, ReferenceCard } from '@/components/ps/SideCards'
+import { AuthorCard, MetaCard, ReferenceCard, ShareCard } from '@/components/ps/SideCards'
 import { PowBadge } from '@/components/shared/PowBadge'
 import { Tip } from '@/components/shared/Tip'
 import { formatRelativeTime, formatTimestamp } from '@/lib/utils'
@@ -47,7 +49,8 @@ import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 const tabTrigger = 'py-1.5 data-[state=active]:bg-edge data-[state=active]:text-purple-400'
 
-export function ReleasePage() {
+/** `resolved` is the release event when the page was reached through a short address. */
+export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
   const { nevent } = useParams<{ nevent: string }>()
   const myPubkey = useAuthStore((s) => s.pubkey)
   const [release, setRelease] = useState<Release | null>(null)
@@ -60,6 +63,9 @@ export function ReleasePage() {
   const [forksCapped, setForksCapped] = useState(false)
   const [forksChecked, setForksChecked] = useState(false)
   const [forkListOpen, setForkListOpen] = useState(false)
+  // Every address of this release; the short one goes into the address bar and the share controls.
+  const links = useMemo(() => (release ? releaseLinks(release) : null), [release])
+  useShortUrl(links)
   /** What the §6.5 floor excluded on the last fetch, so the switch visibly does something. */
   const [belowFloor, setBelowFloor] = useState({ claims: 0, reviews: 0 })
   const [loading, setLoading] = useState(true)
@@ -86,13 +92,14 @@ export function ReleasePage() {
   const sources = useLensStore((s) => s.sources)
 
   const id = useMemo(() => {
+    if (resolved && resolved.kind === KINDS.PS_RELEASE) return resolved.id
     try {
       const d = nip19.decode(nevent ?? '')
       if (d.type === 'nevent') return d.data.id
       if (d.type === 'note') return d.data
     } catch { /* fallthrough */ }
     return /^[0-9a-f]{64}$/i.test(nevent ?? '') ? nevent!.toLowerCase() : null
-  }, [nevent])
+  }, [nevent, resolved])
 
   const reload = useCallback(() => setTick((t) => t + 1), [])
 
@@ -109,7 +116,7 @@ export function ReleasePage() {
       // backups) is loaded from relays.
       await whenEventCacheReady
       if (cancelled) return
-      const r = getCachedRelease(id) ?? await fetchRelease(relays, id)
+      const r = getCachedRelease(id) ?? (resolved?.id === id ? parseRelease(resolved) : null) ?? await fetchRelease(relays, id)
       if (cancelled) return
       setRelease(r)
       setLoading(false)
@@ -276,7 +283,7 @@ export function ReleasePage() {
             </Link>
           )}
           </div>
-          <PostMenu event={release.event} link={`${window.location.origin}/release/${releaseNevent(release.id, release.pubkey)}`}>
+          <PostMenu event={release.event} share={links ? { links, title: `${release.title} v${release.version}` } : undefined}>
             {draftHref && (
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link to={draftHref}><FileText className="h-4 w-4 mr-2" /> Open draft</Link>
@@ -378,6 +385,7 @@ export function ReleasePage() {
               <p className="mt-2 text-neutral-600">{forksChecked ? 'none' : '…'}</p>
             )}
           </div>
+          {links && <ShareCard url={links.bestUrl} text={`${release.title} v${release.version}`} isShort={!!links.shortUrl} />}
           <ReferenceCard label={releaseLabel(release)} />
           <MetaCard kinds={release.kinds} topics={release.topics} />
         </aside>

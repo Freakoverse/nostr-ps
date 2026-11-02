@@ -1,18 +1,20 @@
 import { useEffect, useMemo, useState } from 'react'
 import { BackButton } from '@/components/shared/BackButton'
 import { LensBar } from '@/components/lens/LensBar'
-import { AuthorCard, MetaCard } from '@/components/ps/SideCards'
+import { AuthorCard, MetaCard, ShareCard } from '@/components/ps/SideCards'
 import { PowBadge } from '@/components/shared/PowBadge'
 import { Tip } from '@/components/shared/Tip'
 import { formatRelativeTime, formatTimestamp } from '@/lib/utils'
 import { CollapsibleBody } from '@/components/shared/CollapsibleBody'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
-import { nip19 } from 'nostr-tools'
+import { nip19, type Event as NostrEvent } from 'nostr-tools'
 import { Loader2, Pencil, Rocket, AlertCircle, ArrowRight, Trash2, FileText } from 'lucide-react'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useAuthStore } from '@/stores/authStore'
 import { KINDS } from '@/lib/constants'
-import { fetchDraft, fetchReleasesForDraft, getCachedDraft, getCachedVersions, whenEventCacheReady, releaseNevent, type Draft, type Release } from '@/lib/nostr/nipps'
+import { fetchDraft, fetchReleasesForDraft, getCachedDraft, getCachedVersions, whenEventCacheReady, releaseNevent, draftNaddr, parseDraft, type Draft, type Release } from '@/lib/nostr/nipps'
+import { draftLinks } from '@/lib/nostr/postLinks'
+import { useShortUrl } from '@/hooks/useShortUrl'
 import { ensureEventPresent } from '@/lib/nostr/eventRedundancy'
 import { useSeoMeta } from '@/hooks/useSeoMeta'
 import { cn } from '@/lib/utils'
@@ -24,8 +26,9 @@ import { Chip } from '@/components/ps/Cards'
 import { PostMenu } from '@/components/ps/PostMenu'
 import { DropdownMenuItem } from '@/components/ui/dropdown-menu'
 
-export function DraftPage() {
-  const { naddr } = useParams<{ naddr: string }>()
+/** `resolved` is the draft event when the page was reached through a short address. */
+export function DraftPage({ resolved }: { resolved?: NostrEvent } = {}) {
+  const { naddr: naddrParam } = useParams<{ naddr: string }>()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const myPubkey = useAuthStore((s) => s.pubkey)
@@ -36,14 +39,22 @@ export function DraftPage() {
   const [checking, setChecking] = useState(true)
   const [loading, setLoading] = useState(true)
   const [deleteOpen, setDeleteOpen] = useState(false)
+  // Every address of this draft; the short one goes into the address bar and the share controls.
+  const links = useMemo(() => (draft ? draftLinks(draft) : null), [draft])
+  useShortUrl(links)
 
   const addr = useMemo(() => {
+    if (resolved && resolved.kind === KINDS.PS_DRAFT) {
+      return { kind: resolved.kind, pubkey: resolved.pubkey, identifier: resolved.tags.find((t) => t[0] === 'd')?.[1] ?? '' }
+    }
     try {
-      const d = nip19.decode(naddr ?? '')
+      const d = nip19.decode(naddrParam ?? '')
       if (d.type === 'naddr' && d.data.kind === KINDS.PS_DRAFT) return d.data
     } catch { /* fallthrough */ }
     return null
-  }, [naddr])
+  }, [naddrParam, resolved])
+  // The naddr the edit and release links use: from the route, or built from the draft on a short-address visit.
+  const naddr = naddrParam ?? (addr ? draftNaddr(addr.pubkey, addr.identifier) : '')
 
   useEffect(() => {
     if (!addr) { setLoading(false); return }
@@ -58,7 +69,7 @@ export function DraftPage() {
       // turns the page into "not found".
       await whenEventCacheReady
       if (cancelled) return
-      const cached = getCachedDraft(addr.pubkey, addr.identifier)
+      const cached = getCachedDraft(addr.pubkey, addr.identifier) ?? (resolved ? parseDraft(resolved) : null)
       if (cached) { setDraft(cached); setLoading(false) }
       const fetched = await fetchDraft(relays, addr.pubkey, addr.identifier)
       if (cancelled) return
@@ -78,6 +89,7 @@ export function DraftPage() {
       setReleases(rs)
       setChecking(false)
     })()
+    // eslint-disable-next-line react-hooks/exhaustive-deps
     return () => { cancelled = true }
   }, [addr])
 
@@ -117,7 +129,7 @@ export function DraftPage() {
               <Chip className="text-neutral-400">updated {formatRelativeTime(draft.updatedAt ?? draft.createdAt)}</Chip>
             </Tip>
           </div>
-          <PostMenu event={draft.event}>
+          <PostMenu event={draft.event} share={links ? { links, title: draft.title } : undefined}>
             {isAuthor && (
               <DropdownMenuItem asChild className="cursor-pointer">
                 <Link to={`/draft/${naddr}/edit`}><Pencil className="h-4 w-4 mr-2" /> Edit</Link>
@@ -177,6 +189,7 @@ export function DraftPage() {
         </article>
         <aside className="space-y-4 lg:sticky lg:top-20 lg:self-start">
           <AuthorCard pubkey={draft.pubkey} />
+          {links && <ShareCard url={links.bestUrl} text={`${draft.title} (draft)`} isShort={!!links.shortUrl} />}
           <MetaCard kinds={draft.kinds} topics={draft.topics} />
         </aside>
       </div>

@@ -1,19 +1,29 @@
 import { useState, type ReactNode } from 'react'
-import { MoreHorizontal, Copy, FileJson, Check } from 'lucide-react'
+import { MoreHorizontal, Copy, FileJson, Check, Share2 } from 'lucide-react'
 import type { Event as NostrEvent } from 'nostr-tools'
 import {
   DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator,
 } from '@/components/ui/dropdown-menu'
 import { RawEventDialog } from '@/components/shared/RawEventDialog'
+import { ShareDialog } from './ShareDialog'
+import type { PostLinks } from '@/lib/nostr/postLinks'
 
 /**
- * Three-dot menu for a draft or release: copy link, raw event, plus any
- * caller-supplied items (edit, delete, …) under a separator.
+ * Three-dot menu for a draft or release: share, copy link, raw event, plus any
+ * caller-supplied items (edit, delete, …) under a separator. With `share`
+ * given, Copy link copies the short link when the post has one.
  */
-export function PostMenu({ event, link, children }: { event: NostrEvent; link?: string; children?: ReactNode }) {
+export function PostMenu({ event, link, share, children }: {
+  event: NostrEvent
+  link?: string
+  /** Every address of the post, for the Share dialog and the best link to copy. */
+  share?: { links: PostLinks; title: string }
+  children?: ReactNode
+}) {
   const [rawOpen, setRawOpen] = useState(false)
+  const [shareOpen, setShareOpen] = useState(false)
   const [copied, setCopied] = useState(false)
-  const href = link ?? window.location.href
+  const href = share?.links.bestUrl ?? link ?? window.location.href
 
   const copy = () => {
     navigator.clipboard.writeText(href)
@@ -36,6 +46,11 @@ export function PostMenu({ event, link, children }: { event: NostrEvent; link?: 
           </button>
         </DropdownMenuTrigger>
         <DropdownMenuContent align="end" className="bg-panel border-edge">
+          {share && (
+            <DropdownMenuItem onClick={() => setShareOpen(true)} className="cursor-pointer">
+              <Share2 className="h-4 w-4 mr-2" /> Share
+            </DropdownMenuItem>
+          )}
           <DropdownMenuItem onClick={copy} className="cursor-pointer">
             {copied ? <Check className="h-4 w-4 mr-2 text-emerald-400" /> : <Copy className="h-4 w-4 mr-2" />} Copy link
           </DropdownMenuItem>
@@ -51,6 +66,7 @@ export function PostMenu({ event, link, children }: { event: NostrEvent; link?: 
         </DropdownMenuContent>
       </DropdownMenu>
       <RawEventDialog open={rawOpen} onOpenChange={setRawOpen} event={event} />
+      {share && <ShareDialog open={shareOpen} onOpenChange={setShareOpen} links={share.links} title={share.title} />}
     </>
   )
 }
