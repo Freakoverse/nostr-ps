@@ -38,6 +38,7 @@ import { assessClaim, tallyRelease, divergenceFlag } from '@/lib/nostr/trust'
 import { passesRawPow } from '@/lib/nostr/rawPow'
 import { ensureEventPresent } from '@/lib/nostr/eventRedundancy'
 import { AuthorCard, MetaCard, ReferenceCard, ShareCard } from '@/components/ps/SideCards'
+import { VersionFilterMenu, ALL_VERSIONS } from '@/components/ps/VersionFilter'
 import { PowBadge } from '@/components/shared/PowBadge'
 import { Tip } from '@/components/shared/Tip'
 import { formatRelativeTime, formatTimestamp } from '@/lib/utils'
@@ -198,17 +199,34 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
   // §6.8: raw next to confirmed, flagged when the gap is large.
   const diverging = enabled && divergenceFlag(rawImplementers, confirmedImplementers)
 
-  // §6.3 item 4: distinct counted reviewers per verdict, rank-weighted.
-  const reviewTally = useMemo(() => tallyRelease(reviews, weightOf), [reviews, weightOf])
+  // The version a tab is narrowed to ('all' by default); kept per tab so switching tabs does not cross them.
+  const [claimVersion, setClaimVersion] = useState<string>(ALL_VERSIONS)
+  const [reviewVersion, setReviewVersion] = useState<string>(ALL_VERSIONS)
+  const versionLabelOf = useCallback((id: string) => versions.find((v) => v.id === id)?.version, [versions])
+
+  const reviewsInView = useMemo(() => (reviewVersion === ALL_VERSIONS ? reviews : reviews.filter((r) => r.target === 'release' && r.releaseId === reviewVersion)), [reviews, reviewVersion])
+  const reviewVersionCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const r of reviews) if (r.target === 'release') m.set(r.releaseId, (m.get(r.releaseId) ?? 0) + 1)
+    return m
+  }, [reviews])
+  // §6.3 item 4: distinct counted reviewers per verdict, rank-weighted; over what is in view.
+  const reviewTally = useMemo(() => tallyRelease(reviewsInView, weightOf), [reviewsInView, weightOf])
 
   // §6.6 tiers. `all` keeps relay order for the raw view; `rest` is sorted by the
   // claimant's rank (usage would come first per spec, once observed), withdrawn last.
   const [tier, setTier] = useState<'confirmed' | 'contested' | 'unconfirmed' | 'all'>('confirmed')
+  const claimsInView = useMemo(() => (claimVersion === ALL_VERSIONS ? claims : claims.filter((c) => c.releaseId === claimVersion)), [claims, claimVersion])
+  const claimVersionCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const c of liveClaims) m.set(c.releaseId, (m.get(c.releaseId) ?? 0) + 1)
+    return m
+  }, [liveClaims])
   const claimTiers = useMemo(() => {
     void scores; void threshold
     const confirmed: Claim[] = []
     const rest: Claim[] = []
-    for (const c of claims) {
+    for (const c of claimsInView) {
       const st = claimStats.get(c.coord)
       if (!c.withdrawn && st?.confirmed) confirmed.push(c)
       else rest.push(c)
@@ -217,8 +235,8 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
     rest.sort((a, b) => Number(a.withdrawn) - Number(b.withdrawn) || rank(b.pubkey) - rank(a.pubkey) || b.createdAt - a.createdAt)
     const contested = rest.filter((c) => !c.withdrawn && claimStats.get(c.coord)?.contested)
     const unconfirmed = rest.filter((c) => !contested.includes(c))
-    return { all: claims, confirmed, rest, contested, unconfirmed }
-  }, [claims, claimStats, scoreOf, scores, threshold])
+    return { all: claimsInView, confirmed, rest, contested, unconfirmed }
+  }, [claimsInView, claimStats, scoreOf, scores, threshold])
 
   const renderClaimTile = (c: Claim) => {
     const st = claimStats.get(c.coord)
@@ -439,7 +457,7 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
                 { id: 'confirmed', label: 'Confirmed only', hint: 'Enough trusted reviewers found it accurate', count: claimTiers.confirmed.length },
                 { id: 'contested', label: 'Contested only', hint: 'A trusted reviewer found it inaccurate', count: claimTiers.contested.length },
                 { id: 'unconfirmed', label: 'Unconfirmed only', hint: 'No trusted decision yet', count: claimTiers.unconfirmed.length },
-                { id: 'all', label: 'Show all', hint: 'Everything, in one list', count: claims.length },
+                { id: 'all', label: 'Show all', hint: 'Everything, in one list', count: claimsInView.length },
               ]}
               hiddenNote={tier === 'all' ? undefined : [
                 tier !== 'confirmed' && claimTiers.confirmed.length ? `${claimTiers.confirmed.length} confirmed` : '',
@@ -449,6 +467,7 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
               />
             </div>
           )}
+          <VersionFilterMenu versions={versions} counts={claimVersionCounts} value={claimVersion} onChange={setClaimVersion} />
         </div>
         {claims.length === 0 ? (
           <p className="rounded-lg border border-dashed border-edge py-10 text-center text-sm text-neutral-500">No one has claimed adoption yet. Implemented it? Say so.</p>
@@ -461,7 +480,7 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
             : [...claimTiers.confirmed, ...claimTiers.unconfirmed, ...claimTiers.contested]
           return shown.length === 0 ? (
             <p className="rounded-lg border border-dashed border-edge py-6 text-center text-xs text-neutral-500">
-              {tier === 'confirmed' ? 'No claim is confirmed under your lens yet.' : tier === 'contested' ? 'Nothing contested.' : 'Nothing unconfirmed.'}
+              {claimVersion !== ALL_VERSIONS ? `No ${tier === 'all' ? '' : tier + ' '}claims on v${versionLabelOf(claimVersion) ?? '?'}.` : tier === 'confirmed' ? 'No claim is confirmed under your lens yet.' : tier === 'contested' ? 'Nothing contested.' : 'Nothing unconfirmed.'}
             </p>
           ) : (
             <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
@@ -478,18 +497,22 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
             Reviews
             {rawFloorOn && <span className={cn('ml-2 text-xs font-normal', belowFloor.reviews ? 'text-amber-400' : 'text-neutral-500')}>PoW floor: {belowFloor.reviews ? `${belowFloor.reviews} excluded` : 'nothing excluded'}</span>}
           </h2>
-          <div className="flex items-center gap-1.5">
-            {reviewTally.recommend > 0 && <VerdictChip verdict="recommend" />}{reviewTally.recommend > 0 && <span className="text-xs tabular-nums text-neutral-400">{reviewTally.recommend}</span>}
-            {reviewTally['not-recommend'] > 0 && <VerdictChip verdict="not-recommend" />}{reviewTally['not-recommend'] > 0 && <span className="text-xs tabular-nums text-neutral-400">{reviewTally['not-recommend']}</span>}
-            {reviewTally.unsure > 0 && <VerdictChip verdict="unsure" />}{reviewTally.unsure > 0 && <span className="text-xs tabular-nums text-neutral-400">{reviewTally.unsure}</span>}
+          <div className="flex items-center gap-2">
+            <div className="flex items-center gap-1.5">
+              {reviewTally.recommend > 0 && <VerdictChip verdict="recommend" />}{reviewTally.recommend > 0 && <span className="text-xs tabular-nums text-neutral-400">{reviewTally.recommend}</span>}
+              {reviewTally['not-recommend'] > 0 && <VerdictChip verdict="not-recommend" />}{reviewTally['not-recommend'] > 0 && <span className="text-xs tabular-nums text-neutral-400">{reviewTally['not-recommend']}</span>}
+              {reviewTally.unsure > 0 && <VerdictChip verdict="unsure" />}{reviewTally.unsure > 0 && <span className="text-xs tabular-nums text-neutral-400">{reviewTally.unsure}</span>}
+            </div>
+            <VersionFilterMenu versions={versions} counts={reviewVersionCounts} value={reviewVersion} onChange={setReviewVersion} />
           </div>
         </div>
         <TieredList
-          items={reviews}
+          items={reviewsInView}
           keyOf={(r) => r.event.id}
           render={(r) => (
             <ReviewCard
               review={r}
+              versionLabel={reviewVersion === ALL_VERSIONS && versions.length > 1 && r.target === 'release' ? r.reviewVersion : undefined}
               menu={<ItemMenu event={r.event} mine={r.pubkey === myPubkey} onEdit={() => setReviewOpen(true)} noun="review" title={`your review of ${release.title}`} onDeleted={reload} />}
             />
           )}
@@ -500,7 +523,7 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
       {/* Discussion */}
       <TabsContent value="discussion" className="space-y-3">
         <h2 className="text-lg font-semibold">Discussion</h2>
-        <CommentSection root={{ id: release.id, pubkey: release.pubkey, kind: KINDS.PS_RELEASE }} />
+        <CommentSection root={{ id: release.id, pubkey: release.pubkey, kind: KINDS.PS_RELEASE }} versions={versions} />
       </TabsContent>
       </Tabs>
 

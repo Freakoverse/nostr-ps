@@ -387,13 +387,14 @@ export function VerdictChip({ verdict }: { verdict: string }) {
   return <Chip className={VERDICT_STYLE[verdict] ?? ''}>{verdict.replace('-', ' ')}</Chip>
 }
 
-export function ReviewCard({ review, targetLabel, menu }: { review: Review; targetLabel?: React.ReactNode; menu?: React.ReactNode }) {
+export function ReviewCard({ review, targetLabel, versionLabel, menu }: { review: Review; targetLabel?: React.ReactNode; versionLabel?: string; menu?: React.ReactNode }) {
   return (
     <div className="rounded-lg border border-edge bg-panel p-4">
       <div className="flex flex-wrap items-center justify-between gap-2">
         <AuthorLine pubkey={review.pubkey} at={review.createdAt} size="xs" suffix={<PowBadge id={review.event.id} />} />
         <div className="flex items-center gap-2">
           {targetLabel}
+          {versionLabel && <Tip label={`Reviewed v${versionLabel}`}><span className="rounded border border-edge bg-panel-2 px-1.5 py-0.5 font-mono text-[10px] text-neutral-400">v{versionLabel}</span></Tip>}
           <VerdictChip verdict={review.verdict} />
           {menu}
         </div>

@@ -101,13 +101,21 @@ export interface CommentNode {
   replies: CommentNode[]
 }
 
-export async function fetchComments(relays: string[], root: NostrTarget): Promise<NostrEvent[]> {
+export async function fetchComments(relays: string[], roots: NostrTarget | NostrTarget[]): Promise<NostrEvent[]> {
   // Root scope uses uppercase tags: `A` for addressable roots, `E` otherwise.
-  const filter = root.aTag
-    ? { kinds: [1111], '#A': [root.aTag] }
-    : { kinds: [1111], '#E': [root.id] }
+  // Several roots (a release's versions) are one filter with an array value.
+  const list = Array.isArray(roots) ? roots : [roots]
+  const aTags = list.filter((r) => r.aTag).map((r) => r.aTag!)
+  const eIds = list.filter((r) => !r.aTag).map((r) => r.id)
+  const batches: Promise<NostrEvent[]>[] = []
+  if (aTags.length) batches.push(fetchEvents(relays, { kinds: [1111], '#A': aTags }, 6000))
+  if (eIds.length) batches.push(fetchEvents(relays, { kinds: [1111], '#E': eIds }, 6000))
+  return (await Promise.all(batches)).flat()
+}
 
-  return fetchEvents(relays, filter, 6000)
+/** The root event a comment is scoped to (uppercase `E`/`A`), for telling versions apart. */
+export function rootIdOf(event: NostrEvent): string | null {
+  return event.tags.find((t) => t[0] === 'E')?.[1] ?? event.tags.find((t) => t[0] === 'A')?.[1] ?? null
 }
 
 /** Direct-parent event id of a comment (the lowercase `e` tag), or null if it replies to the root. */
@@ -123,7 +131,7 @@ function parentIdOf(event: NostrEvent): string | null {
  * shows only comments on the root and every reply is reached through its
  * parent. `rootId` tells a comment on the root apart from a reply.
  */
-export function buildCommentTree(events: NostrEvent[], minPow = 0, powExempt?: Set<string>, rootId?: string): CommentNode[] {
+export function buildCommentTree(events: NostrEvent[], minPow = 0, powExempt?: Set<string>, rootIds?: Set<string>): CommentNode[] {
   // Dedupe by id, drop deleted + below-threshold.
   const byId = new Map<string, NostrEvent>()
   for (const ev of events) {
@@ -144,9 +152,9 @@ export function buildCommentTree(events: NostrEvent[], minPow = 0, powExempt?: S
     const parentId = parentIdOf(node.event)
     const parent = parentId ? nodes.get(parentId) : null
     if (parent && parent !== node) { parent.replies.push(node); continue }
-    // Its parent is another comment (NIP-22 `k` 1111, or an `e` that is not the root) that is not here: keep it off the page.
+    // Its parent is another comment (NIP-22 `k` 1111, or an `e` that is not a root) that is not here: keep it off the page.
     const parentKind = node.event.tags.find((t) => t[0] === 'k')?.[1]
-    const isReply = parentKind === '1111' || (!!parentId && !!rootId && parentId !== rootId)
+    const isReply = parentKind === '1111' || (!!parentId && !!rootIds && rootIds.size > 0 && !rootIds.has(parentId))
     if (isReply) continue
     roots.push(node)
   }

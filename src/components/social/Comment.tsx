@@ -23,9 +23,11 @@ interface CommentProps {
   onOpenThread: (id: string) => void
   /** True when this comment is the one currently focused inside the thread modal. */
   focused?: boolean
+  /** "1.2" to show which version this comment is under, in a merged multi-version view. */
+  versionLabel?: string
 }
 
-export function Comment({ node, root, onReplyPublished, onOpenThread, focused = false }: CommentProps) {
+export function Comment({ node, root, onReplyPublished, onOpenThread, focused = false, versionLabel }: CommentProps) {
   const { event, pow, replies } = node
   const myPubkey = useAuthStore((s) => s.pubkey)
   const [profile, setProfile] = useState<UserProfile | null>(null)
@@ -70,6 +72,7 @@ export function Comment({ node, root, onReplyPublished, onOpenThread, focused = 
               <button onClick={() => onOpenThread(event.id)} className="text-xs text-neutral-500 hover:text-purple-400 hover:underline">{formatRelativeTime(event.created_at)}</button>
             )}
             {via && <span className="text-xs text-neutral-600">via {via}</span>}
+            {versionLabel && <span className="rounded border border-edge bg-panel-2 px-1.5 py-0.5 font-mono text-[10px] text-neutral-400">v{versionLabel}</span>}
             {pow > 0 && (
               <Tooltip>
                 <TooltipTrigger asChild>

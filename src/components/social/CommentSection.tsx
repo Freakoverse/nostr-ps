@@ -10,6 +10,7 @@ import {
   buildCommentTree,
   countComments,
   findCommentPath,
+  rootIdOf,
   type CommentNode,
   type NostrTarget,
 } from '@/lib/nostr/social'
@@ -24,15 +25,31 @@ import { CommentThreadModal } from './CommentThreadModal'
 import { CommentFilters, DEFAULT_COMMENT_FILTERS, type CommentFilterState } from './CommentFilters'
 import { useLensFilter } from '@/components/lens/useLensFilter'
 import { ScoreFilterMenu, EmptyFiltered } from '@/components/lens/TieredList'
+import { VersionFilterMenu, ALL_VERSIONS } from '@/components/ps/VersionFilter'
+import type { Release } from '@/lib/nostr/nipps'
 
 interface CommentSectionProps {
+  /** Where a new comment attaches (the current version). */
   root: NostrTarget
+  /** Every version of the proposal, for the version filter and per-comment markers. Omit for a single root. */
+  versions?: Release[]
   /** When set (e.g. arriving from a notification), scroll here and open the
    *  thread modal focused on this comment id. */
   focusCommentId?: string | null
 }
 
-export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
+export function CommentSection({ root, versions, focusCommentId }: CommentSectionProps) {
+  // Fetch across every version so discussion does not vanish when a new release is published.
+  const roots = useMemo<NostrTarget[]>(() => (versions && versions.length
+    ? versions.map((v) => ({ id: v.id, pubkey: v.pubkey, kind: v.event.kind }))
+    : [root]), [versions, root])
+  const rootIds = useMemo(() => new Set(roots.map((r) => r.id)), [roots])
+  const versionOf = useMemo(() => {
+    const m = new Map<string, string>()
+    for (const v of versions ?? []) m.set(v.id, v.version)
+    return m
+  }, [versions])
+  const [versionFilter, setVersionFilter] = useState<string>(ALL_VERSIONS)
   const defaultPow = useSettingsStore(s => s.powFilterDifficulty)
   const [events, setEvents] = useState<NostrEvent[]>([])
   const [loading, setLoading] = useState(true)
@@ -62,14 +79,14 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
     if (isRefresh) setRefreshing(true)
     else setLoading(true)
     try {
-      const fetched = await fetchComments(relays, root)
+      const fetched = await fetchComments(relays, roots)
       setEvents(fetched)
     } finally {
       setLoading(false)
       setRefreshing(false)
     }
     // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [root.id])
+  }, [roots])
 
   useEffect(() => { load() }, [load])
 
@@ -82,8 +99,8 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
   // Filtering demotes, never hides (spec §6): comments under the proof-of-work
   // floor are folded behind a count, and the slider in the toolbar lowers the
   // floor for this thread to bring them back.
-  const unfilteredTree = useMemo(() => buildCommentTree(events, 0, followed, root.id), [events, followed, root.id])
-  const filteredTree = useMemo(() => buildCommentTree(events, minPow, followed, root.id), [events, minPow, followed, root.id])
+  const unfilteredTree = useMemo(() => buildCommentTree(events, 0, followed, rootIds), [events, followed, rootIds])
+  const filteredTree = useMemo(() => buildCommentTree(events, minPow, followed, rootIds), [events, minPow, followed, rootIds])
   const powTree = filteredTree
   const lensEnabled = useLensStore((s) => s.enabled)
   const powOverridden = filters.minPow !== null
@@ -106,7 +123,12 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
       .map((n) => ({ ...n, replies: [] as CommentNode[] }))
   }, [blocked, filters.authorOnly, root.pubkey])
   const tree = useMemo(() => shape(powTree), [shape, powTree])
-  const displayTree = tree
+  const versionCounts = useMemo(() => {
+    const m = new Map<string, number>()
+    for (const n of tree) { const id = rootIdOf(n.event); if (id) m.set(id, (m.get(id) ?? 0) + 1) }
+    return m
+  }, [tree])
+  const displayTree = useMemo(() => (versionFilter === ALL_VERSIONS ? tree : tree.filter((n) => rootIdOf(n.event) === versionFilter)), [tree, versionFilter])
   const allTree = useMemo(() => shape(unfilteredTree), [shape, unfilteredTree])
 
   const total = useMemo(() => countComments(displayTree), [displayTree])
@@ -201,12 +223,18 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
             )}
             {belowPow > 0 && <span className="text-neutral-500">{belowPow} {belowPow === 1 ? 'comment' : 'comments'} hidden (PoW below {minPow})</span>}
           </div>
-          {lensEnabled && <ScoreFilterMenu value={lens.filter} onChange={lens.setFilter} counts={lens.counts} />}
+          <div className="flex items-center gap-2">
+            <VersionFilterMenu versions={versions ?? []} counts={versionCounts} value={versionFilter} onChange={setVersionFilter} />
+            {lensEnabled && <ScoreFilterMenu value={lens.filter} onChange={lens.setFilter} counts={lens.counts} />}
+          </div>
         </div>
       )}
 
       {/* New top-level comment */}
       <div className="rounded-lg bg-panel p-4 shadow-md shadow-black/20">
+        {versions && versions.length > 1 && (
+          <p className="mb-2 text-[11px] text-neutral-500">Your comment attaches to the version on this page{versionOf.get(root.id) ? ` (v${versionOf.get(root.id)})` : ''}.</p>
+        )}
         <CommentForm root={root} onPublished={handlePublished} />
       </div>
 
@@ -230,6 +258,7 @@ export function CommentSection({ root, focusCommentId }: CommentSectionProps) {
           {visible.map(node => (
             <Comment
               key={node.event.id}
+              versionLabel={versionFilter === ALL_VERSIONS && versionOf.size > 1 ? versionOf.get(rootIdOf(node.event) ?? '') : undefined}
               node={node}
               root={root}
               onReplyPublished={handlePublished}
