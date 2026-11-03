@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState } from 'react'
-import { Loader2, Waypoints, UserCheck, CornerDownRight } from 'lucide-react'
+import { Loader2, Waypoints, UserCheck } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { AuthorLine } from '@/components/social/AuthorLine'
 import { useAuthStore } from '@/stores/authStore'
@@ -68,16 +68,21 @@ export function ConnectionModal({ open, onOpenChange, target }: {
     return () => { cancelled = true }
   }, [open, me, target])
 
-  // Group the two-hop paths by the person you follow (A), listing the middles.
-  const grouped = useMemo(() => {
-    const m = new Map<string, string[]>()
+  // Two-hop paths summarised by bridge (the middle B): how many of the people
+  // you follow reach the target through each one. These shared accounts are the
+  // chokepoints — the weak links — so they lead, not a per-person wall.
+  const bridges = useMemo(() => {
+    const m = new Map<string, Set<string>>()
     for (const { connector, middle } of second) {
-      const arr = m.get(connector) ?? []
-      arr.push(middle)
-      m.set(connector, arr)
+      const s = m.get(middle) ?? new Set<string>()
+      s.add(connector)
+      m.set(middle, s)
     }
-    return [...m.entries()].map(([connector, middles]) => ({ connector, middles }))
+    return [...m.entries()]
+      .map(([middle, set]) => ({ middle, count: set.size }))
+      .sort((a, b) => b.count - a.count)
   }, [second])
+  const connectorCount = useMemo(() => new Set(second.map((p) => p.connector)).size, [second])
 
   const degreeLine = hops != null && hops > 0
     ? `Your lens puts them at ${ordinal(hops)} degree.`
@@ -112,11 +117,14 @@ export function ConnectionModal({ open, onOpenChange, target }: {
                   {connectors.length === 1 ? '1 person you follow' : `${connectors.length} people you follow`} also follow{connectors.length === 1 ? 's' : ''} them
                 </p>
                 <div className="space-y-2">
-                  {connectors.map((pk) => (
+                  {connectors.slice(0, 8).map((pk) => (
                     <div key={pk} className="rounded-lg border border-edge bg-panel p-2.5">
-                      <AuthorLine pubkey={pk} size="xs" />
+                      <AuthorLine pubkey={pk} size="xs" showDegree={false} />
                     </div>
                   ))}
+                  {connectors.length > 8 && (
+                    <p className="text-[11px] text-neutral-600">+{connectors.length - 8} more</p>
+                  )}
                 </div>
                 <p className="text-[11px] text-neutral-600">
                   These are your connection to them. If the target is unwanted, the weak link is here — open a connector's profile to unfollow, mute, or report.
@@ -124,30 +132,27 @@ export function ConnectionModal({ open, onOpenChange, target }: {
               </>
             ) : deepening ? (
               <p className="flex items-center justify-center gap-2 py-8 text-sm text-neutral-500"><Loader2 className="h-4 w-4 animate-spin" /> Looking one hop deeper…</p>
-            ) : grouped.length ? (
+            ) : bridges.length ? (
               <>
                 <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">
-                  {grouped.length === 1 ? '1 person you follow connects' : `${grouped.length} people you follow connect`} through someone who follows them
+                  {connectorCount === 1 ? '1 person you follow connects' : `${connectorCount} people you follow connect`} through {bridges.length === 1 ? '1 account' : `${bridges.length} accounts`} who follow them
                 </p>
                 <div className="space-y-2">
-                  {grouped.slice(0, 10).map(({ connector, middles }) => (
-                    <div key={connector} className="space-y-1.5 rounded-lg border border-edge bg-panel p-2.5">
-                      <AuthorLine pubkey={connector} size="xs" />
-                      {middles.slice(0, 3).map((b) => (
-                        <div key={b} className="flex min-w-0 items-center gap-1.5 pl-3 text-[11px] text-neutral-500">
-                          <CornerDownRight className="h-3 w-3 shrink-0 text-neutral-600" />
-                          <span className="shrink-0">follows</span>
-                          <div className="min-w-0 flex-1"><AuthorLine pubkey={b} size="xs" /></div>
-                        </div>
-                      ))}
-                      {middles.length > 3 && (
-                        <p className="pl-3 text-[11px] text-neutral-600">+{middles.length - 3} more who follow them</p>
-                      )}
+                  {bridges.slice(0, 6).map(({ middle, count }) => (
+                    <div key={middle} className="flex items-center justify-between gap-2 rounded-lg border border-edge bg-panel p-2.5">
+                      <div className="min-w-0 flex-1"><AuthorLine pubkey={middle} size="xs" showDegree={false} /></div>
+                      <span className="shrink-0 text-[11px] text-neutral-500">{count} of your follows</span>
                     </div>
                   ))}
+                  {bridges.length > 6 && (
+                    <p className="text-[11px] text-neutral-600">+{bridges.length - 6} more bridges</p>
+                  )}
                 </div>
                 <p className="text-[11px] text-neutral-600">
-                  You → someone you follow → someone they follow → them. The weak link is a connector or a middle — open either profile to unfollow, mute, or report.
+                  These accounts bridge your follows to them (you → a follow → a bridge → them).{' '}
+                  {connectorCount > 8
+                    ? 'They are broadly connected to your network — there is no single weak link to cut.'
+                    : 'To cut the connection, unfollow the bridging follows or mute a bridge.'}
                 </p>
               </>
             ) : (

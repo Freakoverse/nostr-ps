@@ -11,7 +11,7 @@ import { DegreeBadge } from '@/components/lens/DegreeBadge'
 
 /** Avatar + name + trust badge + optional timestamp, one line. */
 export function AuthorLine({
-  pubkey, at, size = 'sm', className, suffix, linked = true,
+  pubkey, at, size = 'sm', className, suffix, linked = true, showDegree = true,
 }: {
   pubkey: string
   at?: number
@@ -20,6 +20,8 @@ export function AuthorLine({
   suffix?: React.ReactNode
   /** false when the line sits inside another link (cards), since anchors cannot nest. */
   linked?: boolean
+  /** false inside the connection modal: the degree there is structural (and its pill would open a nested modal). */
+  showDegree?: boolean
 }) {
   const [profile, setProfile] = useState<UserProfile | null>(() => useUserStore.getState().getCachedProfile(pubkey))
 
@@ -46,7 +48,7 @@ export function AuthorLine({
         {name}
       </Wrap>
       <TrustBadge pubkey={pubkey} />
-      <DegreeBadge pubkey={pubkey} />
+      {showDegree && <DegreeBadge pubkey={pubkey} />}
       {at !== undefined && <span className="shrink-0 text-xs text-neutral-600">{formatRelativeTime(at)}</span>}
       {suffix}
     </div>
