@@ -49,6 +49,10 @@ export interface PubkeyScore {
   combined: number | null
   /** Per source id. `null` = that source has no opinion. */
   per: Record<string, number | null>
+  /** Degrees of separation each source reported, per source id; `null` = none given. */
+  perHops: Record<string, number | null>
+  /** The closest hop count across sources (smallest), or null when none reported one. */
+  hops: number | null
   fetchedAt: number
 }
 
@@ -144,6 +148,13 @@ function enabledSources(s: LensState): LensSource[] {
 function combine(per: Record<string, number | null>): number | null {
   let best: number | null = null
   for (const v of Object.values(per)) if (v !== null && (best === null || v > best)) best = v
+  return best
+}
+
+/** The closest connection wins: the smallest hop count any source reported. */
+function minHops(per: Record<string, number | null>): number | null {
+  let best: number | null = null
+  for (const v of Object.values(per)) if (v !== null && (best === null || v < best)) best = v
   return best
 }
 
@@ -273,8 +284,13 @@ export const useLensStore = create<LensState>()(
           const next: Record<string, PubkeyScore> = { ...get().scores }
           for (const pk of need) {
             const per: Record<string, number | null> = {}
-            sources.forEach((src, i) => { per[src.id] = perSource[i].get(pk) ?? null })
-            next[pk] = { combined: combine(per), per, fetchedAt: nowMs }
+            const perHops: Record<string, number | null> = {}
+            sources.forEach((src, i) => {
+              const hit = perSource[i].get(pk)
+              per[src.id] = hit ? hit.rank : null
+              perHops[src.id] = hit ? hit.hops : null
+            })
+            next[pk] = { combined: combine(per), per, perHops, hops: minHops(perHops), fetchedAt: nowMs }
           }
           set({ scores: next })
         } finally {
@@ -315,9 +331,9 @@ export const useLensStore = create<LensState>()(
 
 // ─── Provider implementation ────────────────────────────────────────
 
-/** NIP-85: one 30382 per subject, signed by the provider key. */
-async function scoreViaNip85(relays: string[], serviceKey: string, pubkeys: string[]): Promise<Map<string, number>> {
-  const out = new Map<string, number>()
+/** NIP-85: one 30382 per subject, signed by the provider key. Carries the rank and, when present, the hop count (degrees of separation) the provider computed. */
+async function scoreViaNip85(relays: string[], serviceKey: string, pubkeys: string[]): Promise<Map<string, { rank: number; hops: number | null }>> {
+  const out = new Map<string, { rank: number; hops: number | null }>()
   const CHUNK = 100
   for (let i = 0; i < pubkeys.length; i += CHUNK) {
     const batch = pubkeys.slice(i, i + CHUNK)
@@ -338,9 +354,11 @@ async function scoreViaNip85(relays: string[], serviceKey: string, pubkeys: stri
       // A rank of 0 with no `hops` tag means the subject was unreachable from the
       // observer's graph: that is "unknown", not "scored zero". With a hops tag,
       // zero means the graph reached them and did not vouch (or muted them).
-      const hops = ev.tags.find((t) => t[0] === 'hops')?.[1]
-      if (rank <= 0 && hops === undefined) continue
-      out.set(d, Math.max(0, Math.min(100, Math.round(rank))))
+      const hopsRaw = ev.tags.find((t) => t[0] === 'hops')?.[1]
+      if (rank <= 0 && hopsRaw === undefined) continue
+      const hopsNum = hopsRaw === undefined ? NaN : Number(hopsRaw)
+      const hops = Number.isFinite(hopsNum) && hopsNum >= 0 ? Math.round(hopsNum) : null
+      out.set(d, { rank: Math.max(0, Math.min(100, Math.round(rank))), hops })
     }
   }
   return out

@@ -9,6 +9,13 @@ export function isTauri(): boolean {
   return false // web-only: no Tauri desktop support
 }
 
+/** 1 → "1st", 2 → "2nd", 4 → "4th", 11 → "11th". */
+export function ordinal(n: number): string {
+  const s = ['th', 'st', 'nd', 'rd']
+  const v = n % 100
+  return `${n}${s[(v - 20) % 10] || s[v] || s[0]}`
+}
+
 /**
  * True for a well-formed http(s) URL — the bar for rendering user-supplied text
  * as a clickable link. Stricter than a prefix test: it must also parse and have

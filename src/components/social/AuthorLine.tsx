@@ -7,6 +7,7 @@ import { useSettingsStore } from '@/stores/settingsStore'
 import { useUserStore, type UserProfile } from '@/stores/userStore'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { TrustBadge } from '@/components/lens/TrustBadge'
+import { DegreeBadge } from '@/components/lens/DegreeBadge'
 
 /** Avatar + name + trust badge + optional timestamp, one line. */
 export function AuthorLine({
@@ -45,6 +46,7 @@ export function AuthorLine({
         {name}
       </Wrap>
       <TrustBadge pubkey={pubkey} />
+      <DegreeBadge pubkey={pubkey} />
       {at !== undefined && <span className="shrink-0 text-xs text-neutral-600">{formatRelativeTime(at)}</span>}
       {suffix}
     </div>
