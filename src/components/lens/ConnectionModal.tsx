@@ -1,20 +1,21 @@
-import { useEffect, useState } from 'react'
-import { Loader2, Waypoints, UserCheck } from 'lucide-react'
+import { useEffect, useMemo, useState } from 'react'
+import { Loader2, Waypoints, UserCheck, CornerDownRight } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { AuthorLine } from '@/components/social/AuthorLine'
 import { useAuthStore } from '@/stores/authStore'
 import { useFollowsStore } from '@/stores/followsStore'
 import { useLensStore, requestScores } from '@/stores/lensStore'
 import { useSettingsStore } from '@/stores/settingsStore'
-import { fetchConnectors } from '@/lib/nostr/connectors'
+import { fetchConnectors, fetchSecondHop } from '@/lib/nostr/connectors'
 import { ordinal } from '@/lib/utils'
 
 /**
- * How the viewer connects to `target`: the verifiable first hop. It reads the
- * viewer's contact list and finds which of those follows also follow the target
- * ("people you follow who also follow them"), straight from signed kind-3
- * events. The lens's degree (hops) is shown for context, but the chain itself is
- * not reconstructed past one hop — that needs a graph node (see CLIENT-LENS).
+ * How the viewer connects to `target`, reconstructed from signed kind-3 contact
+ * lists only — no graph node. First the one verifiable hop (people you follow
+ * who also follow them); if there is none, the two-hop path (someone you follow
+ * who follows someone who follows them), which is the common case for a
+ * 3rd-degree account. The lens's degree (hops) frames it; chains longer than two
+ * hops fan out combinatorially and are left to a node (see CLIENT-LENS).
  */
 export function ConnectionModal({ open, onOpenChange, target }: {
   open: boolean
@@ -24,14 +25,18 @@ export function ConnectionModal({ open, onOpenChange, target }: {
   const me = useAuthStore((s) => s.pubkey)
   const hops = useLensStore((s) => s.scores[target]?.hops ?? null)
   const [loading, setLoading] = useState(false)
+  const [deepening, setDeepening] = useState(false)
   const [direct, setDirect] = useState(false)
   const [connectors, setConnectors] = useState<string[]>([])
+  const [second, setSecond] = useState<{ connector: string; middle: string }[]>([])
 
   useEffect(() => {
     if (!open || !me) return
     let cancelled = false
     setLoading(true)
+    setDeepening(false)
     setConnectors([])
+    setSecond([])
     setDirect(false)
     ;(async () => {
       await useFollowsStore.getState().loadContacts()
@@ -39,16 +44,40 @@ export function ConnectionModal({ open, onOpenChange, target }: {
       const follows = (useFollowsStore.getState().contactEvent?.tags ?? [])
         .filter((t) => t[0] === 'p' && t[1])
         .map((t) => t[1])
-      setDirect(follows.includes(target))
+      const isDirect = follows.includes(target)
+      setDirect(isDirect)
       const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
+
       const cs = await fetchConnectors(relays, follows, target).catch(() => [] as string[])
       if (cancelled) return
       setConnectors(cs)
       if (cs.length) void requestScores(cs)
+
+      // No verifiable first hop and not a direct follow: try the second hop.
+      if (!cs.length && !isDirect) {
+        setDeepening(true)
+        const paths = await fetchSecondHop(relays, follows, target).catch(() => [] as { connector: string; middle: string }[])
+        if (cancelled) return
+        setSecond(paths)
+        const pks = [...new Set(paths.flatMap((p) => [p.connector, p.middle]))]
+        if (pks.length) void requestScores(pks)
+        setDeepening(false)
+      }
       setLoading(false)
     })()
     return () => { cancelled = true }
   }, [open, me, target])
+
+  // Group the two-hop paths by the person you follow (A), listing the middles.
+  const grouped = useMemo(() => {
+    const m = new Map<string, string[]>()
+    for (const { connector, middle } of second) {
+      const arr = m.get(connector) ?? []
+      arr.push(middle)
+      m.set(connector, arr)
+    }
+    return [...m.entries()].map(([connector, middles]) => ({ connector, middles }))
+  }, [second])
 
   const degreeLine = hops != null && hops > 0
     ? `Your lens puts them at ${ordinal(hops)} degree.`
@@ -61,7 +90,7 @@ export function ConnectionModal({ open, onOpenChange, target }: {
           <DialogTitle className="flex items-center gap-2 text-foreground"><Waypoints className="h-5 w-5 text-purple-400" /> How you connect</DialogTitle>
           <DialogDescription className="text-neutral-400">
             {degreeLine && <span className="text-neutral-300">{degreeLine} </span>}
-            Below is the one hop this client verifies itself — people you follow who also follow them, read from signed contact lists. A longer chain is not reconstructed here.
+            Reconstructed from signed contact lists — people you follow who follow them, or who connect to them one step further. Longer chains are left to a graph node.
           </DialogDescription>
         </DialogHeader>
 
@@ -75,7 +104,7 @@ export function ConnectionModal({ open, onOpenChange, target }: {
               </p>
             )}
 
-            {loading ? (
+            {loading && !connectors.length && !deepening ? (
               <p className="flex items-center justify-center gap-2 py-8 text-sm text-neutral-500"><Loader2 className="h-4 w-4 animate-spin" /> Reading contact lists…</p>
             ) : connectors.length ? (
               <>
@@ -93,11 +122,39 @@ export function ConnectionModal({ open, onOpenChange, target }: {
                   These are your connection to them. If the target is unwanted, the weak link is here — open a connector's profile to unfollow, mute, or report.
                 </p>
               </>
+            ) : deepening ? (
+              <p className="flex items-center justify-center gap-2 py-8 text-sm text-neutral-500"><Loader2 className="h-4 w-4 animate-spin" /> Looking one hop deeper…</p>
+            ) : grouped.length ? (
+              <>
+                <p className="text-xs font-medium uppercase tracking-wider text-neutral-500">
+                  {grouped.length === 1 ? '1 person you follow connects' : `${grouped.length} people you follow connect`} through someone who follows them
+                </p>
+                <div className="space-y-2">
+                  {grouped.slice(0, 10).map(({ connector, middles }) => (
+                    <div key={connector} className="space-y-1.5 rounded-lg border border-edge bg-panel p-2.5">
+                      <AuthorLine pubkey={connector} size="xs" />
+                      {middles.slice(0, 3).map((b) => (
+                        <div key={b} className="flex min-w-0 items-center gap-1.5 pl-3 text-[11px] text-neutral-500">
+                          <CornerDownRight className="h-3 w-3 shrink-0 text-neutral-600" />
+                          <span className="shrink-0">follows</span>
+                          <div className="min-w-0 flex-1"><AuthorLine pubkey={b} size="xs" /></div>
+                        </div>
+                      ))}
+                      {middles.length > 3 && (
+                        <p className="pl-3 text-[11px] text-neutral-600">+{middles.length - 3} more who follow them</p>
+                      )}
+                    </div>
+                  ))}
+                </div>
+                <p className="text-[11px] text-neutral-600">
+                  You → someone you follow → someone they follow → them. The weak link is a connector or a middle — open either profile to unfollow, mute, or report.
+                </p>
+              </>
             ) : (
               <p className="rounded-lg border border-dashed border-edge px-3 py-8 text-center text-sm text-neutral-500">
                 {direct
                   ? 'No one else you follow follows them.'
-                  : `None of the people you follow follow them directly${hops != null && hops > 0 ? `, so the connection runs deeper than one hop (your lens puts them at ${ordinal(hops)} degree)` : ''}. The full chain is not reconstructed here.`}
+                  : `No verifiable path within two hops${hops != null && hops > 0 ? ` (your lens puts them at ${ordinal(hops)} degree)` : ''}. The connection runs deeper, or the relays queried don't index it. The full chain is left to a graph node.`}
               </p>
             )}
           </div>
