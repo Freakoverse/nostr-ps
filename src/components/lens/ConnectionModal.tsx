@@ -1,5 +1,5 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Loader2, Waypoints, User, ArrowDown } from 'lucide-react'
+import { Loader2, Waypoints, User, Users, ArrowDown } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { AuthorLine } from '@/components/social/AuthorLine'
 import { useAuthStore } from '@/stores/authStore'
@@ -128,7 +128,7 @@ export function ConnectionModal({ open, onOpenChange, target }: {
               <Edge>follow them directly — 1st degree</Edge>
             ) : connectors.length ? (
               <>
-                <Edge>follow {connectors.length === 1 ? 'this person' : `these ${connectors.length}`}, who follow them</Edge>
+                <Edge>you follow</Edge>
                 {connectors.slice(0, 8).map((pk) => (
                   <div key={pk} className="rounded-lg border border-edge bg-panel p-2.5">
                     <AuthorLine pubkey={pk} size="xs" showDegree={false} />
@@ -141,11 +141,17 @@ export function ConnectionModal({ open, onOpenChange, target }: {
               <Edge><Loader2 className="h-3 w-3 animate-spin" /> looking one hop deeper…</Edge>
             ) : bridges.length ? (
               <>
-                <Edge>follow {connectorCount === 1 ? '1 person' : `${connectorCount} people`} who follow {bridges.length === 1 ? 'this account' : `these ${bridges.length} accounts`}</Edge>
+                <Edge>you follow</Edge>
+                {/* The people-you-follow layer, collapsed — you do NOT follow the bridges below. */}
+                <div className="flex items-center gap-2 rounded-lg border border-edge bg-panel px-2.5 py-2">
+                  <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-500/15 text-neutral-300"><Users className="h-3.5 w-3.5" /></span>
+                  <span className="text-sm font-medium text-neutral-300">{connectorCount} {connectorCount === 1 ? 'person' : 'people'} you follow</span>
+                </div>
+                <Edge>who in turn follow</Edge>
                 {bridges.slice(0, 6).map(({ middle, count }) => (
                   <div key={middle} className="flex items-center justify-between gap-2 rounded-lg border border-edge bg-panel p-2.5">
                     <div className="min-w-0 flex-1"><AuthorLine pubkey={middle} size="xs" showDegree={false} /></div>
-                    <span className="shrink-0 text-[11px] text-neutral-500">via {count} of your follows</span>
+                    <span className="shrink-0 text-[11px] text-neutral-500">{count} of them</span>
                   </div>
                 ))}
                 {bridges.length > 6 && <p className="pl-1 text-[11px] text-neutral-600">+{bridges.length - 6} more bridges</p>}
