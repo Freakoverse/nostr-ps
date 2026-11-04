@@ -147,15 +147,15 @@ export function ConnectionModal({ open, onOpenChange, target }: {
                   <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-neutral-500/15 text-neutral-300"><Users className="h-3.5 w-3.5" /></span>
                   <span className="text-sm font-medium text-neutral-300">{connectorCount} {connectorCount === 1 ? 'person' : 'people'} you follow</span>
                 </div>
-                <Edge>who in turn follow</Edge>
+                <Edge>who follow</Edge>
                 {bridges.slice(0, 6).map(({ middle, count }) => (
                   <div key={middle} className="flex items-center justify-between gap-2 rounded-lg border border-edge bg-panel p-2.5">
                     <div className="min-w-0 flex-1"><AuthorLine pubkey={middle} size="xs" showDegree={false} /></div>
-                    <span className="shrink-0 text-[11px] text-neutral-500">{count} of them</span>
+                    <span className="shrink-0 text-[11px] text-neutral-500">{count} of the {connectorCount}</span>
                   </div>
                 ))}
                 {bridges.length > 6 && <p className="pl-1 text-[11px] text-neutral-600">+{bridges.length - 6} more bridges</p>}
-                <Edge>who follow</Edge>
+                <Edge>who in turn follow</Edge>
               </>
             ) : (
               <Edge dashed>
