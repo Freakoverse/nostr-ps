@@ -1,10 +1,11 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { nip19 } from 'nostr-tools'
-import { Plus, Minus, Maximize2 } from 'lucide-react'
+import { Plus, Minus, RotateCcw, Maximize2, Minimize2 } from 'lucide-react'
 import { shortNpub } from '@/lib/utils'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { useUserStore, type UserProfile } from '@/stores/userStore'
+import { Tooltip, TooltipTrigger, TooltipContent } from '@/components/ui/tooltip'
 
 /**
  * The connection as an interactive node-link graph, laid out top to bottom with
@@ -45,12 +46,14 @@ function elbowPath(x1: number, y1: number, x2: number, y2: number): string {
   ].join(' ')
 }
 
-export function ConnectionGraph({ me, target, direct, connectors, second }: {
+export function ConnectionGraph({ me, target, direct, connectors, second, expanded, onToggleExpand }: {
   me: string
   target: string
   direct: boolean
   connectors: string[]
   second: { connector: string; middle: string }[]
+  expanded?: boolean
+  onToggleExpand?: () => void
 }) {
   // ---- Layout (world coordinates, centered on x=0) --------------------------
   const { nodes, edges, aToBs, bToAs, trimmed } = useMemo(() => {
@@ -227,7 +230,7 @@ export function ConnectionGraph({ me, target, direct, connectors, second }: {
         <svg
           ref={svgRef}
           viewBox={`0 0 ${VBW} ${VBH}`}
-          className="block h-[340px] w-full touch-none select-none"
+          className={`block w-full touch-none select-none ${expanded ? 'h-[72vh]' : 'h-[340px]'}`}
           style={{ cursor: drag.current ? 'grabbing' : 'grab' }}
           onPointerDown={onPointerDown}
           onPointerMove={onPointerMove}
@@ -274,7 +277,12 @@ export function ConnectionGraph({ me, target, direct, connectors, second }: {
         <div className="absolute right-2 top-2 flex flex-col gap-1">
           <CtrlBtn label="Zoom in" onClick={() => zoomBy(1.3)}><Plus className="h-3.5 w-3.5" /></CtrlBtn>
           <CtrlBtn label="Zoom out" onClick={() => zoomBy(1 / 1.3)}><Minus className="h-3.5 w-3.5" /></CtrlBtn>
-          <CtrlBtn label="Reset view" onClick={() => setT(initial)}><Maximize2 className="h-3.5 w-3.5" /></CtrlBtn>
+          <CtrlBtn label="Reset view" onClick={() => setT(initial)}><RotateCcw className="h-3.5 w-3.5" /></CtrlBtn>
+          {onToggleExpand && (
+            <CtrlBtn label={expanded ? 'Shrink' : 'Expand'} onClick={onToggleExpand}>
+              {expanded ? <Minimize2 className="h-3.5 w-3.5" /> : <Maximize2 className="h-3.5 w-3.5" />}
+            </CtrlBtn>
+          )}
         </div>
       </div>
       {trimmed && <p className="text-center text-[11px] text-neutral-600">{trimmed}</p>}
@@ -284,15 +292,19 @@ export function ConnectionGraph({ me, target, direct, connectors, second }: {
 
 function CtrlBtn({ label, onClick, children }: { label: string; onClick: () => void; children: React.ReactNode }) {
   return (
-    <button
-      type="button"
-      aria-label={label}
-      title={label}
-      onClick={onClick}
-      className="flex h-7 w-7 items-center justify-center rounded-md border border-edge bg-panel/80 text-neutral-400 backdrop-blur transition-colors hover:border-edge-2 hover:text-neutral-100"
-    >
-      {children}
-    </button>
+    <Tooltip>
+      <TooltipTrigger asChild>
+        <button
+          type="button"
+          aria-label={label}
+          onClick={onClick}
+          className="flex h-7 w-7 items-center justify-center rounded-md border border-edge bg-panel/80 text-neutral-400 backdrop-blur transition-colors hover:border-edge-2 hover:text-neutral-100"
+        >
+          {children}
+        </button>
+      </TooltipTrigger>
+      <TooltipContent side="left">{label}</TooltipContent>
+    </Tooltip>
   )
 }
 

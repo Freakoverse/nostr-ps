@@ -43,6 +43,7 @@ export function ConnectionModal({ open, onOpenChange, target }: {
   const [connectors, setConnectors] = useState<string[]>([])
   const [second, setSecond] = useState<{ connector: string; middle: string }[]>([])
   const [view, setView] = useState<'list' | 'graph'>('list')
+  const [expanded, setExpanded] = useState(false)
   const [myPic, setMyPic] = useState<string | undefined>(() => (me ? (useUserStore.getState().getCachedProfile(me)?.picture as string | undefined) : undefined))
 
   useEffect(() => {
@@ -107,6 +108,10 @@ export function ConnectionModal({ open, onOpenChange, target }: {
   }, [second])
   const connectorCount = useMemo(() => new Set(second.map((p) => p.connector)).size, [second])
 
+  // Expand only applies to the graph; shrink back when it closes or on list view.
+  useEffect(() => { if (view !== 'graph') setExpanded(false) }, [view])
+  useEffect(() => { if (!open) setExpanded(false) }, [open])
+
   const degreeLine = hops != null && hops > 0
     ? `Your lens puts them at ${ordinal(hops)} degree.`
     : null
@@ -116,7 +121,10 @@ export function ConnectionModal({ open, onOpenChange, target }: {
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
-        className="border-edge bg-dialog sm:max-w-lg"
+        className={cn(
+          'border-edge bg-dialog',
+          expanded && view === 'graph' ? 'h-[92vh] w-[95vw] max-w-[95vw] overflow-y-auto' : 'sm:max-w-lg',
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <DialogHeader>
@@ -142,7 +150,7 @@ export function ConnectionModal({ open, onOpenChange, target }: {
 
             {view === 'graph' && hasGraph ? (
               <>
-                <ConnectionGraph me={me} target={target} direct={direct} connectors={connectors} second={second} />
+                <ConnectionGraph me={me} target={target} direct={direct} connectors={connectors} second={second} expanded={expanded} onToggleExpand={() => setExpanded((e) => !e)} />
                 <p className="text-[11px] text-neutral-600">
                   {connectors.length > 0 || direct
                     ? 'Each line is a signed follow, you → someone you follow → them. Tap a node to open its profile.'
