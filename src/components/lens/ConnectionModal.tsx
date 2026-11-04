@@ -126,7 +126,13 @@ export function ConnectionModal({ open, onOpenChange, target }: {
     if (lensSel !== 'all' && !activeSources.some((x) => x.id === lensSel)) setLensSel('all')
   }, [activeSources, lensSel])
   const hops = lensSel === 'all' ? (score?.hops ?? null) : (score?.perHops?.[lensSel] ?? null)
-  const selectedLensLabel = lensSel === 'all' ? 'All lenses' : (activeSources.find((x) => x.id === lensSel)?.label ?? 'Lens')
+  // With a single source, "all" and that source are the same reading, so name the
+  // source rather than the abstract "All lenses".
+  const selectedLensLabel = lensSel !== 'all'
+    ? (activeSources.find((x) => x.id === lensSel)?.label ?? 'Lens')
+    : activeSources.length === 1
+      ? activeSources[0].label
+      : 'All lenses'
 
   const degreeLine = !lensEnabled || activeSources.length === 0
     ? null
@@ -157,8 +163,8 @@ export function ConnectionModal({ open, onOpenChange, target }: {
           </DialogDescription>
         </DialogHeader>
 
-        {/* Lens picker — only when more than one source is on; otherwise there is nothing to choose between. */}
-        {lensEnabled && activeSources.length >= 2 && (
+        {/* Lens picker — the degree is a lens opinion, so let the viewer choose whose. */}
+        {lensEnabled && activeSources.length >= 1 && (
           <div className="flex items-center gap-2 text-xs">
             <span className="text-neutral-500">Seen through</span>
             <DropdownMenu>
@@ -170,20 +176,27 @@ export function ConnectionModal({ open, onOpenChange, target }: {
                 </button>
               </DropdownMenuTrigger>
               <DropdownMenuContent align="start" className="w-64 border-edge bg-panel">
-                <DropdownMenuItem onClick={() => setLensSel('all')} className="cursor-pointer justify-between">
-                  <span>All lenses <span className="text-neutral-500">· closest</span></span>
-                  {lensSel === 'all' && <Check className="h-4 w-4 text-purple-400" />}
-                </DropdownMenuItem>
-                <DropdownMenuSeparator className="bg-edge" />
+                {/* "All lenses" only matters when there is more than one to combine. */}
+                {activeSources.length >= 2 && (
+                  <>
+                    <DropdownMenuItem onClick={() => setLensSel('all')} className="cursor-pointer justify-between">
+                      <span>All lenses <span className="text-neutral-500">· closest</span></span>
+                      {lensSel === 'all' && <Check className="h-4 w-4 text-purple-400" />}
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator className="bg-edge" />
+                  </>
+                )}
                 {activeSources.map((x) => {
                   const h = score?.perHops?.[x.id] ?? null
+                  // In the single-source case "all" selects this very source.
+                  const sel = lensSel === x.id || (lensSel === 'all' && activeSources.length === 1)
                   return (
                     <DropdownMenuItem key={x.id} onClick={() => setLensSel(x.id)} className="cursor-pointer justify-between gap-3">
                       <span className="min-w-0">
                         <span className="block truncate">{x.label}</span>
                         <span className="block text-[11px] text-neutral-500">{h != null && h > 0 ? `${ordinal(h)} degree` : 'no reading'}</span>
                       </span>
-                      {lensSel === x.id && <Check className="h-4 w-4 shrink-0 text-purple-400" />}
+                      {sel && <Check className="h-4 w-4 shrink-0 text-purple-400" />}
                     </DropdownMenuItem>
                   )
                 })}
