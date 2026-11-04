@@ -32,7 +32,17 @@ function centered(n: number, sp: number): number[] {
 
 function elbowPath(x1: number, y1: number, x2: number, y2: number): string {
   const my = (y1 + y2) / 2
-  return `M ${x1} ${y1} L ${x1} ${my} L ${x2} ${my} L ${x2} ${y2}`
+  const dir = x2 >= x1 ? 1 : -1
+  const r = Math.min(12, Math.abs(x2 - x1) / 2, Math.abs(my - y1), Math.abs(y2 - my))
+  if (r < 1 || x1 === x2) return `M ${x1} ${y1} L ${x2} ${y2}`
+  return [
+    `M ${x1} ${y1}`,
+    `L ${x1} ${my - r}`,
+    `Q ${x1} ${my} ${x1 + dir * r} ${my}`,
+    `L ${x2 - dir * r} ${my}`,
+    `Q ${x2} ${my} ${x2} ${my + r}`,
+    `L ${x2} ${y2}`,
+  ].join(' ')
 }
 
 export function ConnectionGraph({ me, target, direct, connectors, second }: {
@@ -237,10 +247,11 @@ export function ConnectionGraph({ me, target, direct, connectors, second }: {
                   key={i}
                   d={elbowPath(a.x, a.y + a.r, b.x, b.y - b.r)}
                   fill="none"
-                  stroke={lit ? '#c4b5fd' : '#7c6aa8'}
-                  strokeWidth={lit ? 2.4 : 1}
-                  strokeOpacity={active ? (lit ? 0.95 : 0.06) : 0.3}
-                  style={{ transition: 'stroke-opacity 120ms, stroke-width 120ms' }}
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  stroke={lit ? '#c4b5fd' : active ? '#26232e' : '#48415c'}
+                  strokeWidth={lit ? 2.6 : 1.4}
+                  style={{ transition: 'stroke 120ms, stroke-width 120ms' }}
                 />
               )
             })}
@@ -294,16 +305,15 @@ function GraphNode({ node, dim, forceLabel, onHover, onClick }: {
   const [profile, setProfile] = useState<UserProfile | null>(() => useUserStore.getState().getCachedProfile(pubkey))
 
   useEffect(() => {
-    if (youLabel) return
     let cancelled = false
     const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
     useUserStore.getState().fetchProfile(pubkey, relays).then((p) => { if (!cancelled) setProfile(p) })
     return () => { cancelled = true }
-  }, [pubkey, youLabel])
+  }, [pubkey])
 
   const name = youLabel ? 'You' : (profile?.display_name || profile?.name || shortNpub(nip19.npubEncode(pubkey)))
   const short = name.length > 16 ? `${name.slice(0, 15)}…` : name
-  const pic = !youLabel ? (profile?.picture as string | undefined) : undefined
+  const pic = profile?.picture as string | undefined
   const ring = kind === 'target' ? '#a78bfa' : youLabel ? '#8b5cf6' : '#3a3a40'
   const bg = youLabel ? '#2a2140' : '#1c1c20'
 

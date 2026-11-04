@@ -3,7 +3,9 @@ import { Loader2, Waypoints, User, Users, ArrowDown, List, Network } from 'lucid
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { AuthorLine } from '@/components/social/AuthorLine'
 import { ConnectionGraph } from './ConnectionGraph'
+import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
 import { useAuthStore } from '@/stores/authStore'
+import { useUserStore } from '@/stores/userStore'
 import { useFollowsStore } from '@/stores/followsStore'
 import { useLensStore, requestScores } from '@/stores/lensStore'
 import { useSettingsStore } from '@/stores/settingsStore'
@@ -41,6 +43,15 @@ export function ConnectionModal({ open, onOpenChange, target }: {
   const [connectors, setConnectors] = useState<string[]>([])
   const [second, setSecond] = useState<{ connector: string; middle: string }[]>([])
   const [view, setView] = useState<'list' | 'graph'>('list')
+  const [myPic, setMyPic] = useState<string | undefined>(() => (me ? (useUserStore.getState().getCachedProfile(me)?.picture as string | undefined) : undefined))
+
+  useEffect(() => {
+    if (!open || !me) return
+    let cancelled = false
+    const relays = useSettingsStore.getState().getAllEnabledRelayUrls('read')
+    useUserStore.getState().fetchProfile(me, relays).then((p) => { if (!cancelled) setMyPic(p?.picture as string | undefined) })
+    return () => { cancelled = true }
+  }, [open, me])
 
   useEffect(() => {
     if (!open || !me) return
@@ -142,7 +153,10 @@ export function ConnectionModal({ open, onOpenChange, target }: {
             <div className="space-y-1.5">
             {/* You — the start of every path. */}
             <div className="flex items-center gap-2 rounded-lg border border-edge bg-panel px-2.5 py-2">
-              <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-purple-300"><User className="h-3.5 w-3.5" /></span>
+              <Avatar className="h-6 w-6 shrink-0 ring-2 ring-purple-500/40">
+                {myPic ? <AvatarImage src={myPic} alt="You" /> : null}
+                <AvatarFallback className="bg-purple-500/20 text-purple-300"><User className="h-3.5 w-3.5" /></AvatarFallback>
+              </Avatar>
               <span className="text-sm font-medium text-neutral-200">You</span>
             </div>
 
