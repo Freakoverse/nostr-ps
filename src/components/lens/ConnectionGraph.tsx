@@ -238,13 +238,15 @@ export function ConnectionGraph({ me, target, direct, connectors, second }: {
             <clipPath id="cg-clip" clipPathUnits="objectBoundingBox"><circle cx="0.5" cy="0.5" r="0.5" /></clipPath>
           </defs>
           <g transform={`translate(${t.x} ${t.y}) scale(${t.k})`}>
-            {edges.map((e, i) => {
+            {/* Two passes so a lit edge always paints over the dimmed ones
+                (SVG has no z-index); nodes then paint over every edge. */}
+            {[...edges].sort((a, b) => Number(litEdges.has(`${a.from}->${a.to}`)) - Number(litEdges.has(`${b.from}->${b.to}`))).map((e) => {
               const a = posOf.get(e.from), b = posOf.get(e.to)
               if (!a || !b) return null
               const lit = litEdges.has(`${e.from}->${e.to}`)
               return (
                 <path
-                  key={i}
+                  key={`${e.from}->${e.to}`}
                   d={elbowPath(a.x, a.y + a.r, b.x, b.y - b.r)}
                   fill="none"
                   strokeLinecap="round"
