@@ -151,7 +151,7 @@ export function ConnectionModal({ open, onOpenChange, target }: {
                 {bridges.slice(0, 6).map(({ middle, count }) => (
                   <div key={middle} className="flex items-center justify-between gap-2 rounded-lg border border-edge bg-panel p-2.5">
                     <div className="min-w-0 flex-1"><AuthorLine pubkey={middle} size="xs" showDegree={false} /></div>
-                    <span className="shrink-0 text-[11px] text-neutral-500">{count} of the {connectorCount}</span>
+                    <span className="shrink-0 text-[11px] text-neutral-500">{count >= connectorCount ? `all ${connectorCount}` : `${count} of ${connectorCount}`}</span>
                   </div>
                 ))}
                 {bridges.length > 6 && <p className="pl-1 text-[11px] text-neutral-600">+{bridges.length - 6} more bridges</p>}
