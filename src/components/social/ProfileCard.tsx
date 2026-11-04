@@ -12,6 +12,7 @@ import { useBlockStore, type BlockType } from '@/stores/blockStore'
 import { useDnnStore } from '@/stores/dnnStore'
 import { IdentityLine } from '@/components/social/IdentityLine'
 import { TrustBadge } from '@/components/lens/TrustBadge'
+import { DegreeBadge } from '@/components/lens/DegreeBadge'
 import { SafeImage } from '@/components/shared/SafeImage'
 import { FollowButton } from '@/components/social/FollowButton'
 import { BlockTypeModal } from '@/components/social/BlockTypeModal'
@@ -140,7 +141,10 @@ export function ProfileCard({ pubkey, extra, compact = false }: ProfileCardProps
               </AvatarFallback>
             </Avatar>
           </Link>
-          <TrustBadge pubkey={pubkey} className="mb-1" />
+          <div className="mb-1 flex items-center gap-1.5">
+            <TrustBadge pubkey={pubkey} />
+            <DegreeBadge pubkey={pubkey} />
+          </div>
         </div>
 
         {/* Name + 3-dot menu */}

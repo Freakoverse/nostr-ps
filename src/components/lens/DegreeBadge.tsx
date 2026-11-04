@@ -40,7 +40,14 @@ export function DegreeBadge({ pubkey, className }: { pubkey: string; className?:
           {ordinal(hops)} degree in your lens ({hops} hop{hops === 1 ? '' : 's'} away). Click to see who connects you.
         </TooltipContent>
       </Tooltip>
-      {open && <ConnectionModal open={open} onOpenChange={setOpen} target={pubkey} />}
+      {open && (
+        // The modal mounts inside a clickable card; even portaled, its events
+        // bubble through the React tree. Stop them here so closing it (overlay,
+        // X, or a click inside) never triggers the card's navigation.
+        <span style={{ display: 'contents' }} onClick={(e) => e.stopPropagation()} onPointerDown={(e) => e.stopPropagation()}>
+          <ConnectionModal open={open} onOpenChange={setOpen} target={pubkey} />
+        </span>
+      )}
     </>
   )
 }
