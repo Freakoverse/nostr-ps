@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Loader2, Waypoints, User, Users, ArrowDown, List, Network } from 'lucide-react'
+import { Loader2, Waypoints, User, Users, ArrowDown, List, Network, Eye, ChevronDown, Check } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
+import { DropdownMenu, DropdownMenuTrigger, DropdownMenuContent, DropdownMenuItem, DropdownMenuSeparator } from '@/components/ui/dropdown-menu'
 import { AuthorLine } from '@/components/social/AuthorLine'
 import { ConnectionGraph } from './ConnectionGraph'
 import { Avatar, AvatarImage, AvatarFallback } from '@/components/ui/avatar'
@@ -36,7 +37,10 @@ export function ConnectionModal({ open, onOpenChange, target }: {
   target: string
 }) {
   const me = useAuthStore((s) => s.pubkey)
-  const hops = useLensStore((s) => s.scores[target]?.hops ?? null)
+  const lensEnabled = useLensStore((s) => s.enabled)
+  const sources = useLensStore((s) => s.sources)
+  const score = useLensStore((s) => s.scores[target] ?? null)
+  const [lensSel, setLensSel] = useState<string>('all')
   const [loading, setLoading] = useState(false)
   const [deepening, setDeepening] = useState(false)
   const [direct, setDirect] = useState(false)
@@ -112,9 +116,27 @@ export function ConnectionModal({ open, onOpenChange, target }: {
   useEffect(() => { if (view !== 'graph') setExpanded(false) }, [view])
   useEffect(() => { if (!open) setExpanded(false) }, [open])
 
-  const degreeLine = hops != null && hops > 0
-    ? `Your lens puts them at ${ordinal(hops)} degree.`
-    : null
+  // Which lens frames the degree: "all" is the closest (min) across enabled
+  // sources — the old behaviour — or a single provider's own reading. Only the
+  // degree estimate is a lens opinion; the path below is your own signed follows,
+  // so switching lens never changes the graph.
+  const activeSources = useMemo(() => sources.filter((x) => x.enabled), [sources])
+  useEffect(() => { setLensSel('all') }, [target, open])
+  useEffect(() => {
+    if (lensSel !== 'all' && !activeSources.some((x) => x.id === lensSel)) setLensSel('all')
+  }, [activeSources, lensSel])
+  const hops = lensSel === 'all' ? (score?.hops ?? null) : (score?.perHops?.[lensSel] ?? null)
+  const selectedLensLabel = lensSel === 'all' ? 'All lenses' : (activeSources.find((x) => x.id === lensSel)?.label ?? 'Lens')
+
+  const degreeLine = !lensEnabled || activeSources.length === 0
+    ? null
+    : hops != null && hops > 0
+      ? (lensSel === 'all'
+          ? `Your lens puts them at ${ordinal(hops)} degree.`
+          : `${selectedLensLabel} puts them at ${ordinal(hops)} degree.`)
+      : lensSel !== 'all'
+        ? `${selectedLensLabel} doesn't rank them.`
+        : null
 
   const hasGraph = direct || connectors.length > 0 || bridges.length > 0
 
@@ -134,6 +156,41 @@ export function ConnectionModal({ open, onOpenChange, target }: {
             Reconstructed from signed contact lists — people you follow who follow them, or who connect to them one step further. Longer chains are left to a graph node.
           </DialogDescription>
         </DialogHeader>
+
+        {/* Lens picker — only when more than one source is on; otherwise there is nothing to choose between. */}
+        {lensEnabled && activeSources.length >= 2 && (
+          <div className="flex items-center gap-2 text-xs">
+            <span className="text-neutral-500">Seen through</span>
+            <DropdownMenu>
+              <DropdownMenuTrigger asChild>
+                <button type="button" className="inline-flex items-center gap-1.5 rounded-md border border-edge bg-panel px-2 py-1 text-neutral-200 transition-colors hover:bg-panel-2">
+                  <Eye className="h-3.5 w-3.5 text-purple-400" />
+                  <span className="max-w-[12rem] truncate">{selectedLensLabel}</span>
+                  <ChevronDown className="h-3.5 w-3.5 text-neutral-500" />
+                </button>
+              </DropdownMenuTrigger>
+              <DropdownMenuContent align="start" className="w-64 border-edge bg-panel">
+                <DropdownMenuItem onClick={() => setLensSel('all')} className="cursor-pointer justify-between">
+                  <span>All lenses <span className="text-neutral-500">· closest</span></span>
+                  {lensSel === 'all' && <Check className="h-4 w-4 text-purple-400" />}
+                </DropdownMenuItem>
+                <DropdownMenuSeparator className="bg-edge" />
+                {activeSources.map((x) => {
+                  const h = score?.perHops?.[x.id] ?? null
+                  return (
+                    <DropdownMenuItem key={x.id} onClick={() => setLensSel(x.id)} className="cursor-pointer justify-between gap-3">
+                      <span className="min-w-0">
+                        <span className="block truncate">{x.label}</span>
+                        <span className="block text-[11px] text-neutral-500">{h != null && h > 0 ? `${ordinal(h)} degree` : 'no reading'}</span>
+                      </span>
+                      {lensSel === x.id && <Check className="h-4 w-4 shrink-0 text-purple-400" />}
+                    </DropdownMenuItem>
+                  )
+                })}
+              </DropdownMenuContent>
+            </DropdownMenu>
+          </div>
+        )}
 
         {!me ? (
           <p className="rounded-lg border border-dashed border-edge px-3 py-8 text-center text-sm text-neutral-500">Log in to see who connects you to this person.</p>
