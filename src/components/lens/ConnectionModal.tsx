@@ -1,7 +1,8 @@
 import { useEffect, useMemo, useState, type ReactNode } from 'react'
-import { Loader2, Waypoints, User, Users, ArrowDown } from 'lucide-react'
+import { Loader2, Waypoints, User, Users, ArrowDown, List, Network } from 'lucide-react'
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from '@/components/ui/dialog'
 import { AuthorLine } from '@/components/social/AuthorLine'
+import { ConnectionGraph } from './ConnectionGraph'
 import { useAuthStore } from '@/stores/authStore'
 import { useFollowsStore } from '@/stores/followsStore'
 import { useLensStore, requestScores } from '@/stores/lensStore'
@@ -39,6 +40,7 @@ export function ConnectionModal({ open, onOpenChange, target }: {
   const [direct, setDirect] = useState(false)
   const [connectors, setConnectors] = useState<string[]>([])
   const [second, setSecond] = useState<{ connector: string; middle: string }[]>([])
+  const [view, setView] = useState<'list' | 'graph'>('list')
 
   useEffect(() => {
     if (!open || !me) return
@@ -98,6 +100,8 @@ export function ConnectionModal({ open, onOpenChange, target }: {
     ? `Your lens puts them at ${ordinal(hops)} degree.`
     : null
 
+  const hasGraph = direct || connectors.length > 0 || bridges.length > 0
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent
@@ -115,7 +119,27 @@ export function ConnectionModal({ open, onOpenChange, target }: {
         {!me ? (
           <p className="rounded-lg border border-dashed border-edge px-3 py-8 text-center text-sm text-neutral-500">Log in to see who connects you to this person.</p>
         ) : (
-          <div className="space-y-1.5">
+          <div className="space-y-3">
+            {hasGraph && (
+              <div className="flex justify-center">
+                <div className="inline-flex gap-0.5 rounded-lg border border-edge bg-panel p-0.5 text-xs">
+                  <button type="button" onClick={() => setView('list')} className={cn('inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 transition-colors', view === 'list' ? 'bg-panel-2 text-neutral-100' : 'text-neutral-500 hover:text-neutral-300')}><List className="h-3.5 w-3.5" /> List</button>
+                  <button type="button" onClick={() => setView('graph')} className={cn('inline-flex items-center gap-1.5 rounded-md px-2.5 py-1 transition-colors', view === 'graph' ? 'bg-panel-2 text-neutral-100' : 'text-neutral-500 hover:text-neutral-300')}><Network className="h-3.5 w-3.5" /> Graph</button>
+                </div>
+              </div>
+            )}
+
+            {view === 'graph' && hasGraph ? (
+              <>
+                <ConnectionGraph me={me} target={target} direct={direct} connectors={connectors} second={second} />
+                <p className="text-[11px] text-neutral-600">
+                  {connectors.length > 0 || direct
+                    ? 'Each line is a signed follow, you → someone you follow → them. Tap a node to open its profile.'
+                    : 'Each line is a signed follow, you → someone you follow → a bridge → them. Tap a node to open its profile.'}
+                </p>
+              </>
+            ) : (
+            <div className="space-y-1.5">
             {/* You — the start of every path. */}
             <div className="flex items-center gap-2 rounded-lg border border-edge bg-panel px-2.5 py-2">
               <span className="flex h-6 w-6 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-purple-300"><User className="h-3.5 w-3.5" /></span>
@@ -176,6 +200,8 @@ export function ConnectionModal({ open, onOpenChange, target }: {
                     ? 'They are broadly connected to your network — there is no single weak link to cut.'
                     : 'The bridges are where the connection concentrates — unfollow a bridging follow, or mute a bridge, to cut it.'}
               </p>
+            )}
+            </div>
             )}
           </div>
         )}
