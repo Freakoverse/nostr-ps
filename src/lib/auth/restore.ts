@@ -13,7 +13,10 @@
 
 import { useAuthStore, type AuthMethod, type ISigner } from '@/stores/authStore'
 import { StorageKey, SECURE_KEYS } from '@/lib/constants'
-import { Nip07Signer, BunkerSigner, PC55Signer } from '@/lib/auth'
+import {
+  Nip07Signer, BunkerSigner,
+  loadLrsSession, saveLrsSession, probeKnownPort, findSignerByTransport, connectLocalSigner,
+} from '@/lib/auth'
 import { secureGet, secureRemove } from '@/lib/storage/secureStore'
 import upv2Service, { type UPV2Session } from '@/services/upv2.service'
 
@@ -53,10 +56,29 @@ async function doRestore(): Promise<void> {
         await signer.login(bunkerString, false)
         setSigner(signer as unknown as ISigner)
       }
-    } else if (method === 'pc55') {
-      const signer = new PC55Signer()
-      await signer.init()
-      setSigner(signer as unknown as ISigner)
+    } else if (method === 'lrs') {
+      // The port is a cache; the transport key is the identity. Try the
+      // last-known port first, then scan the range — but only ever reconnect to
+      // the port presenting the *pinned* transport key. If none does, the signer
+      // is offline: leave the session marker and let signing re-prompt rather
+      // than connect to a different signer that grabbed the old port.
+      const session = loadLrsSession()
+      if (session && session.accountPubkey === pubkey) {
+        const info =
+          (await probeKnownPort(session.lastPort, session.transportPubkey)) ??
+          (await findSignerByTransport(session.transportPubkey))
+        if (info) {
+          const { signer, pubkey: account } = await connectLocalSigner({
+            transportPubkey: session.transportPubkey,
+            port: info.port,
+            isInitialConnection: false,
+          })
+          if (account === pubkey) {
+            if (info.port !== session.lastPort) saveLrsSession({ ...session, lastPort: info.port })
+            setSigner(signer as unknown as ISigner)
+          }
+        }
+      }
     } else if (method === 'upv2') {
       const session = await secureGet<UPV2Session>(SECURE_KEYS.UPV2_SESSION)
       if (session && session.signerPubkey === pubkey && session.expiresAt > Date.now()) {

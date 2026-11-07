@@ -34,10 +34,22 @@ export class BunkerSigner {
   /**
    * Login with a bunker:// URL.
    * @param bunker - bunker:// URL string
-   * @param isInitialConnection - whether to send connect handshake
+   * @param isInitialConnection - whether to send the connect handshake
+   * @param metadata - optional app metadata ({name, url, image}) sent as an extra
+   *   `connect` param so the signer can label the connection with a real app name
+   *   instead of a raw key or origin. Advisory and display-only; sent only on the
+   *   initial connect (the signer keeps the stored name on reconnect). Standard
+   *   `connect()` carries no such field, so we issue the request directly.
+   * @param connectTimeoutMs - override for the connect handshake timeout, e.g. a
+   *   longer window when the user must approve in a local signer's own UI.
    * @returns The user's Nostr pubkey
    */
-  async login(bunker: string, isInitialConnection = true): Promise<string> {
+  async login(
+    bunker: string,
+    isInitialConnection = true,
+    metadata?: Record<string, unknown>,
+    connectTimeoutMs = CONNECT_TIMEOUT_MS,
+  ): Promise<string> {
     const bunkerPointer = await parseBunkerInput(bunker)
     if (!bunkerPointer) {
       throw new Error('Invalid bunker URL')
@@ -50,9 +62,16 @@ export class BunkerSigner {
     })
 
     if (isInitialConnection) {
+      const handshake = metadata
+        ? this.signer.sendRequest('connect', [
+            bunkerPointer.pubkey,
+            bunkerPointer.secret || '',
+            JSON.stringify(metadata),
+          ]).then(() => undefined)
+        : this.signer.connect()
       await withTimeout(
-        this.signer.connect(),
-        CONNECT_TIMEOUT_MS,
+        handshake,
+        connectTimeoutMs,
         'Signer did not respond — make sure it is online and approve the connection request',
       )
     }

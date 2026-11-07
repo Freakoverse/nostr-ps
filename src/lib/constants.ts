@@ -19,7 +19,11 @@ export const StorageKey = {
   AUTH_METHOD: 'nip-ps:auth-method',
   BUNKER_KEY: 'nip-ps:bunker-key',
   BUNKER_STRING: 'nip-ps:bunker-string',
-  PC55_CLIENT_KEY: 'nip-ps:pc55-client-key',
+  // NIP-LRS: the active local-signer session pointer {transportPubkey, accountPubkey, lastPort}.
+  LRS_SIGNER: 'nip-ps:lrs-signer',
+  // NIP-LRS: per-signer client key, suffixed with the signer's transport pubkey.
+  // One key per signer (survives logout) so re-login is silent and never duplicates.
+  LRS_CLIENT_KEY_PREFIX: 'nip-ps:lrs-client-key:',
   CLIENT_RELAYS: 'nip-ps:client-relays',
   CLIENT_BLOSSOMS: 'nip-ps:client-blossoms',
   USER_RELAYS: 'nip-ps:user-relays',

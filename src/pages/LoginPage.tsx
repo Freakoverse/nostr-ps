@@ -7,8 +7,8 @@ import {
   Nip07Signer, hasNip07Extension,
   BunkerSigner,
   NostrConnectSigner, generateNostrConnectDetails,
-  discover, PC55Signer,
-  type DiscoverResult,
+  discoverSigners, connectLocalSigner, saveLrsSession, fingerprint,
+  type LrsSignerInfo,
 } from '@/lib/auth'
 import upv2Service from '@/services/upv2.service'
 import { toast } from 'sonner'
@@ -29,7 +29,7 @@ import { motion, AnimatePresence } from 'framer-motion'
 import { QRCodeSVG } from 'qrcode.react'
 
 // ── Screen types (no enum: erasableSyntaxOnly) ─────────────────────
-type Screen = 'main' | 'extension' | 'nip46' | 'pc55' | 'upv2'
+type Screen = 'main' | 'extension' | 'nip46' | 'lrs' | 'upv2'
 
 const fadeVariants = {
   initial: { opacity: 0, y: 12 },
@@ -46,6 +46,7 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
   const navigate = useNavigate()
   const login = useAuthStore((s) => s.login)
   const setSigner = useAuthStore((s) => s.setSigner)
+  const setLocalSigner = useAuthStore((s) => s.setLocalSigner)
 
   // Post-login: close the overlay (stay on the current page) or go home.
   const finish = () => { if (onClose) onClose(); else navigate('/') }
@@ -71,8 +72,8 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
   const connectAbortRef = useRef<AbortController | null>(null)
   const [copied, setCopied] = useState(false)
 
-  // ── PC55 ────────────────────────────────────────────────────────────
-  const [discoveryResult, setDiscoveryResult] = useState<DiscoverResult | null>(null)
+  // ── NIP-LRS (local relay signer) ────────────────────────────────────
+  const [signers, setSigners] = useState<LrsSignerInfo[]>([])
 
   // ── Helpers ─────────────────────────────────────────────────────────
   const goBack = () => {
@@ -201,20 +202,23 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
   }
 
   // ═══════════════════════════════════════════════════════════════════
-  //  3. PC55: Local Signer Login
+  //  3. NIP-LRS: Local Relay Signer Login
   // ═══════════════════════════════════════════════════════════════════
+  // Scan loopback ports 7777–7786 for a signer's NIP-11 marker. Discovery
+  // reveals only a name + random transport key, never an account — the account
+  // is disclosed only after the user approves the connection in the signer's UI.
   const handleLocalSignerDiscover = async () => {
-    setLoading('pc55')
-    setDiscoveryResult(null)
+    setLoading('lrs')
+    setSigners([])
     try {
-      const info = await discover()
-      if (!info) {
+      const found = await discoverSigners()
+      if (!found.length) {
         setShowLocalGuide(true)
         setLoading(null)
         return
       }
-      setDiscoveryResult(info)
-      setScreen('pc55')
+      setSigners(found)
+      setScreen('lrs')
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Discovery failed')
     } finally {
@@ -222,15 +226,20 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
     }
   }
 
-  const handlePC55Login = async () => {
-    setLoading('pc55-connect')
+  const handleLrsConnect = async (info: LrsSignerInfo) => {
+    setLoading(`lrs-connect:${info.transportPubkey}`)
     try {
-      const signer = new PC55Signer()
-      await signer.init()
-      const pubkey = await signer.getPublicKey()
+      const { signer, pubkey } = await connectLocalSigner({
+        transportPubkey: info.transportPubkey,
+        port: info.port,
+        isInitialConnection: true,
+      })
+      // Pin the signer (TOFU) and remember the account it logged in as.
+      saveLrsSession({ transportPubkey: info.transportPubkey, accountPubkey: pubkey, lastPort: info.port })
       setSigner(signer)
-      login(pubkey, 'pc55')
-      toast.success('Connected to local signer')
+      setLocalSigner(info.name)
+      login(pubkey, 'lrs')
+      toast.success(`Connected to ${info.name}`)
       finish()
     } catch (err) {
       toast.error(err instanceof Error ? err.message : 'Failed to connect to local signer')
@@ -322,9 +331,9 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
                       variant="outline"
                       className="grow gap-1.5 text-xs border-edge bg-panel-2 text-foreground hover:bg-panel-3"
                       onClick={handleLocalSignerDiscover}
-                      disabled={loading === 'pc55'}
+                      disabled={loading === 'lrs'}
                     >
-                      {loading === 'pc55' ? (
+                      {loading === 'lrs' ? (
                         <Loader2 className="h-3.5 w-3.5 animate-spin" />
                       ) : (
                         <Monitor className="h-3.5 w-3.5" />
@@ -463,10 +472,10 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
               </motion.div>
             )}
 
-            {/* ── PC55 Screen ────────────────────────────────── */}
-            {screen === 'pc55' && (
+            {/* ── NIP-LRS (local relay signer) Screen ─────────── */}
+            {screen === 'lrs' && (
               <motion.div
-                key="pc55"
+                key="lrs"
                 variants={fadeVariants}
                 initial="initial"
                 animate="animate"
@@ -476,55 +485,53 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
               >
                 <ScreenHeader title="Local Signer" onBack={goBack} />
 
-                {discoveryResult ? (
+                {signers.length > 0 ? (
                   <div className="space-y-4">
-                    <div className="rounded-lg border border-edge bg-panel-2 p-4">
-                      <div className="flex items-center gap-2 text-sm text-neutral-400">
-                        <Monitor className="h-4 w-4 text-green-400" />
-                        <span>
-                          Found: <span className="font-medium text-foreground">{discoveryResult.name}</span>
-                          {discoveryResult.version && (
-                            <span className="ml-1 text-neutral-500">v{discoveryResult.version}</span>
-                          )}
-                        </span>
-                      </div>
-                    </div>
+                    <p className="text-sm text-neutral-400">
+                      {signers.length === 1
+                        ? 'Found a local signer. Connect, then approve the request in the signer app — it will ask which account to use.'
+                        : `Found ${signers.length} local signers. Pick one, then approve in the signer app.`}
+                    </p>
 
-                    {discoveryResult.accounts.length > 0 && (
-                      <div className="space-y-2">
-                        <p className="text-xs font-medium text-neutral-500 uppercase tracking-wider">
-                          Available Accounts
-                        </p>
-                        {discoveryResult.accounts.map((account) => (
-                          <div
-                            key={account.npub}
-                            className="flex items-center gap-3 rounded-lg border border-edge bg-panel-2 px-4 py-3"
+                    <div className="space-y-2">
+                      {signers.map((s) => {
+                        const connecting = loading === `lrs-connect:${s.transportPubkey}`
+                        const busy = loading?.startsWith('lrs-connect:')
+                        return (
+                          <button
+                            key={s.transportPubkey}
+                            onClick={() => handleLrsConnect(s)}
+                            disabled={busy}
+                            className="flex w-full items-center gap-3 rounded-lg border border-edge bg-panel-2 px-4 py-3 text-left transition-colors hover:border-purple-500/30 hover:bg-panel-3 disabled:opacity-50"
                           >
-                            <div className="flex h-8 w-8 items-center justify-center rounded-full bg-purple-500/20 text-purple-400">
-                              <Key className="h-4 w-4" />
+                            <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-purple-500/20 text-purple-400">
+                              {connecting ? <Loader2 className="h-4 w-4 animate-spin" /> : <Monitor className="h-4 w-4" />}
                             </div>
                             <div className="min-w-0 flex-1">
-                              <p className="truncate text-sm font-medium text-foreground">
-                                {account.display_name || 'Unnamed'}
-                              </p>
-                              <p className="truncate text-xs text-neutral-500">
-                                {account.npub.slice(0, 16)}…{account.npub.slice(-8)}
+                              <p className="truncate text-sm font-medium text-foreground">{s.name}</p>
+                              {/* The name is self-declared and can collide; the key fingerprint
+                                  (+ port) is what actually tells two signers apart. */}
+                              <p className="truncate font-mono text-xs text-neutral-500">
+                                {fingerprint(s.transportPubkey)} · :{s.port}
                               </p>
                             </div>
-                          </div>
-                        ))}
-                      </div>
-                    )}
+                            {connecting ? (
+                              <span className="shrink-0 text-xs text-neutral-400">Approve in app…</span>
+                            ) : (
+                              <ChevronRight className="h-4 w-4 shrink-0 text-neutral-500" />
+                            )}
+                          </button>
+                        )
+                      })}
+                    </div>
 
-                    <Button
-                      className="w-full bg-purple-600 text-white hover:bg-purple-700"
-                      onClick={handlePC55Login}
-                      disabled={loading === 'pc55-connect'}
+                    <button
+                      onClick={handleLocalSignerDiscover}
+                      disabled={!!loading}
+                      className="flex w-full items-center justify-center gap-1.5 text-xs text-neutral-500 transition-colors hover:text-neutral-300 disabled:opacity-50"
                     >
-                      {loading === 'pc55-connect' ? (
-                        <><Loader2 className="h-4 w-4 animate-spin" /> Connecting…</>
-                      ) : 'Connect to Signer'}
-                    </Button>
+                      <RefreshCw className={cn('h-3 w-3', loading === 'lrs' && 'animate-spin')} /> Rescan
+                    </button>
                   </div>
                 ) : (
                   <div className="flex flex-col items-center gap-3 py-8">
@@ -871,8 +878,9 @@ function LocalSignerGuideModal({ open, onClose, onRetry }: { open: boolean; onCl
 
         <div className="space-y-4 px-5 py-4">
           <p className="text-[13px] leading-relaxed text-neutral-400">
-            No local signer was detected on <code className="rounded bg-edge px-1.5 py-0.5 text-xs text-purple-300">ws://localhost:7777</code>.
-            A local signer is a desktop app that holds your keys on this device and signs for the sites you use.
+            No local signer was detected on <code className="rounded bg-edge px-1.5 py-0.5 text-xs text-purple-300">127.0.0.1:7777–7786</code>.
+            A local signer is a desktop app that holds your keys on this device and signs for the sites you use,
+            over a private relay bound to this machine.
           </p>
 
           <div className="flex items-start gap-2 rounded-lg border border-amber-500/20 bg-amber-500/10 p-3">
