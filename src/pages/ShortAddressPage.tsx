@@ -1,7 +1,7 @@
-import { useEffect, useRef, useState } from 'react'
-import { Link, useParams } from 'react-router-dom'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { Link, Navigate, useParams } from 'react-router-dom'
 import { Check, Loader2, Circle, SearchX, GitFork } from 'lucide-react'
-import type { Event as NostrEvent } from 'nostr-tools'
+import { nip19, type Event as NostrEvent } from 'nostr-tools'
 import { KINDS } from '@/lib/constants'
 import { useSettingsStore } from '@/stores/settingsStore'
 import { parseShortAddress, resolveShortAddress, selectorFor, formatShortAddress, shortCodeOf, type ShortStep } from '@/lib/nostr/nipShort'
@@ -37,7 +37,31 @@ export function ShortAddressPage() {
   const [now, setNow] = useState(Date.now())
   const timer = useRef<number | null>(null)
 
+  // The root `/:short` also catches a pasted NIP-19 entity (nevent, note, naddr,
+  // npub, nprofile). It is not a short address, so send it to the page that
+  // renders it instead of 404ing. A real short address (starts with `s`) parses,
+  // so it never reaches this.
+  const redirect = useMemo<string | null>(() => {
+    if (!short || parseShortAddress(short)) return null
+    try {
+      const d = nip19.decode(short)
+      switch (d.type) {
+        case 'nevent':
+        case 'note':
+          return `/release/${short}`
+        case 'naddr':
+          return `/draft/${short}`
+        case 'npub':
+          return `/profile/${short}`
+        case 'nprofile':
+          return `/profile/${nip19.npubEncode((d.data as { pubkey: string }).pubkey)}`
+      }
+    } catch { /* not a NIP-19 entity */ }
+    return null
+  }, [short])
+
   useEffect(() => {
+    if (redirect) return
     if (!parseShortAddress(short)) { setState({ status: 'bad-address' }); return }
     let cancelled = false
     const startedAt: Record<string, number> = { parsing: Date.now() }
@@ -56,11 +80,13 @@ export function ShortAddressPage() {
       } else setState(res.status === 'ambiguous' ? { status: 'ambiguous', candidates: res.candidates } : { status: res.status })
     })
     return () => { cancelled = true; if (timer.current) window.clearInterval(timer.current) }
-  }, [short])
+  }, [short, redirect])
 
   useEffect(() => {
     if (state.status !== 'working' && timer.current) { window.clearInterval(timer.current); timer.current = null }
   }, [state.status])
+
+  if (redirect) return <Navigate to={redirect} replace />
 
   if (state.status === 'bad-address') return <NotFoundPage />
 
