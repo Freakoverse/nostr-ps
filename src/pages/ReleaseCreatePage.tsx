@@ -62,10 +62,18 @@ export function ReleaseCreatePage() {
       if (cancelled) return
       setDraft(d)
       if (d) {
-        setTitle(d.title); setSummary(d.summary ?? ''); setContent(d.content)
         const rs = await fetchReleasesForDraft(relays, d).catch(() => [])
         if (cancelled) return
         setReleases(rs)
+        // A new version continues from the latest *release*, not the draft.
+        // Release bodies are edited here and never written back to the draft, so
+        // after the first release the draft lags behind; prefilling from it would
+        // revert the published text (and make Compare show stale draft noise).
+        // Only the very first release starts from the draft body.
+        const latest = rs[0]
+        setTitle(latest ? latest.title : d.title)
+        setSummary(latest ? (latest.summary ?? '') : (d.summary ?? ''))
+        setContent(latest ? latest.content : d.content)
         // Resolve the fork parent so the release can carry the optional `p` tag and show its title.
         const fid = d.event.tags.find((t) => t[0] === 'fork')?.[1]?.trim().toLowerCase()
         if (fid && /^[0-9a-f]{64}$/.test(fid)) fetchRelease(relays, fid).then((p) => { if (!cancelled) setParent(p) }).catch(() => {})
