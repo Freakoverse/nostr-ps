@@ -198,7 +198,12 @@ export function ReleaseCreatePage() {
 
       <div className="space-y-1.5">
         <label className="text-sm font-medium text-neutral-200">Spec text <span className="text-neutral-500">(frozen on publish)</span></label>
-        <MarkdownEditor value={content} onChange={setContent} maxLength={LIMITS.body} />
+        <MarkdownEditor
+          value={content}
+          onChange={setContent}
+          maxLength={LIMITS.body}
+          compareWith={prev ? { content: prev.content, label: `v${prev.version}` } : undefined}
+        />
       </div>
 
       <div className="space-y-2 rounded-lg border border-edge bg-panel p-3 text-sm">
