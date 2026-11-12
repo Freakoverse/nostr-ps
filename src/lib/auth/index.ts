@@ -16,7 +16,10 @@ export {
   LRS_PORT_RANGE,
   type LrsSignerInfo, type LrsSession,
 } from './lrs'
-export { BunkerSigner } from './bunker'
+export {
+  BunkerSigner,
+  bunkerSignerPubkey, loadBunkerClientKey, saveBunkerClientKey, loadOrCreateBunkerClientKey,
+} from './bunker'
 export { NostrConnectSigner, generateNostrConnectDetails } from './nostr-connect'
 export { Nip07Signer, hasNip07Extension } from './nip07'
 export {

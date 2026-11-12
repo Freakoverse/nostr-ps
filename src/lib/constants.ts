@@ -17,8 +17,15 @@ export const SOCIAL_UPLOAD_ACCEPT = `${IMAGE_UPLOAD_ACCEPT},.mp4,.webm,.mov,.m4v
 export const StorageKey = {
   CURRENT_ACCOUNT: 'nip-ps:current-account',
   AUTH_METHOD: 'nip-ps:auth-method',
+  // Legacy single NIP-46 client key (one slot, wiped on logout). Read only for a
+  // one-time migration into the per-signer keys below; no longer written.
   BUNKER_KEY: 'nip-ps:bunker-key',
+  // The active bunker session pointer: the bunker:// string of the current signer.
   BUNKER_STRING: 'nip-ps:bunker-string',
+  // NIP-46 client key per signer, suffixed with the signer pubkey the bunker URL
+  // addresses. One key per signer (survives logout) so re-login resumes the same
+  // connection and policy instead of prompting again and piling up duplicates.
+  BUNKER_CLIENT_KEY_PREFIX: 'nip-ps:bunker-client-key:',
   // NIP-LRS: the active local-signer session pointer {transportPubkey, accountPubkey, lastPort}.
   LRS_SIGNER: 'nip-ps:lrs-signer',
   // NIP-LRS: per-signer client key, suffixed with the signer's transport pubkey.

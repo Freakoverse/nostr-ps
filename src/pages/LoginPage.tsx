@@ -8,6 +8,7 @@ import {
   BunkerSigner,
   NostrConnectSigner, generateNostrConnectDetails,
   discoverSigners, connectLocalSigner, saveLrsSession, fingerprint,
+  bunkerSignerPubkey, loadOrCreateBunkerClientKey, saveBunkerClientKey,
   type LrsSignerInfo,
 } from '@/lib/auth'
 import upv2Service from '@/services/upv2.service'
@@ -118,11 +119,15 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
     }
     setLoading('bunker')
     try {
-      const signer = new BunkerSigner()
-      const pubkey = await signer.login(bunkerUrl.trim())
-      localStorage.setItem(StorageKey.BUNKER_KEY, signer.getClientSecretKey())
-      // store bunker URL for session restore
-      localStorage.setItem(StorageKey.BUNKER_STRING, bunkerUrl.trim())
+      const url = bunkerUrl.trim()
+      // Reuse this signer's persistent client key so it recognizes us and resumes
+      // the stored approval instead of registering a new connection each login.
+      const signerPubkey = await bunkerSignerPubkey(url)
+      if (!signerPubkey) { toast.error('Invalid bunker URL'); setLoading(null); return }
+      const signer = new BunkerSigner(loadOrCreateBunkerClientKey(signerPubkey))
+      const pubkey = await signer.login(url)
+      // Remember the active signer so a reload/new tab can restore it.
+      localStorage.setItem(StorageKey.BUNKER_STRING, url)
       setSigner(signer)
       login(pubkey, 'nip46')
       toast.success('Connected via bunker')
@@ -160,7 +165,11 @@ export function LoginPage({ onClose }: { onClose?: () => void } = {}) {
       if (abortController.signal.aborted) return
       if (bunkerString) {
         localStorage.setItem(StorageKey.BUNKER_STRING, bunkerString)
-        localStorage.setItem(StorageKey.BUNKER_KEY, signer.getClientSecretKey())
+        // Store the client key under the signer it paired with, so a reload
+        // restores the same connection. (A fresh QR re-pair is a new client by
+        // design — the signer isn't known until pairing completes.)
+        const sp = await bunkerSignerPubkey(bunkerString)
+        if (sp) saveBunkerClientKey(sp, signer.getClientSecretKey())
       }
       setSigner(signer)
       login(pubkey, 'nip46')

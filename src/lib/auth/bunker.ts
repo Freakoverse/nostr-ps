@@ -9,11 +9,55 @@
 import { generateSecretKey, getPublicKey } from 'nostr-tools'
 import { BunkerSigner as NBunkerSigner, parseBunkerInput } from 'nostr-tools/nip46'
 import { bytesToHex, hexToBytes } from '@noble/hashes/utils'
+import { StorageKey } from '@/lib/constants'
 
 // Cap the initial handshake so an unreachable relay or an offline/unapproved
 // signer surfaces an error instead of spinning "Connecting…" forever.
 const CONNECT_TIMEOUT_MS = 30_000
 const PUBKEY_TIMEOUT_MS = 15_000
+
+// ─── Per-signer client key ──────────────────────────────────────────
+//
+// In NIP-46 a connection and its stored approval are keyed by the CLIENT
+// pubkey, not by the bunker string. A client that mints a fresh key per login
+// looks like a new client every time: the signer re-prompts and its connected-
+// apps list fills with duplicates. So we persist ONE client key per signer,
+// keyed by the signer pubkey the bunker URL addresses, and reuse it on every
+// later login — and it must survive logout, or the bug returns.
+
+/** The signer (remote) pubkey a bunker:// URL addresses, or null if unparseable. */
+export async function bunkerSignerPubkey(bunkerUrl: string): Promise<string | null> {
+  try {
+    const bp = await parseBunkerInput(bunkerUrl)
+    return bp?.pubkey ?? null
+  } catch {
+    return null
+  }
+}
+
+const bunkerKeyStorageKey = (signerPubkey: string) => StorageKey.BUNKER_CLIENT_KEY_PREFIX + signerPubkey
+
+/** The stored client key for a signer, or null — never creates one. */
+export function loadBunkerClientKey(signerPubkey: string): string | null {
+  try {
+    const s = localStorage.getItem(bunkerKeyStorageKey(signerPubkey))
+    if (s && /^[0-9a-f]{64}$/i.test(s)) return s
+  } catch { /* ignore */ }
+  return null
+}
+
+export function saveBunkerClientKey(signerPubkey: string, clientKey: string): void {
+  try { localStorage.setItem(bunkerKeyStorageKey(signerPubkey), clientKey) } catch { /* ignore */ }
+}
+
+/** Load the persistent client key for a signer, creating and persisting one the first time. */
+export function loadOrCreateBunkerClientKey(signerPubkey: string): string {
+  const existing = loadBunkerClientKey(signerPubkey)
+  if (existing) return existing
+  const key = bytesToHex(generateSecretKey())
+  saveBunkerClientKey(signerPubkey, key)
+  return key
+}
 
 function withTimeout<T>(promise: Promise<T>, ms: number, message: string): Promise<T> {
   return Promise.race([

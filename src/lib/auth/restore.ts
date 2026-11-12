@@ -15,6 +15,7 @@ import { useAuthStore, type AuthMethod, type ISigner } from '@/stores/authStore'
 import { StorageKey, SECURE_KEYS } from '@/lib/constants'
 import {
   Nip07Signer, BunkerSigner,
+  bunkerSignerPubkey, loadBunkerClientKey, saveBunkerClientKey,
   loadLrsSession, saveLrsSession, probeKnownPort, findSignerByTransport, connectLocalSigner,
 } from '@/lib/auth'
 import { secureGet, secureRemove } from '@/lib/storage/secureStore'
@@ -49,12 +50,26 @@ async function doRestore(): Promise<void> {
       await signer.init()
       setSigner(signer as unknown as ISigner)
     } else if (method === 'nip46') {
-      const clientKey = localStorage.getItem(StorageKey.BUNKER_KEY)
       const bunkerString = localStorage.getItem(StorageKey.BUNKER_STRING)
-      if (clientKey && bunkerString) {
-        const signer = new BunkerSigner(clientKey)
-        await signer.login(bunkerString, false)
-        setSigner(signer as unknown as ISigner)
+      if (bunkerString) {
+        // The client key is persisted per signer; derive the signer from the
+        // stored bunker string and reuse its key so the signer resumes the same
+        // connection without a fresh approval.
+        const signerPubkey = await bunkerSignerPubkey(bunkerString)
+        let clientKey = signerPubkey ? loadBunkerClientKey(signerPubkey) : null
+        // One-time migration from the old single-slot key (pre per-signer keys).
+        if (!clientKey) {
+          const legacy = localStorage.getItem(StorageKey.BUNKER_KEY)
+          if (legacy && /^[0-9a-f]{64}$/i.test(legacy)) {
+            clientKey = legacy
+            if (signerPubkey) saveBunkerClientKey(signerPubkey, legacy)
+          }
+        }
+        if (clientKey) {
+          const signer = new BunkerSigner(clientKey)
+          await signer.login(bunkerString, false)
+          setSigner(signer as unknown as ISigner)
+        }
       }
     } else if (method === 'lrs') {
       // The port is a cache; the transport key is the identity. Try the

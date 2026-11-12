@@ -58,10 +58,11 @@ export const useAuthStore = create<AuthState>((set, get) => ({
     secureRemove(SECURE_KEYS.UPV2_SESSION).catch(() => {})
     localStorage.removeItem(StorageKey.CURRENT_ACCOUNT)
     localStorage.removeItem(StorageKey.AUTH_METHOD)
-    localStorage.removeItem(StorageKey.BUNKER_KEY)
+    // Clear the active session pointers, but keep the per-signer client keys
+    // (nip-ps:bunker-client-key:* and the LRS keys). In NIP-46 the connection and
+    // its approval are keyed by the client key; wiping it on logout would make
+    // the signer re-prompt and accrue a duplicate connection on every re-login.
     localStorage.removeItem(StorageKey.BUNKER_STRING)
-    // Clear the active LRS session pointer. Per-signer client keys are kept
-    // (keyed by transport pubkey) so a later re-login resumes silently.
     clearLrsSession()
     set({
       isAuthenticated: false,
