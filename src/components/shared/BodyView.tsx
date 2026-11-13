@@ -17,7 +17,7 @@ export function BodyView({ content }: { content: string }) {
 
   return (
     <div className="space-y-3">
-      <div className="flex justify-end">
+      <div className="flex justify-center">
         <div className="inline-flex gap-0.5 rounded-lg border border-edge bg-panel-2 p-0.5 text-xs">
           <button
             type="button"
