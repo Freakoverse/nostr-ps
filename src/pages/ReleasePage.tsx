@@ -46,7 +46,7 @@ import { BackupDialog } from '@/components/ps/BackupDialog'
 import { BackupListDialog } from '@/components/ps/BackupListDialog'
 import { ForkDialog } from '@/components/ps/ForkDialog'
 import { ForkListDialog } from '@/components/ps/ForkListDialog'
-import { CollapsibleBody } from '@/components/shared/CollapsibleBody'
+import { BodyView } from '@/components/shared/BodyView'
 import { Tabs, TabsList, TabsTrigger, TabsContent } from '@/components/ui/tabs'
 
 const tabTrigger = 'py-1.5 data-[state=active]:bg-edge data-[state=active]:text-purple-400'
@@ -429,9 +429,7 @@ export function ReleasePage({ resolved }: { resolved?: NostrEvent } = {}) {
         {/* Body */}
         <article className="min-w-0 self-start rounded-lg border border-edge bg-panel p-6">
           {showBody ? (
-            <CollapsibleBody>
-              <Markdown content={release.content} className="text-[15px]" />
-            </CollapsibleBody>
+            <BodyView content={release.content} />
           ) : (
             <div className="space-y-3 text-sm text-neutral-400">
               <p className="flex items-center gap-2 font-medium text-amber-400"><AlertCircle className="h-4 w-4" /> This release event was not found on your relays.</p>

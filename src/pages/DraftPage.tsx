@@ -5,7 +5,7 @@ import { AuthorCard, MetaCard, ShareCard } from '@/components/ps/SideCards'
 import { PowBadge } from '@/components/shared/PowBadge'
 import { Tip } from '@/components/shared/Tip'
 import { formatRelativeTime, formatTimestamp } from '@/lib/utils'
-import { CollapsibleBody } from '@/components/shared/CollapsibleBody'
+import { BodyView } from '@/components/shared/BodyView'
 import { Link, useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { nip19, type Event as NostrEvent } from 'nostr-tools'
 import { Loader2, Pencil, Rocket, AlertCircle, ArrowRight, Trash2, FileText } from 'lucide-react'
@@ -183,9 +183,7 @@ export function DraftPage({ resolved }: { resolved?: NostrEvent } = {}) {
 
       <div className="grid gap-6 lg:grid-cols-[1fr_280px]">
         <article className="min-w-0 self-start rounded-lg border border-edge bg-panel p-6">
-          <CollapsibleBody>
-            <Markdown content={draft.content} className="text-[15px]" />
-          </CollapsibleBody>
+          <BodyView content={draft.content} />
         </article>
         <aside className="space-y-4">
           <AuthorCard pubkey={draft.pubkey} />
