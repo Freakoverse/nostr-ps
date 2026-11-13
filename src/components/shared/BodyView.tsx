@@ -16,7 +16,7 @@ export function BodyView({ content }: { content: string }) {
   const [mode, setMode] = useState<Mode>('rendered')
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-6">
       <div className="flex justify-center">
         <div className="inline-flex gap-0.5 rounded-lg border border-edge bg-panel-2 p-0.5 text-xs">
           <button
